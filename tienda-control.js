@@ -143,4 +143,84 @@ function conmutarFormularioRetiro(metodoElegido) {
         btnUsdt.style.backgroundColor = '#1a1a1f'; btnUsdt.style.color = '#888'; bloqueUsdt.style.display = 'none';
     }
 }
+// =============================================================================
+// 💾 CONFIGURACIÓN DE PERFIL FINANCIERO: LEER Y GUARDAR BILLETERAS / PAGO MÓVIL
+// =============================================================================
+
+// Ejecutar la lectura de los datos guardados apenas cargue la interfaz
+document.addEventListener('DOMContentLoaded', async () => {
+    // Esta función busca en Supabase si el usuario ya configuró sus cuentas antes
+    await cargarPerfilFinancieroPrevio();
+});
+
+// A. FUNCIÓN PARA LEER DE SUPABASE Y AUTORELLENAR LAS CAJAS DE TEXTO
+async function cargarPerfilFinancieroPrevio() {
+    try {
+        // Consultar la fila del jugador en la tabla 'Usuarios'
+        const { data: usuario, error } = await supabaseClient
+            .from('Usuarios')
+            .select('wallet_ton_address, pago_movil_banco, pago_movil_cedula, pago_movil_telefono')
+            .eq('id_usuario', JUGADOR_ID_MOCK) // Filtra estrictamente por la cuenta del usuario activo
+            .maybeSingle(); // Devuelve la fila limpia o null si no hay datos
+
+        if (error) throw error;
+
+        // Si el usuario existe y ya tiene datos resguardados, los inyectamos en los inputs
+        if (usuario) {
+            if (usuario.wallet_ton_address) {
+                document.getElementById('user-wallet-address').value = usuario.wallet_ton_address;
+            }
+            if (usuario.pago_movil_banco) {
+                document.getElementById('user-pm-banco').value = usuario.pago_movil_banco;
+            }
+            if (usuario.pago_movil_cedula) {
+                document.getElementById('user-pm-cedula').value = usuario.pago_movil_cedula;
+            }
+            if (usuario.pago_movil_telefono) {
+                document.getElementById('user-pm-telefono').value = usuario.pago_movil_telefono;
+            }
+            console.log("⚙️ Perfil financiero sincronizado y cargado en pantalla.");
+        }
+    } catch (err) {
+        console.error("Fallo silencioso al precargar datos financieros de Supabase:", err);
+    }
+}
+
+// B. EVENTO ASOCIADO AL BOTÓN AMARILLO DE GUARDAR
+const btnGuardarPerfilCobros = document.getElementById('btn-guardar-perfil');
+
+if (btnGuardarPerfilCobros) {
+    btnGuardarPerfilCobros.addEventListener('click', async () => {
+        // 1. Capturar los valores reales escritos en la interfaz retro
+        const walletAddress = document.getElementById('user-wallet-address').value.trim();
+        const pmBanco = document.getElementById('user-pm-banco').value;
+        const pmCedula = document.getElementById('user-pm-cedula').value.trim();
+        const pmTelefono = document.getElementById('user-pm-telefono').value.trim();
+
+        // Convertir strings vacíos a null para limpiar registros de la base de datos
+        const datosActualizar = {
+            wallet_ton_address: walletAddress || null,
+            pago_movil_banco: pmBanco || null,
+            pago_movil_cedula: pmCedula || null,
+            pago_movil_telefono: pmTelefono || null
+        };
+
+        try {
+            // 2. Ejecutar la actualización (UPDATE) segura en tu base de datos
+            const { error } = await supabaseClient
+                .from('Usuarios')
+                .update(datosActualizar)
+                .eq('id_usuario', JUGADOR_ID_MOCK); // Asegura que solo altere la fila de este jugador
+
+            if (error) throw error;
+
+            // Alerta visual de confirmación con estilo clásico
+            alert("💾 ¡ÉXITO RETRO!\nTus credenciales de cobro han sido resguardadas de forma segura en el servidor central.");
+
+        } catch (error) {
+            console.error("Error crítico de inyección financiera:", error);
+            alert("❌ FALLO DE CONEXIÓN: No se pudieron guardar los datos en Supabase.\n" + error.message);
+        }
+    });
+}
 

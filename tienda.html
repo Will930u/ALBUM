@@ -45,6 +45,52 @@
         </div>
 
         <button class="btn-comprar-final" id="btn-checkout">[[ COMPRAR AHORA ]]</button>
+                <!-- ======================================================= -->
+        <!-- NUEVO APARTADO DE RETIROS: DATOS DEL PERFIL DEL JUGADOR -->
+        <!-- ======================================================= -->
+        <div class="consola-retiros-retro" style="margin-top: 40px; border-top: 4px dashed #333; padding-top: 20px;">
+            <h2 class="titulo-tienda" style="color: #ffcc00;">[ RETIRO DE PREMIOS ]</h2>
+            <p class="precio-unidad">Configura dónde recibir tus USDT o Bolívares</p>
+
+            <!-- Botones independientes para elegir el método -->
+            <div class="selector-metodos-pago" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button type="button" class="btn-cantidad" id="btn-select-usdt" style="font-size: 8px; width: auto; height: auto; padding: 10px; flex: 1;" onclick="conmutarFormularioRetiro('USDT')">🔵 WALLET USDT</button>
+                <button type="button" class="btn-cantidad" id="btn-select-pm" style="font-size: 8px; width: auto; height: auto; padding: 10px; flex: 1; background-color: #1a1a1f; color: #888;" onclick="conmutarFormularioRetiro('PM')">🇻🇪 PAGO MÓVIL</button>
+            </div>
+
+            <!-- Formulario dinámico espejo -->
+            <form id="form-perfil-financiero">
+                
+                <!-- Caja exclusiva para la dirección de la billetera de Telegram -->
+                <div id="bloque-datos-usdt" style="display: block; margin-bottom: 15px; text-align: left;">
+                    <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">DIRECCIÓN DE TU WALLET DE TELEGRAM (RED TON):</label>
+                    <input type="text" id="user-wallet-address" style="width: 90%; background: #000; border: 3px solid #333; color: #00ff66; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;" placeholder="Ej: UQAsd9...">
+                    <p style="font-size: 6px; color: #00ff66; margin-top: 5px; line-height: 1.4;">* Los premios cobrados por aquí se pagan de forma automática a tu billetera *</p>
+                </div>
+
+                <!-- Caja exclusiva para los datos de Pago Móvil tradicional -->
+                <div id="bloque-datos-pm" style="display: none; margin-bottom: 15px; text-align: left;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">BANCO DESTINO:</label>
+                        <select id="user-pm-banco" style="width: 97%; background: #000; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;">
+                            <option value="0102">BANCO DE VENEZUELA</option>
+                            <option value="0134">BANESCO</option>
+                            <option value="0105">MERCANTIL</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">CÉDULA DE IDENTIDAD:</label>
+                        <input type="text" id="user-pm-cedula" style="width: 90%; background: #000; border: 3px solid #333; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;" placeholder="Ej: V-12345678">
+                    </div>
+                    <div>
+                        <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">TELÉFONO DE TU PAGO MÓVIL:</label>
+                        <input type="text" id="user-pm-telefono" style="width: 90%; background: #000; border: 3px solid #333; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;" placeholder="Ej: 04127654321">
+                    </div>
+                </div>
+
+                <button type="button" class="btn-comprar-final" id="btn-guardar-perfil" style="background-color: #ffcc00; box-shadow: 4px 4px 0px #b38f00;">[[ 💾 GUARDAR DATOS DE COBRO ]]</button>
+            </form>
+        </div>
     </div>
 
     <script src="tienda-control.js"></script>

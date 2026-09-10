@@ -1,0 +1,55 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Álbum Digital - Libro de Colección Retro</title>
+    <!-- Fuente oficial de videojuegos pixel art -->
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="stylesheet" href="album-style.css">
+</head>
+<body>
+
+    <div class="interfaz-juego">
+        <!-- Marcador de Progreso Dinámico Estilo Arcade -->
+        <div class="marcador-progreso">
+            <span id="titulo-bloque">CARGANDO ERA...</span><br>
+            <span id="contador-progreso" class="resaltado-oro">PROGRESO: 000 / 000</span>
+        </div>
+
+        <!-- El Libro Abierto (Contenedor de cuadrícula) -->
+        <div class="libro-contenedor">
+            <div class="pagina-cuadrula" id="grilla-cartas">
+                <!-- JavaScript inyectará aquí los 50 slots por página de forma dinámica -->
+            </div>
+        </div>
+
+        <!-- Controles de Navegación del Libro -->
+        <div class="navegacion-libro">
+            <button class="btn-retro" id="btn-anterior">◀ ATRÁS</button>
+            <button class="btn-retro" id="btn-siguiente">SIGUIENTE ▶</button>
+        </div>
+    </div>
+
+    <!-- VENTANA MODAL: Visor interactivo con efecto de profundidad 3D -->
+    <div class="modal-visor" id="modal-visor">
+        <div class="carta-box-animacion" id="carta-animada">
+            
+            <!-- CARA TRASERA: El reverso de la carta (se ve durante la rotación veloz) -->
+            <div class="carta-cara cara-reverso">
+                <div class="simbolo-incognita">?</div>
+            </div>
+
+            <!-- CARA FRONTAL: El diseño final por capas con tu marco de naturaleza -->
+            <div class="carta-cara cara-frontal" id="contenido-carta-frontal">
+                <!-- Inyectado dinámicamente por JavaScript -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Carga del cliente oficial de Supabase y la lógica del álbum -->
+    <script src="https://jsdelivr.net"></script>
+    <script src="album.js"></script>
+</body>
+</html>

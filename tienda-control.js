@@ -3,8 +3,8 @@
 // ========================================================
 
 // Conexión con Supabase (Reemplaza con tus credenciales reales)
-const SUPABASE_URL = "https://supabase.co";
-const SUPABASE_KEY = "tu-anon-key-real-de-supabase";
+const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ID del jugador de pruebas (Luego se extraerá automáticamente desde Telegram WebApp)

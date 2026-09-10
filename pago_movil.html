@@ -1,26 +1,49 @@
-﻿<div class="modal-pago-movil" id="modal-pm">
-    <div class="caja-pago-retro">
-        <h2 class="titulo-pm">[ PASARELA PAGO MÓVIL ]</h2>
-        
-        <!-- Datos de destino de la plataforma -->
-        <div class="datos-plataforma-box">
-            <p>BANCO: <span class="txt-oro">BANCO DE VENEZUELA</span></p>
-            <p>TELÉFONO: <span class="txt-oro">0412-1234567</span></p>
-            <p>CÉDULA: <span class="txt-oro">V-12345678</span></p>
-            <p>MONTO A PAGAR: <span class="txt-verde" id="monto-bs-dinamico">0.00 Bs.</span></p>
-        </div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pasarela Pago Móvil Retro</title>
+    <!-- Importamos la fuente oficial de videojuegos pixel art -->
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="stylesheet" href="tienda-style.css">
+</head>
+<body>
 
-        <!-- Formulario de captura de referencia -->
-        <form id="form-registro-referencia">
-            <div class="input-pm-grupo">
-                <label>NÚMERO DE REFERENCIA (ÚLTIMOS 6 DÍGITOS):</label>
-                <input type="text" id="ref-bancaria" required maxlength="8" placeholder="Ej: 874521">
-            </div>
+    <!-- Ventana flotante (Modal) de Pago Móvil -->
+    <div class="modal-pago-movil" id="modal-pm">
+        <div class="caja-pago-retro">
+            <h2 class="titulo-pm">[ PASARELA PAGO MÓVIL ]</h2>
             
-            <div class="input-pm-grupo">
-                <label>TU TELÉFONO DESDE EL QUE PAGASTE:</label>
-                <input type="text" id="telf-origen" required placeholder="Ej: 0414-7654321">
+            <!-- Datos fijos de destino de tu plataforma -->
+            <div class="datos-plataforma-box">
+                <p>BANCO: <span class="txt-oro">BANCO DE VENEZUELA</span></p>
+                <p>TELÉFONO: <span class="txt-oro">0412-1234567</span></p>
+                <p>CÉDULA: <span class="txt-oro">V-12345678</span></p>
+                <!-- El ID 'monto-bs-dinamico' es vital para que la API del BCV inyecte el dinero aquí -->
+                <p>MONTO A PAGAR: <span class="txt-verde" id="monto-bs-dinamico">0.00 Bs.</span></p>
             </div>
+
+            <!-- Formulario de captura para el jugador -->
+            <form id="form-registro-referencia">
+                <div class="input-pm-grupo">
+                    <label>NÚMERO DE REFERENCIA (ÚLTIMOS 6 DÍGITOS):</label>
+                    <input type="text" id="ref-bancaria" required maxlength="8" placeholder="Ej: 874521">
+                </div>
+                
+                <div class="input-pm-grupo">
+                    <label>TU TELÉFONO DESDE EL QUE PAGASTE:</label>
+                    <input type="text" id="telf-origen" required placeholder="Ej: 04147654321">
+                </div>
+
+                <button type="submit" class="btn-confirmar-pm">[[ 🛰️ ENVIAR REPORTE ]]</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
+
 
             <button type="submit" class="btn-confirmar-pm">[[ 🛰️ ENVIAR REPORTE ]]</button>
         </form>

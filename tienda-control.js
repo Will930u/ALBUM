@@ -73,3 +73,35 @@ btnCheckout.addEventListener('click', () => {
         // Aquí abrirás el formulario para capturar el número de referencia que revisarás en tu panel
     }
 });
+// ========================================================
+// 🔄 FUNCIÓN PARA ALTERNAR FORMULARIOS DE RETIRO (USDT / PAGO MÓVIL)
+// ========================================================
+function conmutarFormularioRetiro(metodoElegido) {
+    const btnUsdt = document.getElementById('btn-select-usdt');
+    const btnPm = document.getElementById('btn-select-pm');
+    const bloqueUsdt = document.getElementById('bloque-datos-usdt');
+    const bloquePm = document.getElementById('bloque-datos-pm');
+
+    if (metodoElegido === 'USDT') {
+        // Encender visualmente USDT
+        btnUsdt.style.backgroundColor = '#ffcc00';
+        btnUsdt.style.color = '#000';
+        bloqueUsdt.style.display = 'block';
+
+        // Apagar visualmente Pago Móvil
+        btnPm.style.backgroundColor = '#1a1a1f';
+        btnPm.style.color = '#888';
+        bloquePm.style.display = 'none';
+    } else {
+        // Encender visualmente Pago Móvil
+        btnPm.style.backgroundColor = '#ffcc00';
+        btnPm.style.color = '#000';
+        bloquePm.style.display = 'block';
+
+        // Apagar visualmente USDT
+        btnUsdt.style.backgroundColor = '#1a1a1f';
+        btnUsdt.style.color = '#888';
+        bloqueUsdt.style.display = 'none';
+    }
+}
+

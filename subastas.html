@@ -1,0 +1,72 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subasta de la Corte - Mercado Negro</title>
+    <!-- Importamos la fuente oficial de videojuegos pixel art -->
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="stylesheet" href="subastas-style.css">
+</head>
+<body>
+
+    <div class="consola-subasta">
+        <!-- Encabezado de la Consola P2P -->
+        <h1 class="titulo-subasta">⚙️ [ SUBASTA DE LA CORTE ] ⚙️</h1>
+        <p class="alerta-escrow">* FONDO RETENIDO POR EL ADMINISTRADOR (10% COMISIÓN) *</p>
+
+        <!-- CONTENEDOR DINÁMICO: Aquí se inyectarán todos los lotes activos desde JavaScript -->
+        <div id="contenedor-lotes-subasta">
+            
+            <!-- LOTE EJEMPLO (Maquetado idéntico para que visualices la estructura) -->
+            <div class="lote-card">
+                <!-- Miniatura de la carta en disputa con su marco de color -->
+                <div class="preview-carta-subasta marco-mitologica">
+                    <div class="id-tag">#1501</div>
+                </div>
+
+                <!-- Ficha de la Puja en Vivo -->
+                <div class="detalles-puja">
+                    <h2 class="nombre-carta-subasta">FÉNIX DORADO</h2>
+                    <div class="reloj-retro">TIEMPO: <span class="tiempo-parpadeo" id="timer-1">04h : 12m : 05s</span></div>
+                    
+                    <div class="marcador-precios">
+                        <p>OFERTA ACTUAL:<br><span class="precio-usd-puja" id="oferta-usd-1">$5.50 USDT</span></p>
+                        <!-- ID asignado para que la API del BCV inyecte la conversión en Bolívares -->
+                        <p class="precio-bs-puja" id="oferta-bs-1">~ 0.00 Bs.</p>
+                    </div>
+
+                    <!-- Formulario de Oferta Pixelado -->
+                    <div class="control-puja-formulario">
+                        <label class="lbl-tu-oferta">TU PUJA (USDT):</label>
+                        <div class="input-grupo-retro">
+                            <input type="number" id="monto-pujar-1" value="6.00" min="5.60" step="0.10">
+                            <button type="button" class="btn-pujar" onclick="ejecutarPujaInteractiva(1)">¡PUJAR!</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- FIN DEL LOTE EJEMPLO -->
+
+        </div>
+
+        <!-- Historial o Información de Respaldo Financiero -->
+        <div class="info-pie-subasta">
+            <p>SISTEMA ESCROW BLINDADO: El comprador deposita los fondos a las cuentas de la plataforma. Al confirmarse el intercambio del activo digital, el vendedor recibe su saldo neto menos el 10% de comisión de mediación retenido automáticamente.</p>
+        </div>
+    </div>
+
+    <!-- BARRA DE NAVEGACIÓN FIJA INFERIOR PARA EL JUGADOR -->
+    <div class="menu-navegacion-fijo">
+        <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
+        <button class="btn-nav" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
+        <button class="btn-nav activo" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- ENLACE DE CONEXIÓN CON TU MOTOR DE BASE DE DATOS -->
+    <!-- ======================================================= -->
+    <script src="https://unpkg.com"></script>
+    <script src="subastas-control.js"></script>
+</body>
+</html>

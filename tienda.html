@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda de Sobres Retro</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="stylesheet" href="tienda-style.css">
+</head>
+<body>
+
+    <div class="consola-tienda">
+        <h1 class="titulo-tienda">[ TIENDA DE SOBRES ]</h1>
+        <p class="precio-unidad">1 SOBRE = <span class="resaltado-verde">$0.62 USD</span></p>
+
+        <!-- Selector de cantidad pixelado -->
+        <div class="control-cantidad">
+            <button class="btn-cantidad" id="btn-menos">-</button>
+            <input type="number" id="cantidad-sobres" value="1" min="1" max="99" readonly>
+            <button class="btn-cantidad" id="btn-mas">+</button>
+        </div>
+
+        <!-- Pantalla de totales en espejo -->
+        <div class="pantalla-totales">
+            <div class="fila-total">
+                <span>TOTAL USD:</span>
+                <span id="total-usd" class="resaltado-verde">$0.62</span>
+            </div>
+            <div class="fila-total">
+                <span>TOTAL Bs:</span>
+                <span id="total-bs" class="resaltado-oro">0.00 Bs.</span>
+            </div>
+        </div>
+
+        <!-- Selección de Pasarela de Pago -->
+        <div class="opciones-pago">
+            <label class="opcion-contenedor">
+                <input type="radio" name="pago" value="USDT" checked>
+                <span class="custom-radio"></span> TELEGRAM WALLET (USDT)
+            </label>
+            <label class="opcion-contenedor">
+                <input type="radio" name="pago" value="PM">
+                <span class="custom-radio"></span> PAGO MÓVIL (BOLÍVARES)
+            </label>
+        </div>
+
+        <button class="btn-comprar-final" id="btn-checkout">[[ COMPRAR AHORA ]]</button>
+    </div>
+
+    <script src="tienda-control.js"></script>
+</body>
+</html>

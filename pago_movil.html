@@ -1,0 +1,28 @@
+﻿<div class="modal-pago-movil" id="modal-pm">
+    <div class="caja-pago-retro">
+        <h2 class="titulo-pm">[ PASARELA PAGO MÓVIL ]</h2>
+        
+        <!-- Datos de destino de la plataforma -->
+        <div class="datos-plataforma-box">
+            <p>BANCO: <span class="txt-oro">BANCO DE VENEZUELA</span></p>
+            <p>TELÉFONO: <span class="txt-oro">0412-1234567</span></p>
+            <p>CÉDULA: <span class="txt-oro">V-12345678</span></p>
+            <p>MONTO A PAGAR: <span class="txt-verde" id="monto-bs-dinamico">0.00 Bs.</span></p>
+        </div>
+
+        <!-- Formulario de captura de referencia -->
+        <form id="form-registro-referencia">
+            <div class="input-pm-grupo">
+                <label>NÚMERO DE REFERENCIA (ÚLTIMOS 6 DÍGITOS):</label>
+                <input type="text" id="ref-bancaria" required maxlength="8" placeholder="Ej: 874521">
+            </div>
+            
+            <div class="input-pm-grupo">
+                <label>TU TELÉFONO DESDE EL QUE PAGASTE:</label>
+                <input type="text" id="telf-origen" required placeholder="Ej: 0414-7654321">
+            </div>
+
+            <button type="submit" class="btn-confirmar-pm">[[ 🛰️ ENVIAR REPORTE ]]</button>
+        </form>
+    </div>
+</div>

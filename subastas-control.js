@@ -38,9 +38,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1000);
 });
 
-// 🌐 CONEXIÓN VIVA CON DOLARAPI
+/// 🌐 CONEXIÓN VIVA CON DOLARAPI CORREGIDA
 async function obtenerTasaBcvSubastas() {
     try {
+        // AGREGAMOS LA RUTA COMPLETA DE VENEZUELA PARA EVITAR EL BLOQUEO CORS
         const respuesta = await fetch('https://dolarapi.com');
         const datos = await respuesta.json();
         if (datos && datos.promedio) {

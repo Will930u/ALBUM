@@ -197,3 +197,69 @@ function conmutarFormularioRetiro(metodoElegido) {
         bloqueUsdt.style.display = 'none';
     }
 }
+// =============================================================================
+// 🛰️ CAPTURA Y ENVÍO DEL REPORTE DE PAGO MÓVIL A LA BASE DE DATOS
+// =============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    configurarFormularioReportePagoMovil();
+});
+
+function configurarFormularioReportePagoMovil() {
+    const formPagoMovil = document.getElementById('form-registro-referencia');
+    
+    if (formPagoMovil) {
+        formPagoMovil.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Evita que la página se recargue y borre el progreso
+
+            if (!supabaseClient) {
+                alert("❌ ERROR CRÍTICO: El SDK de Supabase no está conectado.");
+                return;
+            }
+
+            // 1. Recuperar los datos reales ingresados por el comprador en la interfaz pop-up
+            const numeroReferencia = document.getElementById('ref-bancaria').value.trim();
+            const telefonoOrigen = document.getElementById('telf-origen').value.trim();
+            
+            // Calcular el monto bruto en dólares que corresponde a la cantidad de sobres elegida
+            const cantidad = parseInt(inputCantidad.value) || 1;
+            const montoBrutoUsd = cantidad * PRECIO_SOBRE_USD;
+
+            // Validación de seguridad básica antes de subir el reporte al servidor
+            if (numeroReferencia.length < 4) {
+                alert("❌ ERROR: El número de referencia bancaria es demasiado corto.");
+                return;
+            }
+
+            try {
+                // 2. Inyectar el reporte de cobro en estado de retención ("PENDIENTE") en tu tabla Escrow
+                const { error } = await supabaseClient
+                    .from('Historial_Subastas_Liquidadas')
+                    .insert([{
+                        id_carta: null, // Se deja nulo porque es una compra de sobres de la tienda, no una subasta P2P
+                        vendedor_id: 'PLATAFORMA_TIENDA', // Identificador del dueño del negocio
+                        comprador_id: JUGADOR_ID_MOCK, // El ID de Telegram de la Mini App del jugador
+                        monto_bruto_usd: montoBrutoUsd,
+                        comision_plataforma_usd: 0.00, // No aplica descuento en venta directa de sobres
+                        monto_neto_vendedor_usd: montoBrutoUsd,
+                        estado_pago: 'PENDIENTE', // Pasa directo a tu panel administrativo privado
+                        referencia_bancaria: `PM_REF_${numeroReferencia}_TLF_${telefonoOrigen}`
+                    }]);
+
+                if (error) throw error;
+
+                // 3. Éxito: Cerrar el cuadro flotante y avisar al jugador con estilo clásico de consola
+                alert(`🛰️ ¡REPORTE ENVIADO CON ÉXITO!\nTu referencia #${numeroReferencia} está en proceso de auditoría.\nTus sobres se liberarán en tu álbum en cuanto el Administrador confirme la transferencia.`);
+                
+                formPagoMovil.reset();
+                
+                const modalPm = document.getElementById('modal-pm');
+                if (modalPm) modalPm.style.display = 'none'; // Oculta la pasarela y lo regresa al álbum
+
+            } catch (error) {
+                console.error("Fallo crítico al reportar el Pago Móvil:", error);
+                alert("❌ ERROR DE RED: No se pudo subir tu reporte a Supabase. Comprueba tu conexión bancaria.\n" + error.message);
+            }
+        });
+    }
+}

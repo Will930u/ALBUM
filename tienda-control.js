@@ -7,7 +7,7 @@ const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
 
 // Inicialización segura del cliente Supabase
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY) : null;
 
 // ID del jugador de pruebas (Luego se extraerá automáticamente desde Telegram WebApp)
 const JUGADOR_ID_MOCK = "usuario_test_venezuela"; 

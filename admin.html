@@ -116,8 +116,8 @@
                             <th>NETO VEND.</th>
                             <th>ESTADO</th>
                         </tr>
-                    </thead>
-                    <tbody id="tabla-escrow-cuerpo">
+                    </head>
+                    <body id="tabla-escrow-cuerpo">
                         <!-- Simulación de fila cargada por tu script -->
                         <tr>
                             <td>#101</td>
@@ -126,7 +126,7 @@
                             <td>$4.95</td>
                             <td><button class="btn-aprobar-p2p" onclick="alert('Trato verificado. Se descuenta tu 10% y las cartas se transfieren automáticamente.')">VALIDAR</button></td>
                         </tr>
-                    </tbody>
+                    </body>
                 </table>
             </div>
         </div>
@@ -136,5 +136,11 @@
     <!-- Conexión a la base de datos segura -->
     <script src="https://unpkg.com"></script>
     <script src="admin.js"></script>
+<!-- BARRA DE NAVEGACIÓN FIJA INFERIOR PARA EL JUGADOR -->
+   <div class="menu-navegacion-fijo">
+       <button class="btn-nav activo" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
+       <button class="btn-nav" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
+       <button class="btn-nav" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
+   </div>
 </body>
 </html>

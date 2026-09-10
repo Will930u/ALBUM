@@ -1,13 +1,27 @@
-﻿// ========================================================
-// 💻 CORE DE OPERACIONES DE ADMINISTRACIÓN CENTRALIZADA
-// ========================================================
+// =============================================================================
+// 💻 PANEL DE CONTROL SUPREMO CENTRALIZADO - LOGICA DE OPERACIONES (ADMIN)
+// =============================================================================
+
+// Credenciales de conexión (Asegúrate de cambiar esto por tus datos reales de Supabase)
 const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 1. CONTROLADOR DE CAMBIO DE PESTAÑAS (SPA INTERNA)
+document.addEventListener('DOMContentLoaded', async () => {
+    // Escuchar el evento de carga de cartas nuevas
+    configurarFormularioCargaCartas();
+    
+    // Escuchar el evento de drops y regalos manuales
+    configurarBotonRegalosManuales();
+    
+    // Cargar en vivo la lista de pagos de Pago Móvil pendientes de la pestaña ESCROW
+    await cargarTransaccionesPendientesEscrow();
+});
+
+// =============================================================================
+// 🎛️ 1. CONTROLADOR SPA: CAMBIO INTERACTIVO DE PESTAÑAS
+// =============================================================================
 function cambiarPestana(idPestana) {
-    // Desactivar todas las pestañas visualmente
     document.querySelectorAll('.contenido-pestana').forEach(seccion => {
         seccion.classList.remove('activa');
     });
@@ -15,172 +29,194 @@ function cambiarPestana(idPestana) {
         boton.classList.remove('activo');
     });
 
-    // Activar la pestaña seleccionada
     document.getElementById(idPestana).classList.add('activa');
-    event.currentTarget.classList.add('activo');
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('activo');
+    }
 }
 
-// 2. LÓGICA DE CARGA AUTOMÁTICA DE CARTAS EN LA BASE DE DATOS
-const formCarga = document.getElementById('form-subir-carta');
-if (formCarga) {
+// =============================================================================
+// 📤 2. LÓGICA DE CARGA: PUBLICAR NUEVAS CRIATURAS AL CATÁLOGO GLOBAL
+// =============================================================================
+function configurarFormularioCargaCartas() {
+    const formCarga = document.getElementById('form-subir-carta');
+    if (!formCarga) return;
+
     formCarga.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const nombre = document.getElementById('carta-nombre').value;
-        const tipo = document.getElementById('carta-tipo').value;
-        const salud = parseInt(document.getElementById('carta-salud').value);
-        const poder = parseInt(document.getElementById('carta-poder').value);
-        const ataque = document.getElementById('carta-ataque').value;
-        const habitat = document.getElementById('carta-habitat').value;
-        const rareza = document.getElementById('carta-rareza').value;
-        const lore = document.getElementById('carta-lore').value;
-        const urlImagen = document.getElementById('carta-url-manual').value;
+        const datosCarta = {
+            nombre: document.getElementById('carta-nombre').value.trim(),
+            tipo: document.getElementById('carta-tipo').value,
+            salud: parseInt(document.getElementById('carta-salud').value) || 100,
+            poder: parseInt(document.getElementById('carta-poder').value) || 50,
+            ataque_nombre: document.getElementById('carta-ataque').value.trim(),
+            habitat: document.getElementById('carta-habitat').value.trim(),
+            rareza: document.getElementById('carta-rareza').value,
+            lore: document.getElementById('carta-lore').value.trim(),
+            url_imagen: document.getElementById('carta-url-manual').value.trim()
+        };
 
         try {
             const { data, error } = await supabaseClient
                 .from('Cartas')
-                .insert([{
-                    nombre: nombre,
-                    tipo: tipo,
-                    salud: salud,
-                    poder: poder,
-                    ataque_nombre: ataque,
-                    habitat: habitat,
-                    rareza: rareza,
-                    url_imagen: urlImagen
-                }])
+                .insert([datosCarta])
                 .select();
 
             if (error) throw error;
 
-            alert(`¡ÉXITO CRÍTICO!\nCarta publicada en el catálogo.\nID Asignado: #${data[0].id_carta}`);
+            alert(`✅ ¡ÉXITO CRÍTICO!\nCarta publicada en el catálogo global.\nID Asignado: #${data[0].id_carta}`);
             formCarga.reset();
 
         } catch (error) {
             console.error(error);
-            alert("Error de inyección: " + error.message);
+            alert("❌ ERROR DE INYECCIÓN: " + error.message);
         }
     });
 }
 
-// ========================================================
-// 🎁 CONTROLADOR DINÁMICO PARA LA PESTAÑA DE REGALOS (DROPS)
-// ========================================================
-
-document.addEventListener('DOMContentLoaded', () => {
+// =============================================================================
+// 🎁 3. LÓGICA DE REGALOS: DROPS MANUALES Y SORPRESAS POR TELEGRAM ID
+// =============================================================================
+function configurarBotonRegalosManuales() {
     const btnRegalo = document.getElementById('btn-enviar-regalo');
-    
-    if (btnRegalo) {
-        btnRegalo.addEventListener('click', async () => {
-            // 1. Capturar los inputs de la interfaz pixel art
-            const usuarioDestino = document.getElementById('regalo-usuario-id').value.trim();
-            const tipoRegalo = document.getElementById('regalo-tipo-seleccion').value; // SORPRESA o ESPECIFICA
-            const idCartaEspecifica = parseInt(document.getElementById('regalo-carta-id').value);
-            const cantidad = parseInt(document.getElementById('regalo-cantidad').value) || 1;
+    if (!btnRegalo) return;
 
-            // Validación de seguridad básica en el cliente
-            if (!usuarioDestino) {
-                alert("❌ ERROR: Introduce el ID de Telegram del jugador destino.");
-                return;
-            }
+    btnRegalo.addEventListener('click', async () => {
+        const idUsuario = document.getElementById('regalo-usuario-id').value.trim();
+        const tipoRegalo = document.getElementById('regalo-tipo-seleccion').value;
+        const idCarta = parseInt(document.getElementById('regalo-carta-id').value);
+        const cantidad = parseInt(document.getElementById('regalo-cantidad').value) || 1;
 
-            try {
-                if (tipoRegalo === "ESPECIFICA") {
-                    // ----------------------------------------------------
-                    // MODO A: INYECTAR UNA CARTA EXACTA DEL CATÁLOGO
-                    // ----------------------------------------------------
-                    if (isNaN(idCartaEspecifica)) {
-                        alert("❌ ERROR: Para este modo debes ingresar un ID de carta válido.");
-                        return;
-                    }
+        if (!idUsuario) return alert("❌ Introduce el ID de Telegram del jugador.");
 
-                    // Verificar primero si la carta que quieres regalar existe en el catálogo global
-                    const { data: cartaExiste } = await supabaseClient
-                        .from('Cartas')
-                        .select('id_carta')
-                        .eq('id_carta', idCartaEspecifica)
-                        .maybeSingle();
+        try {
+            if (tipoRegalo === "ESPECIFICA") {
+                if (isNaN(idCarta)) return alert("❌ Especifica un ID de carta válido.");
+                
+                await procesarAsignacionEnInventario(idUsuario, idCarta, cantidad);
+                alert(`🎁 Drop exitoso: ${cantidad} copia(s) de la carta #${idCarta} enviadas a [${idUsuario}].`);
+            } else {
+                // Modo Aleatorio: Elegir cartas al azar del pool disponible
+                const { data: pool } = await supabaseClient.from('Cartas').select('id_carta');
+                if (!pool || pool.length === 0) return alert("❌ Catálogo vacío.");
 
-                    if (!cartaExiste) {
-                        alert(`❌ ERROR: La carta ID #${idCartaEspecifica} no existe en el catálogo global.`);
-                        return;
-                    }
-
-                    // Ejecutar la inyección en el inventario
-                    await registrarCartaEnInventario(usuarioDestino, idCartaEspecifica, cantidad);
-                    alert(`🎁 ¡ÉXITO! Se han inyectado ${cantidad} copia(s) de la carta #${idCartaEspecifica} a [${usuarioDestino}].`);
-
-                } else {
-                    // ----------------------------------------------------
-                    // MODO B: PAQUETE DE CARTAS AL AZAR (DROP SORPRESA)
-                    // ----------------------------------------------------
-                    // 1. Descargar todos los IDs de cartas que has publicado hasta el momento
-                    const { data: catalogoPool, error: errPool } = await supabaseClient
-                        .from('Cartas')
-                        .select('id_carta');
-
-                    if (errPool) throw errPool;
-                    if (!catalogoPool || catalogoPool.length === 0) {
-                        alert("❌ ERROR: No puedes dar regalos sorpresa porque no hay cartas publicadas en el catálogo.");
-                        return;
-                    }
-
-                    // 2. Ejecutar un bucle matemático para elegir cartas al azar del pool disponible
-                    for (let i = 0; i < cantidad; i++) {
-                        const indiceAleatorio = Math.floor(Math.random() * catalogoPool.length);
-                        const idCartaAzar = catalogoPool[indiceAleatorio].id_carta;
-                        
-                        // Registrar cada carta sorpresa una por una
-                        await registrarCartaEnInventario(usuarioDestino, idCartaAzar, 1);
-                    }
-
-                    alert(`🎁 ¡ÉXITO! Se ha inyectado un paquete de ${cantidad} cartas al azar al jugador [${usuarioDestino}].`);
+                for (let i = 0; i < cantidad; i++) {
+                    const randomIdx = Math.floor(Math.random() * pool.length);
+                    await procesarAsignacionEnInventario(idUsuario, pool[randomIdx].id_carta, 1);
                 }
-
-                // 3. Limpiar los campos del formulario tras la inyección exitosa
-                document.getElementById('regalo-carta-id').value = "";
-                document.getElementById('regalo-cantidad').value = "1";
-
-            } catch (error) {
-                console.error("Fallo crítico en el bloque de regalos:", error);
-                alert("❌ ERROR DE RED: No se pudo conectar con Supabase. " + error.message);
+                alert(`🎁 Drop sorpresa exitoso: ${cantidad} cartas al azar inyectadas a [${idUsuario}].`);
             }
-        });
-    }
-});
+            document.getElementById('regalo-carta-id').value = "";
+        } catch (error) {
+            console.error(error);
+            alert("❌ ERROR EN DROP: " + error.message);
+        }
+    });
+}
 
-// ========================================================
-// 🗄️ FUNCIÓN AUXILIAR: LOGICA ESCROW PARA EVITAR DUPLICADOS
-// ========================================================
-async function registrarCartaEnInventario(idUsuario, idCarta, cantidadAAgregar) {
-    // 1. Comprobar si el usuario ya posee previamente esta barajita en su libro
-    const { data: registroExistente, error: errConsulta } = await supabaseClient
+async function procesarAsignacionEnInventario(idUser, idCard, cant) {
+    const { data: existente } = await supabaseClient
         .from('Coleccion_Usuario')
         .select('*')
-        .eq('id_usuario', idUsuario)
-        .eq('id_carta', idCarta)
-        .maybeSingle(); // Devuelve la fila o null de forma limpia
+        .eq('id_usuario', idUser)
+        .eq('id_carta', idCard)
+        .maybeSingle();
 
-    if (errConsulta) throw errConsulta;
-
-    if (registroExistente) {
-        // CASO 1: Si ya la tiene, hacemos un UPDATE matemático sumando las copias repetidas
-        const { error: errUpdate } = await supabaseClient
+    if (existente) {
+        await supabaseClient
             .from('Coleccion_Usuario')
-            .update({ cantidad: registroExistente.cantidad + cantidadAAgregar })
-            .eq('id_registro', registroExistente.id_registro);
+            .update({ cantidad: existente.cantidad + cant })
+            .eq('id_registro', existente.id_registro);
+    } else {
+        await supabaseClient
+            .from('Coleccion_Usuario')
+            .insert([{ id_usuario: idUser, id_carta: idCard, cantidad: cant }]);
+    }
+}
+
+// =============================================================================
+// ⚖️ 4. NUEVA LOGICA: AUDITORÍA ESCROW Y APROBACIÓN DE PAGO MÓVIL (BOLÍVARES)
+// =============================================================================
+async function cargarTransaccionesPendientesEscrow() {
+    const tablaCuerpo = document.getElementById('tabla-escrow-cuerpo');
+    if (!tablaCuerpo) return;
+
+    tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#00ff66;text-align:center;">REVISANDO REPORTES BANCARIOS...</td></tr>`;
+
+    try {
+        // Consultar de Supabase los registros de subastas/compras que estén en estado PENDIENTE
+        const { data: registros, error } = await supabaseClient
+            .from('Historial_Subastas_Liquidadas')
+            .select('*')
+            .eq('estado_pago', 'PENDIENTE')
+            .order('id_lote', { ascending: false });
+
+        if (error) throw error;
+
+        tablaCuerpo.innerHTML = "";
+
+        if (!registros || registros.length === 0) {
+            tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#888;text-align:center;">NO HAY PAGOS PENDIENTES EN EL BANCO</td></tr>`;
+            return;
+        }
+
+        // Dibujar las filas de la tabla de auditoría con estilo retro
+        registros.forEach(lote => {
+            const fila = document.createElement('tr');
+            
+            // Cálculos automáticos de comisiones en base al bruto recibido
+            const bruto = parseFloat(lote.monto_bruto_usd);
+            const comision = bruto * 0.10; // Tu regla fija del 10% de ganancia retenida
+            const neto = bruto - comision;
+
+            fila.innerHTML = `
+                <td>#${lote.id_lote}</td>
+                <td class="txt-verde">$${bruto.toFixed(2)}</td>
+                <td class="txt-oro">$${comision.toFixed(2)}</td>
+                <td>$${neto.toFixed(2)}</td>
+                <td>
+                    <button class="btn-aprobar-p2p" onclick="validarYEntregarSobresBancarios(${lote.id_lote}, '${lote.vendedor_id}', ${bruto})">VALIDAR</button>
+                </td>
+            `;
+            tablaCuerpo.appendChild(fila);
+        });
+
+    } catch (err) {
+        console.error(err);
+        tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#ff3333;text-align:center;">ERROR DE CONEXIÓN</td></tr>`;
+    }
+}
+
+// Función asociada al botón verde 'VALIDAR' de tu tabla
+async function validarYEntregarSobresBancarios(idLote, idJugador, montoUsd) {
+    // Ventana de confirmación técnica
+    const confirmar = confirm(`¿Confirmas que el Pago Móvil del lote #${idLote} ya está disponible en tu cuenta bancaria?`);
+    if (!confirmar) return;
+
+    try {
+        // 1. Cambiar el estado del pago en Supabase de 'PENDIENTE' a 'VERIFICADO'
+        const { error: errUpdate } = await supabaseClient
+            .from('Historial_Subastas_Liquidadas')
+            .update({ estado_pago: 'VERIFICADO' })
+            .eq('id_lote', idLote);
 
         if (errUpdate) throw errUpdate;
-    } else {
-        // CASO 2: Si es una carta completamente nueva para él, hacemos un INSERT creando el slot
-        const { error: errInsert } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .insert([{
-                id_usuario: idUsuario,
-                id_carta: idCarta,
-                cantidad: cantidadAAgregar
-            }]);
 
-        if (errInsert) throw errInsert;
+        // 2. Ejecutar el sorteo automático (lotería) para entregarle las cartas sorpresa al jugador
+        // Convertimos el monto de dólares a cantidad aproximada de sobres ($0.62 por sobre)
+        const cantidadSobresComprados = Math.max(Math.floor(montoUsd / 0.62), 1);
+        
+        // Llamar a la función del abridor de sobres que creamos en el paso previo
+        await ejecutarAperturaSobresSorpresa(idJugador, cantidadSobresComprados, 'Común');
+
+        alert(`💰 ¡LOTE DE PAGO MÓVIL # ${idLote} VALIDADO EXITOSAMENTE!\nSe han procesado ${cantidadSobresComprados} sobre(s) al azar directo al álbum de [${idJugador}].`);
+        
+        // 3. Recargar la tabla en vivo para borrar el registro aprobado de la lista
+        await cargarTransaccionesPendientesEscrow();
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error al liquidar la transacción: " + error.message);
     }
 }

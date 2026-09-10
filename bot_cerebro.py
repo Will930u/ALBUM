@@ -8,10 +8,10 @@ from supabase import create_client, Client
 # NOTA: En tu servidor real instalarás las librerías con: pip install pyTelegramBotAPI supabase ton-connector
 
 # 1. CONFIGURACIÓN ENCRIPTADA POR VARIABLES DE ENTORNO (MÁXIMA SEGURIDAD)
-SUPABASE_URL = "https://supabase.co"
-SUPABASE_KEY = "tu-clave-service-role-privada" # Aquí sí usas la secreta porque el backend es oculto
-TELEGRAM_BOT_TOKEN = "TOKEN_DE_TU_BOT_PADRE"
-ID_CANAL_NOTIFICACIONES = "@TuCanalDeBarajitas" # Tu vitrina pública venezolana
+SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo" # Aquí sí usas la secreta porque el backend es oculto
+TELEGRAM_BOT_TOKEN = "8732196907:AAHJzrerpggn6yPBZFOs0u2N1VgfO0T1SnU"
+ID_CANAL_NOTIFICACIONES = "@BINGO_BOT_BOT" # Tu vitrina pública venezolana
 
 # Llave maestra para el robot financiero (Frase semilla de 24 palabras de tu wallet central)
 SEED_PHRASE_WALLET_ADMIN = "palabra1 palabra2 ... palabra24" 

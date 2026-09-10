@@ -1,0 +1,140 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consola Central - Administrador</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body>
+
+    <div class="consola-admin">
+        <h1 class="titulo-admin">💻 [ PANEL DE CONTROL SUPREMO ] 💻</h1>
+        
+        <!-- Menú de Navegación por Pestañas Pixeladas -->
+        <div class="menu-pestanas">
+            <button class="tab-btn activo" onclick="cambiarPestana('seccion-carga')">CARGA</button>
+            <button class="tab-btn" onclick="cambiarPestana('seccion-regalos')">REGALOS</button>
+            <button class="tab-btn" onclick="cambiarPestana('seccion-subastas')">ESCROW</button>
+        </div>
+
+        <!-- 1. PESTAÑA: CARGA DE NUEVAS CARTAS -->
+        <div id="seccion-carga" class="contenido-pestana activa">
+            <h2 class="subtitulo-admin">➔ SUBIR NUEVA CRIATURA</h2>
+            <form id="form-subir-carta">
+                <div class="campo-retro">
+                    <label>NOMBRE DE LA CRIATURA:</label>
+                    <input type="text" id="carta-nombre" required placeholder="Ej: Dragón Fuego-Sangre">
+                </div>
+                <div class="campo-retro">
+                    <label>NATURALEZA / MARCO DE COLOR:</label>
+                    <select id="carta-tipo" required>
+                        <option value="azul">AZUL 🔵 (Agua / Aire)</option>
+                        <option value="verde">VERDE 🟢 (Planta / Tierra)</option>
+                        <option value="marron">MARRÓN 🟤 (Roca / Desierto)</option>
+                        <option value="naranja">NARANJA 🟠 (Fuego)</option>
+                        <option value="morado">MORADO 🟣 (Veneno / Psíquico)</option>
+                    </select>
+                </div>
+                <div class="stats-linea">
+                    <div class="campo-retro">
+                        <label>HP:</label>
+                        <input type="number" id="carta-salud" value="100" min="1" required>
+                    </div>
+                    <div class="campo-retro">
+                        <label>ATK (PODER):</label>
+                        <input type="number" id="carta-poder" value="150" min="1" required>
+                    </div>
+                </div>
+                <div class="campo-retro">
+                    <label>HABILIDAD / ATAQUE:</label>
+                    <input type="text" id="carta-ataque" required placeholder="Ej: Ladrido Píxel">
+                </div>
+                <div class="campo-retro">
+                    <label>HÁBITAT:</label>
+                    <input type="text" id="carta-habitat" required placeholder="Ej: Volcanes Antiguos">
+                </div>
+                <div class="campo-retro">
+                    <label>RAREZA (HITO):</label>
+                    <select id="carta-rareza" required>
+                        <option value="Común">COMÚN (Parte 1)</option>
+                        <option value="Rara">RARA (Parte 2)</option>
+                        <option value="Épica">ÉPICA (Parte 3)</option>
+                        <option value="Mitológica">MITOLÓGICA (Parte 4 - Arcoíris)</option>
+                    </select>
+                </div>
+                <div class="campo-retro">
+                    <label>HISTORIA (LORE):</label>
+                    <textarea id="carta-lore" rows="2" required placeholder="Narra la mística..."></textarea>
+                </div>
+                <div class="campo-retro input-archivo">
+                    <label>🖼️ ARCHIVO ENLACE DE IMAGEN (.PNG):</label>
+                    <input type="text" id="carta-url-manual" required placeholder="Pega el enlace HTTPS de la imagen">
+                </div>
+                <button type="submit" class="btn-rojo-retro">[[ 📤 PUBLICAR ACTIVO ]]</button>
+            </form>
+        </div>
+
+        <!-- 2. PESTAÑA: ENVÍO DE CARTAS DE REGALO / DROPS -->
+        <div id="seccion-regalos" class="contenido-pestana">
+            <h2 class="subtitulo-admin">🎁 ➔ DROPS Y PREMIOS MANUALES</h2>
+            <div class="campo-retro">
+                <label>ID DEL JUGADOR DESTINO (TELEGRAM ID):</label>
+                <input type="text" id="regalo-usuario-id" placeholder="Ej: usuario_test_venezuela">
+            </div>
+            <div class="campo-retro">
+                <label>MODALIDAD DE REGALO:</label>
+                <select id="regalo-tipo-seleccion">
+                    <option value="SORPRESA">PAQUETE DE CARTAS AL AZAR</option>
+                    <option value="ESPECIFICA">CARTA ESPECÍFICA POR ID</option>
+                </select>
+            </div>
+            <div class="campo-retro">
+                <label>ID DE CARTA ESPECÍFICA (SI CORRESPONDE):</label>
+                <input type="number" id="regalo-carta-id" placeholder="Ej: 1">
+            </div>
+            <div class="campo-retro">
+                <label>CANTIDAD DE EJEMPLARES A REGALAR:</label>
+                <input type="number" id="regalo-cantidad" value="1" min="1">
+            </div>
+            <button type="button" class="btn-rojo-retro" id="btn-enviar-regalo">[[ 🎁 INYECTAR DROP ]]</button>
+        </div>
+
+        <!-- 3. PESTAÑA: CONTROL ESCROW (APROBAR PAGOS) -->
+        <div id="seccion-subastas" class="contenido-pestana">
+            <h2 class="subtitulo-admin">⚖️ ➔ LIQUIDACIÓN ESCROW (10% COMISIÓN)</h2>
+            <p class="nota-consola">Lista de transacciones P2P pendientes por tu verificación manual bancaria:</p>
+            
+            <div class="contenedor-tabla-retro">
+                <table class="tabla-retro">
+                    <thead>
+                        <tr>
+                            <th>LOTE</th>
+                            <th>MTO BRUTO</th>
+                            <th>TU 10%</th>
+                            <th>NETO VEND.</th>
+                            <th>ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-escrow-cuerpo">
+                        <!-- Simulación de fila cargada por tu script -->
+                        <tr>
+                            <td>#101</td>
+                            <td class="txt-verde">$5.50</td>
+                            <td class="txt-oro">$0.55</td>
+                            <td>$4.95</td>
+                            <td><button class="btn-aprobar-p2p" onclick="alert('Trato verificado. Se descuenta tu 10% y las cartas se transfieren automáticamente.')">VALIDAR</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Conexión a la base de datos segura -->
+    <script src="https://unpkg.com"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

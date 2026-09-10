@@ -1,0 +1,136 @@
+﻿body {
+    background-color: #08080a;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+}
+
+.consola-admin {
+    background-color: #121216;
+    border: 5px solid #00ff66; /* Contorno verde de sistema central */
+    padding: 20px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 8px 8px 0px #092612;
+}
+
+.titulo-admin {
+    font-size: 11px;
+    color: #00ff66;
+    text-align: center;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+/* Sistema de Pestañas */
+.menu-pestanas {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+    margin-bottom: 25px;
+}
+
+.tab-btn {
+    flex: 1;
+    background-color: #1a1a1f;
+    color: #888888;
+    border: 3px solid #000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px 0;
+    cursor: pointer;
+}
+
+.tab-btn.activo {
+    background-color: #00ff66;
+    color: #000000;
+    font-weight: bold;
+}
+
+/* Control de visibilidad de secciones */
+.contenido-pestana { display: none; }
+.contenido-pestana.activa { display: block; }
+
+.subtitulo-admin {
+    font-size: 9px;
+    color: #ffcc00;
+    margin-bottom: 15px;
+    border-bottom: 2px dashed #333;
+    padding-bottom: 8px;
+}
+
+/* Campos de entrada */
+.campo-retro {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+}
+
+label {
+    font-size: 8px;
+    color: #aaaaaa;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+input[type="text"], input[type="number"], select, textarea {
+    background-color: #000000;
+    border: 3px solid #333;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 8px;
+    outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #00ff66;
+}
+
+.stats-linea {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+textarea { resize: none; }
+
+/* Botones de acción masiva */
+.btn-rojo-retro {
+    background-color: #ff3333;
+    color: #ffffff;
+    border: 4px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 12px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 4px 4px 0px #801a1a;
+}
+
+.btn-rojo-retro:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0px transparent;
+}
+
+/* Tablas Escrow */
+.nota-consola { font-size: 7px; color: #888; line-height: 1.4; margin-bottom: 15px;}
+.contenedor-tabla-retro { width: 100%; overflow-x: auto; }
+.tabla-retro { width: 100%; border-collapse: collapse; font-size: 6px; text-align: left; }
+.tabla-retro th { background-color: #000; padding: 8px; color: #ffcc00; border: 1px solid #333; }
+.tabla-retro td { padding: 8px; border: 1px solid #222; background-color: #16161a; }
+.txt-verde { color: #00ff66; }
+.txt-oro { color: #ffcc00; }
+
+.btn-aprobar-p2p {
+    background-color: #00ff66;
+    color: #000;
+    border: 2px solid #000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 4px;
+    cursor: pointer;
+}

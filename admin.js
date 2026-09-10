@@ -63,57 +63,124 @@ if (formCarga) {
     });
 }
 
-// 3. LÓGICA DE ENVÍO DE REGALOS / PREMIOS MANUALES (DROPS DIRECTOS)
-const btnRegalo = document.getElementById('btn-enviar-regalo');
-if (btnRegalo) {
-    btnRegalo.addEventListener('click', async () => {
-        const usuarioDestino = document.getElementById('regalo-usuario-id').value.trim();
-        const tipoRegalo = document.getElementById('regalo-tipo-seleccion').value;
-        const cantidad = parseInt(document.getElementById('regalo-cantidad').value) || 1;
-        const idCartaEspecifica = document.getElementById('regalo-carta-id').value;
+// ========================================================
+// 🎁 CONTROLADOR DINÁMICO PARA LA PESTAÑA DE REGALOS (DROPS)
+// ========================================================
 
-        if (!usuarioDestino) return alert("Escribe el ID del jugador.");
+document.addEventListener('DOMContentLoaded', () => {
+    const btnRegalo = document.getElementById('btn-enviar-regalo');
+    
+    if (btnRegalo) {
+        btnRegalo.addEventListener('click', async () => {
+            // 1. Capturar los inputs de la interfaz pixel art
+            const usuarioDestino = document.getElementById('regalo-usuario-id').value.trim();
+            const tipoRegalo = document.getElementById('regalo-tipo-seleccion').value; // SORPRESA o ESPECIFICA
+            const idCartaEspecifica = parseInt(document.getElementById('regalo-carta-id').value);
+            const cantidad = parseInt(document.getElementById('regalo-cantidad').value) || 1;
 
-        try {
-            if (tipoRegalo === "ESPECIFICA") {
-                if (!idCartaEspecifica) return alert("Escribe el ID de la carta.");
-                await ejecutarAsignacionRegalo(usuarioDestino, idCartaEspecifica, cantidad);
-                alert(`🎁 Drop completado: ${cantidad} copia(s) de la carta #${idCartaEspecifica} inyectadas.`);
-            } else {
-                // Sacar un lote al azar de las cartas creadas en el sistema
-                const { data: pool } = await supabaseClient.from('Cartas').select('id_carta');
-                if (!pool || pool.length === 0) return alert("No hay cartas en el catálogo.");
-
-                for (let i = 0; i < cantidad; i++) {
-                    const randomIndex = Math.floor(Math.random() * pool.length);
-                    await ejecutarAsignacionRegalo(usuarioDestino, pool[randomIndex].id_carta, 1);
-                }
-                alert(`🎁 Drop sorpresa completado: ${cantidad} cartas enviadas al libro.`);
+            // Validación de seguridad básica en el cliente
+            if (!usuarioDestino) {
+                alert("❌ ERROR: Introduce el ID de Telegram del jugador destino.");
+                return;
             }
-        } catch (error) {
-            console.error(error);
-            alert("Fallo en la inyección de regalos: " + error.message);
-        }
-    });
-}
 
-// Función auxiliar para insertar o acumular cartas duplicadas
-async function ejecutarAsignacionRegalo(idUser, idCard, cant) {
-    const { data: record } = await supabaseClient
+            try {
+                if (tipoRegalo === "ESPECIFICA") {
+                    // ----------------------------------------------------
+                    // MODO A: INYECTAR UNA CARTA EXACTA DEL CATÁLOGO
+                    // ----------------------------------------------------
+                    if (isNaN(idCartaEspecifica)) {
+                        alert("❌ ERROR: Para este modo debes ingresar un ID de carta válido.");
+                        return;
+                    }
+
+                    // Verificar primero si la carta que quieres regalar existe en el catálogo global
+                    const { data: cartaExiste } = await supabaseClient
+                        .from('Cartas')
+                        .select('id_carta')
+                        .eq('id_carta', idCartaEspecifica)
+                        .maybeSingle();
+
+                    if (!cartaExiste) {
+                        alert(`❌ ERROR: La carta ID #${idCartaEspecifica} no existe en el catálogo global.`);
+                        return;
+                    }
+
+                    // Ejecutar la inyección en el inventario
+                    await registrarCartaEnInventario(usuarioDestino, idCartaEspecifica, cantidad);
+                    alert(`🎁 ¡ÉXITO! Se han inyectado ${cantidad} copia(s) de la carta #${idCartaEspecifica} a [${usuarioDestino}].`);
+
+                } else {
+                    // ----------------------------------------------------
+                    // MODO B: PAQUETE DE CARTAS AL AZAR (DROP SORPRESA)
+                    // ----------------------------------------------------
+                    // 1. Descargar todos los IDs de cartas que has publicado hasta el momento
+                    const { data: catalogoPool, error: errPool } = await supabaseClient
+                        .from('Cartas')
+                        .select('id_carta');
+
+                    if (errPool) throw errPool;
+                    if (!catalogoPool || catalogoPool.length === 0) {
+                        alert("❌ ERROR: No puedes dar regalos sorpresa porque no hay cartas publicadas en el catálogo.");
+                        return;
+                    }
+
+                    // 2. Ejecutar un bucle matemático para elegir cartas al azar del pool disponible
+                    for (let i = 0; i < cantidad; i++) {
+                        const indiceAleatorio = Math.floor(Math.random() * catalogoPool.length);
+                        const idCartaAzar = catalogoPool[indiceAleatorio].id_carta;
+                        
+                        // Registrar cada carta sorpresa una por una
+                        await registrarCartaEnInventario(usuarioDestino, idCartaAzar, 1);
+                    }
+
+                    alert(`🎁 ¡ÉXITO! Se ha inyectado un paquete de ${cantidad} cartas al azar al jugador [${usuarioDestino}].`);
+                }
+
+                // 3. Limpiar los campos del formulario tras la inyección exitosa
+                document.getElementById('regalo-carta-id').value = "";
+                document.getElementById('regalo-cantidad').value = "1";
+
+            } catch (error) {
+                console.error("Fallo crítico en el bloque de regalos:", error);
+                alert("❌ ERROR DE RED: No se pudo conectar con Supabase. " + error.message);
+            }
+        });
+    }
+});
+
+// ========================================================
+// 🗄️ FUNCIÓN AUXILIAR: LOGICA ESCROW PARA EVITAR DUPLICADOS
+// ========================================================
+async function registrarCartaEnInventario(idUsuario, idCarta, cantidadAAgregar) {
+    // 1. Comprobar si el usuario ya posee previamente esta barajita en su libro
+    const { data: registroExistente, error: errConsulta } = await supabaseClient
         .from('Coleccion_Usuario')
         .select('*')
-        .eq('id_usuario', idUser)
-        .eq('id_carta', idCard)
-        .maybeSingle();
+        .eq('id_usuario', idUsuario)
+        .eq('id_carta', idCarta)
+        .maybeSingle(); // Devuelve la fila o null de forma limpia
 
-    if (record) {
-        await supabaseClient
+    if (errConsulta) throw errConsulta;
+
+    if (registroExistente) {
+        // CASO 1: Si ya la tiene, hacemos un UPDATE matemático sumando las copias repetidas
+        const { error: errUpdate } = await supabaseClient
             .from('Coleccion_Usuario')
-            .update({ cantidad: record.cantidad + cant })
-            .eq('id_registro', record.id_registro);
+            .update({ cantidad: registroExistente.cantidad + cantidadAAgregar })
+            .eq('id_registro', registroExistente.id_registro);
+
+        if (errUpdate) throw errUpdate;
     } else {
-        await supabaseClient
+        // CASO 2: Si es una carta completamente nueva para él, hacemos un INSERT creando el slot
+        const { error: errInsert } = await supabaseClient
             .from('Coleccion_Usuario')
-            .insert([{ id_usuario: idUser, id_carta: idCard, cantidad: cant }]);
+            .insert([{
+                id_usuario: idUsuario,
+                id_carta: idCarta,
+                cantidad: cantidadAAgregar
+            }]);
+
+        if (errInsert) throw errInsert;
     }
 }

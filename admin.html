@@ -22,20 +22,19 @@
             <button class="tab-btn" onclick="cambiarPestana('seccion-subastas')">ESCROW</button>
         </div>
 
-        <!-- Botones de Navegación del Jugador -->
         <div class="menu-navegacion-retro">
             <button class="btn-nav-retro" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
             <button class="btn-nav-retro" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
             <button class="btn-nav-retro" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
         </div>
 
-        <!-- PESTAÑA 1: CARGA Y PREVISUALIZADOR DE CARTA -->
+        <!-- PESTAÑA 1: CARGA Y PREVISUALIZADOR EN VIVO -->
         <div id="pestana-carga" class="contenido-pestana activa">
             <h2 class="subtitulo-admin">📤 CREADOR Y CARGADOR DE CARTAS</h2>
     
             <div class="campo-retro">
                 <label style="color: #ffcc00;">TIPO DE CARGA:</label>
-                <select id="modo-diseno-carta" onchange="conmutarCamposFormulario(this.value)">
+                <select id="modo-diseno-carta">
                     <option value="NORMAL" selected>FICHA TÉCNICA (Diseño TCG en vivo)</option>
                     <option value="LISTA">IMAGEN COMPLETA TERMINADA (Diseño externo .jpg/.png)</option>
                 </select>
@@ -47,7 +46,7 @@
                     <input type="text" id="carta-nombre" required placeholder="Ej: Fénix Dorado" value="Fénix Dorado">
                 </div>
 
-                <div class="grid-2-cols">
+                <div class="grid-2-cols" id="bloque-opciones-tcg">
                     <div class="campo-retro">
                         <label>TEMA DE FONDO:</label>
                         <select id="carta-tema-color">
@@ -70,7 +69,7 @@
                     </div>
                 </div>
 
-                <!-- Campos dinámicos de Estadísticas -->
+                <!-- Campos dinámicos TCG -->
                 <div id="bloque-estadisticas-manuales">
                     <div class="campo-retro">
                         <label>TIPO / ETIQUETA:</label>
@@ -94,9 +93,9 @@
                     </div>
                 </div>
 
-                <!-- Cargar Imagen y Modo Pixel-Art -->
+                <!-- Cargar Archivo -->
                 <div class="campo-retro">
-                    <label style="color:#00ff66;">[ ILUSTRACIÓN DE LA CARTA ]</label>
+                    <label style="color:#00ff66;">[ ILUSTRACIÓN / IMAGEN COMPLETA ]</label>
                     <input type="file" id="carta-archivo-jpg" accept="image/*" class="input-archivo-retro">
                 </div>
 
@@ -115,24 +114,32 @@
                     </div>
                 </div>
 
-                <!-- PREVISUALIZADOR DE CARTA EN VIVO -->
+                <!-- PREVISUALIZADOR VIVO -->
                 <div class="contenedor-vista-previa">
                     <span class="label-previa">👁️ VISTA PREVIA EN TIEMPO REAL</span>
+                    
                     <div id="cardContainer" class="tcg-card card-theme-arcoiris">
-                        <div class="tcg-header">
-                            <h3 id="preview-nombre" class="tcg-title">Fénix Dorado</h3>
-                            <span id="preview-rareza" class="tcg-stars">⭐⭐⭐⭐⭐</span>
-                        </div>
-                        <div class="tcg-art-frame">
-                            <img id="preview-imagen" src="https://via.placeholder.com/400x300/1e293b/f59e0b?text=Subir+Imagen" alt="Ilustración">
-                        </div>
-                        <div class="tcg-body">
-                            <p id="preview-tipo" class="tcg-type">[ Bestia Alada / Efecto ]</p>
-                            <p id="preview-lore" class="tcg-lore">Un ave sagrada envuelta en llamas inmortales.</p>
-                            <div class="tcg-stats">
-                                <span>ATK / <strong id="preview-atk" style="color:#ffcc00;">2500</strong></span>
-                                <span>DEF / <strong id="preview-def" style="color:#ffcc00;">2100</strong></span>
+                        <div id="wrapper-tcg-completo">
+                            <div class="tcg-header">
+                                <h3 id="preview-nombre" class="tcg-title">Fénix Dorado</h3>
+                                <span id="preview-rareza" class="tcg-stars">⭐⭐⭐⭐⭐</span>
                             </div>
+                            <div class="tcg-art-frame">
+                                <img id="preview-imagen" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%231a1a24'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2300ff66' font-size='16' font-family='sans-serif'>SELECCIONA+UNA+IMAGEN</text></svg>" alt="Ilustración">
+                            </div>
+                            <div class="tcg-body">
+                                <p id="preview-tipo" class="tcg-type">[ Bestia Alada / Efecto ]</p>
+                                <p id="preview-lore" class="tcg-lore">Un ave sagrada envuelta en llamas inmortales.</p>
+                                <div class="tcg-stats">
+                                    <span>ATK / <strong id="preview-atk" style="color:#ffcc00;">2500</strong></span>
+                                    <span>DEF / <strong id="preview-def" style="color:#ffcc00;">2100</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vista exclusiva para Imagen Completa -->
+                        <div id="wrapper-imagen-lista" style="display: none; width:100%; height:100%;">
+                            <img id="preview-imagen-lista" src="" style="width:100%; height:100%; object-fit:contain; border-radius:8px;" alt="Carta Completa">
                         </div>
                     </div>
                 </div>
@@ -140,7 +147,6 @@
                 <button type="submit" class="btn-rojo-retro">[[ 🚀 PUBLICAR EN EL ÁLBUM GLOBAL ]]</button>
             </form>
 
-            <!-- CONSOLA DE BORRADO DIRECTO -->
             <div class="seccion-destructor">
                 <h2 class="subtitulo-admin" style="color: #ff3333; border-color: #ff3333;">🗑️ DESTRUCTOR POR ID</h2>
                 <div class="grupo-destruccion">
@@ -150,25 +156,20 @@
             </div>
         </div>
 
-        <!-- PESTAÑA 2: ÁLBUM Y CATÁLOGO ADMIN (TODAS LAS CARTAS) -->
+        <!-- PESTAÑA 2: ÁLBUM ADMIN -->
         <div id="pestana-album-admin" class="contenido-pestana">
             <h2 class="subtitulo-admin">📖 CATÁLOGO COMPLETO DE CARTAS GUARDADAS</h2>
             <p class="nota-consola">Explora la base de datos en tiempo real, copia IDs para drops o elimina coleccionables:</p>
-            
-            <div id="grid-coleccion-admin" class="grid-cartas-admin">
-                <!-- Se inyectan dinámicamente con admin.js -->
-            </div>
+            <div id="grid-coleccion-admin" class="grid-cartas-admin"></div>
         </div>
 
-        <!-- PESTAÑA 3: DROPS Y PREMIOS -->
+        <!-- PESTAÑA 3: DROPS -->
         <div id="seccion-regalos" class="contenido-pestana">
             <h2 class="subtitulo-admin">🎁 DROPS Y PREMIOS MANUALES</h2>
-            
             <div class="campo-retro">
-                <label>ID DEL JUGADOR DESTINO (TELEGRAM ID):</label>
-                <input type="text" id="regalo-usuario-id" placeholder="Ej: usuario_test_venezuela">
+                <label>ID DEL JUGADOR DESTINO:</label>
+                <input type="text" id="regalo-usuario-id" placeholder="Ej: usuario_test">
             </div>
-
             <div class="campo-retro">
                 <label>MODALIDAD DE REGALO:</label>
                 <select id="regalo-tipo-seleccion">
@@ -176,17 +177,14 @@
                     <option value="ESPECIFICA">CARTA ESPECÍFICA POR ID</option>
                 </select>
             </div>
-
             <div class="campo-retro">
                 <label>ID DE CARTA ESPECÍFICA:</label>
                 <input type="number" id="regalo-carta-id" placeholder="Ej: 1">
             </div>
-
             <div class="campo-retro">
                 <label>CANTIDAD DE EJEMPLARES:</label>
                 <input type="number" id="regalo-cantidad" value="1" min="1">
             </div>
-
             <button type="button" class="btn-rojo-retro" id="btn-enviar-regalo">[[ 🎁 INYECTAR DROP ]]</button>
         </div>
 
@@ -204,8 +202,7 @@
                             <th>ESTADO</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-escrow-cuerpo">
-                    </tbody>
+                    <tbody id="tabla-escrow-cuerpo"></tbody>
                 </table>
             </div>
         </div>
@@ -214,6 +211,5 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="admin.js"></script>
-
 </body>
 </html>

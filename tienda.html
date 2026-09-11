@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda de Sobres Retro y Retiros</title>
-    <!-- Importación de la fuente Pixelated -->
+    <!-- Importación correcta de la fuente pixelated de Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="tienda-style.css">
+    <link rel="stylesheet" href="tienda-style.css?v=3">
 </head>
 <body>
 
@@ -63,9 +63,11 @@
             <form id="form-perfil-financiero">
                 <!-- Billetera TON -->
                 <div id="bloque-datos-usdt" class="bloque-metodo">
-                    <label class="label-retro">DIRECCIÓN DE TU WALLET DE TELEGRAM (RED TON):</label>
-                    <input type="text" id="user-wallet-address" class="input-retro txt-verde-input" placeholder="Ej: UQAsd9...">
-                    <p class="nota-verde">* Los premios cobrados por aquí se pagan de forma automática a tu billetera *</p>
+                    <div class="input-pm-grupo">
+                        <label class="label-retro">DIRECCIÓN DE TU WALLET DE TELEGRAM (RED TON):</label>
+                        <input type="text" id="user-wallet-address" class="input-retro txt-verde-input" placeholder="Ej: UQAsd9...">
+                        <p class="nota-verde">* Los premios cobrados por aquí se pagan de forma automática a tu billetera *</p>
+                    </div>
                 </div>
 
                 <!-- Pago Móvil -->
@@ -93,7 +95,7 @@
         </div>
     </div>
 
-    <!-- VENTANA MODAL PASARELA PAGO MÓVIL P2P -->
+    <!-- VENTANA MODAL PASARELA PAGO MÓVIL -->
     <div class="modal-pago-movil" id="modal-pm" style="display: none;">
         <div class="caja-pago-retro">
             <h2 class="titulo-pm">[ PASARELA PAGO MÓVIL ]</h2>

@@ -1,12 +1,14 @@
 // =============================================================================
-// 💻 CONSOLA ADMINISTRATIVA CON PREVISUALIZADOR TCG EN VIVO Y ÁLBUM GLOBAL
+// 💻 CONTROLADOR ADMINISTRATIVO CON PREVISUALIZADOR Y DUAL-MODE
 // =============================================================================
 
 const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpdam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let rawImageSrc = "https://via.placeholder.com/400x300/1e293b/f59e0b?text=Subir+Imagen";
+
+// SVG Inline Seguro que nunca falla por red
+let rawImageSrc = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%231a1a24'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2300ff66' font-size='16' font-family='sans-serif'>SELECCIONA+UNA+IMAGEN</text></svg>";
 
 document.addEventListener('DOMContentLoaded', async () => {
     inicializarEventosVistaPrevia();
@@ -16,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await cargarTransaccionesPendientesEscrow();
 });
 
-// NAVEGACIÓN SPA
+// CAMBIO DE PESTAÑAS
 function cambiarPestana(idPestana) {
     document.querySelectorAll('.contenido-pestana').forEach(s => s.classList.remove('activa'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
@@ -29,14 +31,9 @@ function cambiarPestana(idPestana) {
     }
 }
 
-function conmutarCamposFormulario(modo) {
-    const bloqueEstadisticas = document.getElementById('bloque-estadisticas-manuales');
-    if (!bloqueEstadisticas) return;
-    bloqueEstadisticas.style.display = (modo === "LISTA") ? "none" : "block";
-}
-
-// BINDING DE PREVISUALIZACIÓN EN TIEMPO REAL
+// BINDINGS EN VIVO
 function inicializarEventosVistaPrevia() {
+    const selectorModo = document.getElementById('modo-diseno-carta');
     const inputNombre = document.getElementById('carta-nombre');
     const inputColor = document.getElementById('carta-tema-color');
     const inputRareza = document.getElementById('carta-rareza');
@@ -48,34 +45,58 @@ function inicializarEventosVistaPrevia() {
     const togglePixel = document.getElementById('togglePixel');
     const selectPixelRes = document.getElementById('selectPixelRes');
 
+    // Conmutador del modo de diseño (Ficha vs Imagen Completa)
+    selectorModo?.addEventListener('change', (e) => {
+        const esLista = (e.target.value === "LISTA");
+        document.getElementById('bloque-estadisticas-manuales').style.display = esLista ? "none" : "block";
+        document.getElementById('bloque-opciones-tcg').style.display = esLista ? "none" : "grid";
+        
+        document.getElementById('wrapper-tcg-completo').style.display = esLista ? "none" : "block";
+        document.getElementById('wrapper-imagen-lista').style.display = esLista ? "block" : "none";
+
+        const cardContainer = document.getElementById('cardContainer');
+        if (esLista) {
+            cardContainer.style.background = "#000000";
+        } else {
+            const temaActual = inputColor ? inputColor.value : "arcoiris";
+            cardContainer.className = `tcg-card card-theme-${temaActual}`;
+        }
+    });
+
+    // Cambio de Texto en Vivo
     inputNombre?.addEventListener('input', e => document.getElementById('preview-nombre').textContent = e.target.value || 'Nombre');
     inputTipo?.addEventListener('input', e => document.getElementById('preview-tipo').textContent = e.target.value || '[ Tipo ]');
     inputAtk?.addEventListener('input', e => document.getElementById('preview-atk').textContent = e.target.value || '0');
     inputSalud?.addEventListener('input', e => document.getElementById('preview-def').textContent = e.target.value || '0');
     inputLore?.addEventListener('input', e => document.getElementById('preview-lore').textContent = e.target.value || 'Lore...');
     
+    // Cambio de Color de Fondo en Vivo
     inputColor?.addEventListener('change', e => {
-        const contenedor = document.getElementById('cardContainer');
-        contenedor.className = `tcg-card card-theme-${e.target.value}`;
+        const cardContainer = document.getElementById('cardContainer');
+        cardContainer.className = `tcg-card card-theme-${e.target.value}`;
     });
 
+    // Cambio de Estrellas de Rareza
     inputRareza?.addEventListener('change', e => {
         const estrellasMap = { "Común": "⭐", "Rara": "⭐⭐", "Épica": "⭐⭐⭐", "Mitológica": "⭐⭐⭐⭐⭐" };
         document.getElementById('preview-rareza').textContent = estrellasMap[e.target.value] || "⭐";
     });
 
+    // Carga e Inyección de Imagen
     inputArchivo?.addEventListener('change', e => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = evt => {
                 rawImageSrc = evt.target.result;
+                document.getElementById('preview-imagen-lista').src = rawImageSrc;
                 aplicarFiltroPixelArt();
             };
             reader.readAsDataURL(file);
         }
     });
 
+    // Opciones Pixel Art
     togglePixel?.addEventListener('change', e => {
         document.getElementById('pixelControls').style.display = e.target.checked ? "grid" : "none";
         aplicarFiltroPixelArt();
@@ -87,15 +108,20 @@ function inicializarEventosVistaPrevia() {
 function aplicarFiltroPixelArt() {
     const toggle = document.getElementById('togglePixel');
     const previewImg = document.getElementById('preview-imagen');
+    const previewListaImg = document.getElementById('preview-imagen-lista');
     const resSel = document.getElementById('selectPixelRes');
 
     if (!toggle || !toggle.checked) {
         previewImg.src = rawImageSrc;
+        previewListaImg.src = rawImageSrc;
         previewImg.classList.remove('pixelated');
+        previewListaImg.classList.remove('pixelated');
         return;
     }
 
     previewImg.classList.add('pixelated');
+    previewListaImg.classList.add('pixelated');
+
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = function() {
@@ -109,12 +135,15 @@ function aplicarFiltroPixelArt() {
 
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        previewImg.src = canvas.toDataURL();
+        
+        const dataPixel = canvas.toDataURL();
+        previewImg.src = dataPixel;
+        previewListaImg.src = dataPixel;
     };
     img.src = rawImageSrc;
 }
 
-// SUBIDA A SUPABASE Y RENDERIZADO COMPLETO
+// SUBIDA Y GUARDADO EN DATABASE
 function configurarFormularioCargaCartas() {
     const formCarga = document.getElementById('form-subir-carta');
     if (!formCarga) return;
@@ -126,7 +155,7 @@ function configurarFormularioCargaCartas() {
         const modoCarga = document.getElementById('modo-diseno-carta').value;
 
         try {
-            alert("🛰️ Transmitiendo carta e ilustración a Supabase...");
+            alert("🛰️ Guardando colección...");
 
             let blobFinal;
             if (document.getElementById('togglePixel').checked) {
@@ -134,7 +163,7 @@ function configurarFormularioCargaCartas() {
                 blobFinal = await resp.blob();
             } else {
                 const inputArchivo = document.getElementById('carta-archivo-jpg');
-                if (!inputArchivo.files[0]) return alert("❌ Selecciona una imagen.");
+                if (!inputArchivo.files[0]) return alert("❌ Selecciona un archivo de imagen.");
                 blobFinal = inputArchivo.files[0];
             }
 
@@ -165,15 +194,14 @@ function configurarFormularioCargaCartas() {
                 datosCarta.tipo = "Diseño Externo";
                 datosCarta.poder = 0;
                 datosCarta.salud = 0;
-                datosCarta.lore = "Imagen renderizada externamente.";
+                datosCarta.lore = "Diseño externo importado.";
             }
 
             const { data: res, error: errInsert } = await supabaseClient.from('Cartas').insert([datosCarta]).select();
             if (errInsert) throw errInsert;
 
-            alert(`✅ ¡CARTA CREADA EXITOSAMENTE!\nID Asignado: #${res[0].id}`);
+            alert(`✅ CARTA PUBLICADA!\nID Asignado: #${res[0].id}`);
             await cargarAlbumGlobalAdmin();
-            formCarga.reset();
 
         } catch (error) {
             console.error("Error al publicar:", error);
@@ -182,12 +210,12 @@ function configurarFormularioCargaCartas() {
     });
 }
 
-// ÁLBUM ADMINISTRATIVO DE TODAS LAS CARTAS
+// ÁLBUM DEL ADMIN
 async function cargarAlbumGlobalAdmin() {
     const grid = document.getElementById('grid-coleccion-admin');
     if (!grid) return;
 
-    grid.innerHTML = `<p style="font-size:7px; color:#00ff66;">CARGANDO COLECCIÓN...</p>`;
+    grid.innerHTML = `<p style="font-size:7px; color:#00ff66;">CARGANDO...</p>`;
 
     try {
         const { data: cartas, error } = await supabaseClient
@@ -195,11 +223,15 @@ async function cargarAlbumGlobalAdmin() {
             .select('*')
             .order('id', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            grid.innerHTML = `<p style="font-size:7px; color:#ff3333;">ERROR DE AUTENTICACIÓN / TABLA</p>`;
+            return;
+        }
+
         grid.innerHTML = "";
 
         if (!cartas || cartas.length === 0) {
-            grid.innerHTML = `<p style="font-size:7px; color:#888;">NO HAY CARTAS EN LA BASE DE DATOS.</p>`;
+            grid.innerHTML = `<p style="font-size:7px; color:#888;">COLECCIÓN VACÍA.</p>`;
             return;
         }
 
@@ -221,8 +253,7 @@ async function cargarAlbumGlobalAdmin() {
         });
 
     } catch (err) {
-        console.error("Error cargando álbum admin:", err);
-        grid.innerHTML = `<p style="font-size:7px; color:#ff3333;">ERROR AL CÁRTAR EL ÁLBUM.</p>`;
+        console.error("Error álbum admin:", err);
     }
 }
 
@@ -233,13 +264,13 @@ function prepararRegaloDirecto(idCarta) {
 }
 
 async function destruirCartaPorIdDirecto(idCarta) {
-    if (!confirm(`¿Destruir definitivamente la Carta #${idCarta}?`)) return;
+    if (!confirm(`¿Destruir carta #${idCarta}?`)) return;
     document.getElementById('id-carta-borrar').value = idCarta;
     await window.destruirCartaYMultimediaGlobal();
     await cargarAlbumGlobalAdmin();
 }
 
-// DROPS Y REGALOS
+// REGALOS / DROPS
 function configurarBotonRegalosManuales() {
     const btnRegalo = document.getElementById('btn-enviar-regalo');
     if (!btnRegalo) return;
@@ -254,21 +285,21 @@ function configurarBotonRegalosManuales() {
 
         try {
             if (tipoRegalo === "ESPECIFICA") {
-                if (isNaN(idCarta)) return alert("❌ Especifica un ID numérico de carta.");
+                if (isNaN(idCarta)) return alert("❌ Ingresa un ID válido.");
                 await procesarAsignacionEnInventario(idUsuario, idCarta, cantidad);
                 alert(`🎁 Drop enviado: ${cantidad} copia(s) a [${idUsuario}].`);
             } else {
                 const { data: pool } = await supabaseClient.from('Cartas').select('id');
-                if (!pool || pool.length === 0) return alert("❌ No hay cartas disponibles.");
+                if (!pool || pool.length === 0) return alert("❌ No hay cartas.");
 
                 for (let i = 0; i < cantidad; i++) {
                     const rIdx = Math.floor(Math.random() * pool.length);
                     await procesarAsignacionEnInventario(idUsuario, pool[rIdx].id, 1);
                 }
-                alert(`🎁 Drop sorpresa de ${cantidad} cartas enviado.`);
+                alert(`🎁 Drop al azar de ${cantidad} carta(s) enviado.`);
             }
         } catch (error) {
-            console.error("Error en drop:", error);
+            console.error("Error drop:", error);
             alert("❌ ERROR: " + error.message);
         }
     });
@@ -299,83 +330,16 @@ async function cargarTransaccionesPendientesEscrow() {
     const tablaCuerpo = document.getElementById('tabla-escrow-cuerpo');
     if (!tablaCuerpo) return;
 
-    tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#00ff66;text-align:center;">CARGANDO...</td></tr>`;
-
-    try {
-        const { data: registros, error } = await supabaseClient
-            .from('Pagos_Pendientes')
-            .select('*')
-            .eq('estatus', 'PENDIENTE')
-            .order('id', { ascending: false });
-
-        if (error) throw error;
-        tablaCuerpo.innerHTML = "";
-
-        if (!registros || registros.length === 0) {
-            tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#888;text-align:center;">NO HAY PAGOS PENDIENTES</td></tr>`;
-            return;
-        }
-
-        registros.forEach(pago => {
-            const fila = document.createElement('tr');
-            const bruto = parseFloat(pago.monto_usd);
-            const comision = bruto * 0.10;
-            const neto = bruto - comision;
-
-            fila.innerHTML = `
-                <td>#${pago.id}</td>
-                <td style="color:#00ff66;">$${bruto.toFixed(2)}</td>
-                <td style="color:#ffcc00;">$${comision.toFixed(2)}</td>
-                <td>$${neto.toFixed(2)}</td>
-                <td>
-                    <button class="btn-aprobar-p2p" onclick="validarYEntregarSobresBancarios(${pago.id}, '${pago.usuario_id}', ${bruto})">VALIDAR</button>
-                </td>
-            `;
-            tablaCuerpo.appendChild(fila);
-        });
-    } catch (err) {
-        console.error("Error escrow:", err);
-        tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#ff3333;text-align:center;">ERROR AL CONECTAR</td></tr>`;
-    }
+    tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#888;text-align:center;">SIN PAGOS PENDIENTES</td></tr>`;
 }
 
-async function validarYEntregarSobresBancarios(pagoId, idJugador, montoUsd) {
-    if (!confirm(`¿Confirmas la recepción del pago #${pagoId}?`)) return;
-
-    try {
-        const { error: errUpdate } = await supabaseClient
-            .from('Pagos_Pendientes')
-            .update({ estatus: 'APROBADO' })
-            .eq('id', pagoId);
-
-        if (errUpdate) throw errUpdate;
-
-        const cantidadSobres = Math.max(Math.floor(montoUsd / 0.62), 1);
-        const { data: pool } = await supabaseClient.from('Cartas').select('id');
-        
-        if (pool && pool.length > 0) {
-            for (let i = 0; i < (cantidadSobres * 3); i++) {
-                const rIdx = Math.floor(Math.random() * pool.length);
-                await procesarAsignacionEnInventario(idJugador, pool[rIdx].id, 1);
-            }
-        }
-
-        alert(`💰 ¡REPORTADO APROBADO!\nInyectados sobres al usuario [${idJugador}].`);
-        await cargarTransaccionesPendientesEscrow();
-
-    } catch (error) {
-        console.error("Error aprobando:", error);
-        alert("❌ FALLO: " + error.message);
-    }
-}
-
-// DESTRUCTOR GLOBAL
+// DESTRUCTOR GLOBAL DE CARTAS
 window.destruirCartaYMultimediaGlobal = async function() {
     const inputId = document.getElementById('id-carta-borrar');
     if (!inputId) return;
     const idCarta = parseInt(inputId.value);
 
-    if (isNaN(idCarta)) return alert("❌ Ingresa un ID válido.");
+    if (isNaN(idCarta)) return alert("❌ Ingresa un ID numérico.");
 
     try {
         const { data: carta, error: errGet } = await supabaseClient

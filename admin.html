@@ -6,7 +6,7 @@
     <title>Consola Central - Administrador</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin-style.css">
 </head>
 <body>
@@ -14,106 +14,153 @@
     <div class="consola-admin">
         <h1 class="titulo-admin">💻 [ PANEL DE CONTROL SUPREMO ] 💻</h1>
         
-        <!-- Pestañas Principales del Admin -->
+        <!-- Pestañas Principales -->
         <div class="menu-pestanas">
             <button class="tab-btn activo" onclick="cambiarPestana('pestana-carga')">CARGA</button>
-            <button class="tab-btn" onclick="cambiarPestana('seccion-regalos')">REGALOS</button>
+            <button class="tab-btn" onclick="cambiarPestana('pestana-album-admin')">ÁLBUM ADMIN</button>
+            <button class="tab-btn" onclick="cambiarPestana('seccion-regalos')">DROPS</button>
             <button class="tab-btn" onclick="cambiarPestana('seccion-subastas')">ESCROW</button>
         </div>
 
-        <!-- Botones de Navegación del Jugador Integradados -->
+        <!-- Botones de Navegación del Jugador -->
         <div class="menu-navegacion-retro">
             <button class="btn-nav-retro" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
             <button class="btn-nav-retro" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
             <button class="btn-nav-retro" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
         </div>
 
-        <!-- PESTAÑA 1: CARGA DE CARTAS Y BORRADO -->
+        <!-- PESTAÑA 1: CARGA Y PREVISUALIZADOR DE CARTA -->
         <div id="pestana-carga" class="contenido-pestana activa">
-            <h2 class="subtitulo-admin">📤 SISTEMA DE INYECCIÓN MULTIMEDIA</h2>
+            <h2 class="subtitulo-admin">📤 CREADOR Y CARGADOR DE CARTAS</h2>
     
             <div class="campo-retro">
                 <label style="color: #ffcc00;">TIPO DE CARGA:</label>
                 <select id="modo-diseno-carta" onchange="conmutarCamposFormulario(this.value)">
-                    <option value="NORMAL">FICHA TÉCNICA (Plantilla por código)</option>
-                    <option value="LISTA" selected>IMAGEN COMPLETA TERMINADA (Diseño externo)</option>
+                    <option value="NORMAL" selected>FICHA TÉCNICA (Diseño TCG en vivo)</option>
+                    <option value="LISTA">IMAGEN COMPLETA TERMINADA (Diseño externo .jpg/.png)</option>
                 </select>
             </div>
 
             <form id="form-subir-carta">
                 <div class="campo-retro">
                     <label>NOMBRE DE LA CRIATURA:</label>
-                    <input type="text" id="carta-nombre" required placeholder="Ej: Báquiro de Collar">
+                    <input type="text" id="carta-nombre" required placeholder="Ej: Fénix Dorado" value="Fénix Dorado">
                 </div>
 
-                <div class="campo-retro">
-                    <label>RAREZA:</label>
-                    <select id="carta-rareza">
-                        <option value="Común">Común</option>
-                        <option value="Rara">Rara</option>
-                        <option value="Épica">Épica</option>
-                        <option value="Mitológica">Mitológica</option>
-                    </select>
-                </div>
-
-                <!-- Campos opcionales para modo Normal -->
-                <div id="bloque-estadisticas-manuales" style="display: none;">
+                <div class="grid-2-cols">
                     <div class="campo-retro">
-                        <label>TIPO/ELEMENTO:</label>
-                        <select id="carta-tipo">
-                            <option value="Tierra">Tierra</option>
-                            <option value="Agua">Agua</option>
-                            <option value="Aire">Aire</option>
-                            <option value="Fuego">Fuego</option>
+                        <label>TEMA DE FONDO:</label>
+                        <select id="carta-tema-color">
+                            <option value="arcoiris" selected>Arcoíris</option>
+                            <option value="azul">Azul Místico</option>
+                            <option value="verde">Verde Naturaleza</option>
+                            <option value="marron">Marrón Tierra</option>
+                            <option value="amarillo-naranja">Fuego / Sol</option>
+                            <option value="morado">Morado / Oscuro</option>
                         </select>
+                    </div>
+                    <div class="campo-retro">
+                        <label>RAREZA:</label>
+                        <select id="carta-rareza">
+                            <option value="Común">Común (⭐)</option>
+                            <option value="Rara">Rara (⭐⭐)</option>
+                            <option value="Épica">Épica (⭐⭐⭐)</option>
+                            <option value="Mitológica" selected>Mitológica (⭐⭐⭐⭐⭐)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Campos dinámicos de Estadísticas -->
+                <div id="bloque-estadisticas-manuales">
+                    <div class="campo-retro">
+                        <label>TIPO / ETIQUETA:</label>
+                        <input type="text" id="carta-tipo-etiqueta" value="[ Bestia Alada / Efecto ]">
                     </div>
 
                     <div class="stats-grid">
                         <div class="campo-retro">
-                            <label>SALUD (HP):</label>
-                            <input type="number" id="carta-salud" value="100">
+                            <label>ATAQUE (ATK):</label>
+                            <input type="number" id="carta-poder" value="2500">
                         </div>
                         <div class="campo-retro">
-                            <label>ATAQUE (ATK):</label>
-                            <input type="number" id="carta-poder" value="50">
+                            <label>SALUD / DEF (HP):</label>
+                            <input type="number" id="carta-salud" value="2100">
                         </div>
-                    </div>
-
-                    <div class="campo-retro">
-                        <label>NOMBRE DEL ATAQUE:</label>
-                        <input type="text" id="carta-ataque" value="Embestida">
-                    </div>
-
-                    <div class="campo-retro">
-                        <label>HÁBITAT:</label>
-                        <input type="text" id="carta-habitat" value="Desconocido">
                     </div>
 
                     <div class="campo-retro">
                         <label>HISTORIA / LORE:</label>
-                        <textarea id="carta-lore" rows="3">Criatura mística.</textarea>
+                        <textarea id="carta-lore" rows="2">Un ave sagrada envuelta en llamas inmortales.</textarea>
                     </div>
                 </div>
 
+                <!-- Cargar Imagen y Modo Pixel-Art -->
                 <div class="campo-retro">
-                    <label style="color:#00ff66;">[ SELECCIONAR IMAGEN (.JPG / .PNG) ]</label>
-                    <input type="file" id="carta-archivo-jpg" accept="image/jpeg, image/png" required class="input-archivo-retro">
+                    <label style="color:#00ff66;">[ ILUSTRACIÓN DE LA CARTA ]</label>
+                    <input type="file" id="carta-archivo-jpg" accept="image/*" class="input-archivo-retro">
+                </div>
+
+                <div class="caja-pixel-art">
+                    <label class="switch-pixel">
+                        <input type="checkbox" id="togglePixel">
+                        <span style="color:#ffcc00; font-size:7px;">👾 ACTIVAR FILTRO PIXEL-ART (8-BITS)</span>
+                    </label>
+                    <div id="pixelControls" class="grid-2-cols" style="display:none; margin-top:8px;">
+                        <label>RESOLUCIÓN:</label>
+                        <select id="selectPixelRes">
+                            <option value="32">32x32 (Muy Retro)</option>
+                            <option value="64" selected>64x64 (Clásico)</option>
+                            <option value="128">128x128 (Detalle)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- PREVISUALIZADOR DE CARTA EN VIVO -->
+                <div class="contenedor-vista-previa">
+                    <span class="label-previa">👁️ VISTA PREVIA EN TIEMPO REAL</span>
+                    <div id="cardContainer" class="tcg-card card-theme-arcoiris">
+                        <div class="tcg-header">
+                            <h3 id="preview-nombre" class="tcg-title">Fénix Dorado</h3>
+                            <span id="preview-rareza" class="tcg-stars">⭐⭐⭐⭐⭐</span>
+                        </div>
+                        <div class="tcg-art-frame">
+                            <img id="preview-imagen" src="https://via.placeholder.com/400x300/1e293b/f59e0b?text=Subir+Imagen" alt="Ilustración">
+                        </div>
+                        <div class="tcg-body">
+                            <p id="preview-tipo" class="tcg-type">[ Bestia Alada / Efecto ]</p>
+                            <p id="preview-lore" class="tcg-lore">Un ave sagrada envuelta en llamas inmortales.</p>
+                            <div class="tcg-stats">
+                                <span>ATK / <strong id="preview-atk" style="color:#ffcc00;">2500</strong></span>
+                                <span>DEF / <strong id="preview-def" style="color:#ffcc00;">2100</strong></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-rojo-retro">[[ 🚀 PUBLICAR EN EL ÁLBUM GLOBAL ]]</button>
             </form>
 
-            <!-- DESTRUCTOR DE ACTIVOS -->
+            <!-- CONSOLA DE BORRADO DIRECTO -->
             <div class="seccion-destructor">
-                <h2 class="subtitulo-admin" style="color: #ff3333; border-color: #ff3333;">🗑️ DESTRUCTOR DE ACTIVOS GLOBAL</h2>
+                <h2 class="subtitulo-admin" style="color: #ff3333; border-color: #ff3333;">🗑️ DESTRUCTOR POR ID</h2>
                 <div class="grupo-destruccion">
-                    <input type="number" id="id-carta-borrar" placeholder="2000" class="input-borrar">
-                    <button type="button" onclick="destruirCartaYMultimediaGlobal()" class="btn-borrar">🗑️ BORRAR</button>
+                    <input type="number" id="id-carta-borrar" placeholder="ID CARTA" class="input-borrar">
+                    <button type="button" onclick="destruirCartaYMultimediaGlobal()" class="btn-borrar">BORRAR</button>
                 </div>
             </div>
         </div>
 
-        <!-- PESTAÑA 2: DROPS Y PREMIOS -->
+        <!-- PESTAÑA 2: ÁLBUM Y CATÁLOGO ADMIN (TODAS LAS CARTAS) -->
+        <div id="pestana-album-admin" class="contenido-pestana">
+            <h2 class="subtitulo-admin">📖 CATÁLOGO COMPLETO DE CARTAS GUARDADAS</h2>
+            <p class="nota-consola">Explora la base de datos en tiempo real, copia IDs para drops o elimina coleccionables:</p>
+            
+            <div id="grid-coleccion-admin" class="grid-cartas-admin">
+                <!-- Se inyectan dinámicamente con admin.js -->
+            </div>
+        </div>
+
+        <!-- PESTAÑA 3: DROPS Y PREMIOS -->
         <div id="seccion-regalos" class="contenido-pestana">
             <h2 class="subtitulo-admin">🎁 DROPS Y PREMIOS MANUALES</h2>
             
@@ -131,23 +178,21 @@
             </div>
 
             <div class="campo-retro">
-                <label>ID DE CARTA ESPECÍFICA (SI CORRESPONDE):</label>
+                <label>ID DE CARTA ESPECÍFICA:</label>
                 <input type="number" id="regalo-carta-id" placeholder="Ej: 1">
             </div>
 
             <div class="campo-retro">
-                <label>CANTIDAD DE EJEMPLARES A REGALAR:</label>
+                <label>CANTIDAD DE EJEMPLARES:</label>
                 <input type="number" id="regalo-cantidad" value="1" min="1">
             </div>
 
             <button type="button" class="btn-rojo-retro" id="btn-enviar-regalo">[[ 🎁 INYECTAR DROP ]]</button>
         </div>
 
-        <!-- PESTAÑA 3: ESCROW -->
+        <!-- PESTAÑA 4: ESCROW -->
         <div id="seccion-subastas" class="contenido-pestana">
             <h2 class="subtitulo-admin">⚖️ LIQUIDACIÓN ESCROW (10% COMISIÓN)</h2>
-            <p class="nota-consola">Lista de transacciones P2P pendientes por verificación manual bancaria:</p>
-            
             <div class="contenedor-tabla-retro">
                 <table class="tabla-retro">
                     <thead>

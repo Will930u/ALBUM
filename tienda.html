@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda de Sobres Retro y Retiros</title>
-    <!-- Importamos la fuente oficial de videojuegos pixel art -->
-    <link href="https://googleapis.com" rel="stylesheet">
-    <link rel="stylesheet" href="tienda-style.css?v=2">
-
+    <!-- Carga correcta de la fuente Pixelated Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tienda-style.css?v=3">
 </head>
 <body>
 
@@ -23,7 +24,7 @@
             <button class="btn-cantidad" id="btn-mas">+</button>
         </div>
 
-        <!-- Pantalla de totales electrónicos en espejo -->
+        <!-- Pantalla de totales electrónicos -->
         <div class="pantalla-totales">
             <div class="fila-total">
                 <span>TOTAL USD:</span>
@@ -49,92 +50,88 @@
 
         <button class="btn-comprar-final" id="btn-checkout">[[ COMPRAR AHORA ]]</button>
 
-
         <!-- SECCIÓN 2: CONFIGURACIÓN DE RETIRO DE PREMIOS -->
-        <div class="consola-retiros-retro" style="margin-top: 40px; border-top: 4px dashed #333; padding-top: 20px;">
-            <h2 class="titulo-tienda" style="color: #ffcc00;">[ RETIRO DE PREMIOS ]</h2>
+        <div class="consola-retiros-retro">
+            <h2 class="titulo-tienda titulo-retiros">[ RETIRO DE PREMIOS ]</h2>
             <p class="precio-unidad">Configura dónde recibir tus USDT o Bolívares</p>
 
-            <!-- Botones independientes para conmutar el perfil financiero -->
-            <div class="selector-metodos-pago" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button type="button" class="btn-cantidad" id="btn-select-usdt" style="font-size: 8px; width: auto; height: auto; padding: 10px; flex: 1;" onclick="conmutarFormularioRetiro('USDT')">🔵 WALLET USDT</button>
-                <button type="button" class="btn-cantidad" id="btn-select-pm" style="font-size: 8px; width: auto; height: auto; padding: 10px; flex: 1; background-color: #1a1a1f; color: #888;" onclick="conmutarFormularioRetiro('PM')">🇻🇪 PAGO MÓVIL</button>
+            <div class="selector-metodos-pago">
+                <button type="button" class="btn-metodo-tab activo" id="btn-select-usdt" onclick="conmutarFormularioRetiro('USDT')">🔵 WALLET USDT</button>
+                <button type="button" class="btn-metodo-tab" id="btn-select-pm" onclick="conmutarFormularioRetiro('PM')">🇻🇪 PAGO MÓVIL</button>
             </div>
 
-            <!-- Formulario dinámico espejo -->
+            <!-- Formulario dinámico -->
             <form id="form-perfil-financiero">
                 
-                <!-- Entrada para la billetera descentralizada de Telegram -->
-                <div id="bloque-datos-usdt" style="display: block; margin-bottom: 15px; text-align: left;">
-                    <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">DIRECCIÓN DE TU WALLET DE TELEGRAM (RED TON):</label>
-                    <input type="text" id="user-wallet-address" style="width: 90%; background: #000; border: 3px solid #333; color: #00ff66; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;" placeholder="Ej: UQAsd9...">
-                    <p style="font-size: 6px; color: #00ff66; margin-top: 5px; line-height: 1.4;">* Los premios cobrados por aquí se pagan de forma automática a tu billetera *</p>
+                <!-- Billetera TON/Telegram -->
+                <div id="bloque-datos-usdt" class="bloque-metodo">
+                    <label class="label-retro">DIRECCIÓN DE TU WALLET DE TELEGRAM (RED TON):</label>
+                    <input type="text" id="user-wallet-address" class="input-retro txt-verde-input" placeholder="Ej: UQAsd9...">
+                    <p class="nota-verde">* Los premios cobrados por aquí se pagan de forma automática a tu billetera *</p>
                 </div>
 
-                <!-- Entradas para el Pago Móvil venezolano -->
-                <div id="bloque-datos-pm" style="display: none; margin-bottom: 15px; text-align: left;">
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">BANCO DESTINO:</label>
-                        <select id="user-pm-banco" style="width: 97%; background: #000; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;">
+                <!-- Pago Móvil -->
+                <div id="bloque-datos-pm" class="bloque-metodo" style="display: none;">
+                    <div class="input-pm-grupo">
+                        <label class="label-retro">BANCO DESTINO:</label>
+                        <select id="user-pm-banco" class="select-retro">
                             <option value="0102">BANCO DE VENEZUELA</option>
                             <option value="0134">BANESCO</option>
                             <option value="0105">MERCANTIL</option>
                         </select>
                     </div>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">CÉDULA DE IDENTIDAD:</label>
-                        <input type="text" id="user-pm-cedula" style="width: 90%; background: #000; border: 3px solid #333; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;" placeholder="Ej: V-12345678">
+                    <div class="input-pm-grupo">
+                        <label class="label-retro">CÉDULA DE IDENTIDAD:</label>
+                        <input type="text" id="user-pm-cedula" class="input-retro" placeholder="Ej: V-12345678">
                     </div>
-                    <div>
-                        <label style="font-size: 8px; color: #aaaaaa; display: block; margin-bottom: 5px;">TELÉFONO DE TU PAGO MÓVIL:</label>
-                        <input type="text" id="user-pm-telefono" style="width: 90%; background: #000; border: 3px solid #333; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 8px;" placeholder="Ej: 04127654321">
+                    <div class="input-pm-grupo">
+                        <label class="label-retro">TELÉFONO DE TU PAGO MÓVIL:</label>
+                        <input type="text" id="user-pm-telefono" class="input-retro" placeholder="Ej: 04127654321">
                     </div>
                 </div>
 
-                <button type="button" class="btn-comprar-final" id="btn-guardar-perfil" style="background-color: #ffcc00; box-shadow: 4px 4px 0px #b38f00;">[[ 💾 GUARDAR DATOS DE COBRO ]]</button>
+                <button type="button" class="btn-guardar-perfil" id="btn-guardar-perfil">[[ 💾 GUARDAR DATOS DE COBRO ]]</button>
             </form>
         </div>
     </div>
 
-    <!-- ======================================================= -->
-    <!-- VENTANA POP-UP FLOTANTE (MODAL): PASARELA PAGO MÓVIL P2P -->
-    <!-- ======================================================= -->
+    <!-- VENTANA MODAL PASARELA PAGO MÓVIL P2P -->
     <div class="modal-pago-movil" id="modal-pm" style="display: none;">
         <div class="caja-pago-retro">
-            <h2 class="titulo-pm" style="color: #ff3333; font-size: 11px; margin-bottom: 15px;">[ PASARELA PAGO MÓVIL ]</h2>
+            <h2 class="titulo-pm">[ PASARELA PAGO MÓVIL ]</h2>
             
-            <div class="datos-plataforma-box" style="background-color: #000; padding: 12px; text-align: left; font-size: 7px; margin-bottom: 20px; line-height: 1.6;">
-                <p>BANCO: <span style="color: #ffcc00;">BANCO DE VENEZUELA</span></p>
-                <p>TELÉFONO: <span style="color: #ffcc00;">0412-1234567</span></p>
-                <p>CÉDULA: <span style="color: #ffcc00;">V-12345678</span></p>
-                <p>MONTO A PAGAR: <span style="color: #00ff66; font-size: 10px; font-weight: bold;" id="monto-bs-dinamico">0.00 Bs.</span></p>
+            <div class="datos-plataforma-box">
+                <p>BANCO: <span class="txt-oro">BANCO DE VENEZUELA</span></p>
+                <p>TELÉFONO: <span class="txt-oro">0412-1234567</span></p>
+                <p>CÉDULA: <span class="txt-oro">V-12345678</span></p>
+                <p>MONTO A PAGAR: <span class="txt-verde" id="monto-bs-dinamico">0.00 Bs.</span></p>
             </div>
 
             <form id="form-registro-referencia">
-                <div class="input-pm-grupo" style="display: flex; flex-direction: column; text-align: left; margin-bottom: 15px;">
-                    <label style="font-size: 7px; color: #aaaaaa; margin-bottom: 6px;">NÚMERO DE REFERENCIA (ÚLTIMOS 6 DÍGITOS):</label>
-                    <input type="text" id="ref-bancaria" required maxlength="8" style="background: #000; border: 3px solid #333; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 9px;" placeholder="Ej: 874521">
+                <div class="input-pm-grupo">
+                    <label class="label-retro">NÚMERO DE REFERENCIA (ÚLTIMOS 6 DÍGITOS):</label>
+                    <input type="text" id="ref-bancaria" required maxlength="8" class="input-retro" placeholder="Ej: 874521">
                 </div>
                 
-                <div class="input-pm-grupo" style="display: flex; flex-direction: column; text-align: left; margin-bottom: 15px;">
-                    <label style="font-size: 7px; color: #aaaaaa; margin-bottom: 6px;">TU TELÉFONO DESDE EL QUE PAGASTE:</label>
-                    <input type="text" id="telf-origen" required style="background: #000; border: 3px solid #333; color: #fff; padding: 8px; font-family: 'Press Start 2P'; font-size: 9px;" placeholder="Ej: 04147654321">
+                <div class="input-pm-grupo">
+                    <label class="label-retro">TU TELÉFONO DESDE EL QUE PAGASTE:</label>
+                    <input type="text" id="telf-origen" required class="input-retro" placeholder="Ej: 04147654321">
                 </div>
 
-                <button type="submit" class="btn-confirmar-pm" style="background-color: #ff3333; color: #fff; border: 4px solid #000; padding: 12px; font-family: 'Press Start 2P'; font-size: 9px; width: 100%; cursor: pointer;">[[ 🛰️ ENVIAR REPORTE ]]</button>
+                <button type="submit" class="btn-confirmar-pm">[[ 🛰️ ENVIAR REPORTE ]]</button>
             </form>
         </div>
     </div>
 
-    <!-- MENÚ DE NAVEGACIÓN FIJA INFERIOR PARA EL JUGADOR -->
+    <!-- MENÚ DE NAVEGACIÓN FIJA INFERIOR -->
     <div class="menu-navegacion-fijo">
         <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
         <button class="btn-nav activo" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
         <button class="btn-nav" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
     </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="tienda-control.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="tienda-control.js"></script>
 
 </body>
 </html>

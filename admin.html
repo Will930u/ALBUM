@@ -19,49 +19,61 @@
             <button class="tab-btn" onclick="cambiarPestana('seccion-subastas')">ESCROW</button>
         </div>
 
-        <!-- 1. PESTAÑA: CARGA DE NUEVAS CARTAS -->
-        <div id="seccion-carga" class="contenido-pestana activa">
-            <h2 class="subtitulo-admin">➔ SUBIR NUEVA CRIATURA</h2>
-            <form id="form-subir-carta">
-                <div class="campo-retro">
-                    <label>NOMBRE DE LA CRIATURA:</label>
-                    <input type="text" id="carta-nombre" required placeholder="Ej: Dragón Fuego-Sangre">
-                </div>
-                <div class="campo-retro">
-                    <label>NATURALEZA / MARCO DE COLOR:</label>
-                    <select id="carta-tipo" required>
-                        <option value="azul">AZUL 🔵 (Agua / Aire)</option>
-                        <option value="verde">VERDE 🟢 (Planta / Tierra)</option>
-                        <option value="marron">MARRÓN 🟤 (Roca / Desierto)</option>
-                        <option value="naranja">NARANJA 🟠 (Fuego)</option>
-                        <option value="morado">MORADO 🟣 (Veneno / Psíquico)</option>
-                    </select>
-                </div>
-                <div class="stats-linea">
-                    <div class="campo-retro">
-                        <label>HP:</label>
-                        <input type="number" id="carta-salud" value="100" min="1" required>
-                    </div>
-                    <div class="campo-retro">
-                        <label>ATK (PODER):</label>
-                        <input type="number" id="carta-poder" value="150" min="1" required>
-                    </div>
-                </div>
-                <div class="campo-retro">
-                    <label>HABILIDAD / ATAQUE:</label>
-                    <input type="text" id="carta-ataque" required placeholder="Ej: Ladrido Píxel">
-                </div>
-                <div class="campo-retro">
-                    <label>HÁBITAT:</label>
-                    <input type="text" id="carta-habitat" required placeholder="Ej: Volcanes Antiguos">
-                </div>
-                <div class="campo-retro">
-                    <label>RAREZA (HITO):</label>
-                    <select id="carta-rareza" required>
-                        <option value="Común">COMÚN (Parte 1)</option>
-                        <option value="Rara">RARA (Parte 2)</option>
-                        <option value="Épica">ÉPICA (Parte 3)</option>
-                        <option value="Mitológica">MITOLÓGICA (Parte 4 - Arcoíris)</option>
+        <!-- PESTAÑA 1: CONTROL DE CRIATURAS (CARGA Y BORRADO) -->
+        <div id="pestana-carga" class="contenido-pestana activa">
+            <h2 class="titulo-admin">[[ 📤 SISTEMA DE INYECCIÓN MULTIMEDIA ]]</h2>
+    
+            <!-- Selector de Modo de Diseño -->
+           <div class="form-grupo" style="margin-bottom: 20px;">
+               <label style="font-size: 8px; color: #ffcc00;">TIPO DE CARGA:</label>
+               <select id="modo-diseno-carta" style="background:#000; color:#fff; font-family:'Press Start 2P'; font-size:8px; padding:8px; width:95%;" onchange="conmutarCamposFormulario(this.value)">
+                  <option value="NORMAL">FICHA TÉCNICA (Plantilla por código)</option>
+                  <option value="LISTA">IMAGEN COMPLETA TERMINADA (Diseño externo .jpg/.png)</option>
+               </select>
+           </div>
+
+           <form id="form-subir-carta">
+               <div class="form-grupo"><label>NOMBRE DE LA CRIATURA:</label><input type="text" id="carta-nombre" required></div>
+               <div class="form-grupo"><label>RAREZA:</label>
+            <select id="carta-rareza">
+                 <option value="Común">Común</option>
+                 <option value="Rara">Rara</option>
+                 <option value="Épica">Épica</option>
+                 <option value="Mitológica">Mitológica</option>
+             </select>
+         </div>
+
+         <!-- Campos dinámicos que se ocultarán en modo Imagen Lista -->
+         <div id="bloque-estadisticas-manuales">
+             <div class="form-grupo"><label>TIPO/ELEMENTO:</label>
+                 <select id="carta-tipo">
+                     <option value="Tierra">Tierra</option><option value="Agua">Agua</option><option value="Aire">Aire</option>
+                 </select>
+             </div>
+             <div class="form-grupo"><label>PUNTOS DE SALUD (HP):</label><input type="number" id="carta-salud" value="100"></div>
+             <div class="form-grupo"><label>PODER DE ATAQUE (ATK):</label><input type="number" id="carta-poder" value="50"></div>
+             <div class="form-grupo"><label>NOMBRE DEL ATAQUE:</label><input type="text" id="carta-ataque" value="Embestida"></div>
+             <div class="form-grupo"><label>HÁBITAT:</label><input type="text" id="carta-habitat" value="Desconocido"></div>
+             <div class="form-grupo"><label>HISTORIA / LORE:</label><textarea id="carta-lore">Criatura mística.</textarea></div>
+         </div>
+
+         <div class="form-grupo">
+             <label style="color:#00ff66;">[ SELECCIONAR ARCHIVO (.JPG / .PNG) ]</label>
+             <input type="file" id="carta-archivo-jpg" accept="image/jpeg, image/png" required style="background:#000; color:#fff; font-family:'Press Start 2P'; font-size:8px; padding:10px; width:90%;">
+         </div>
+
+         <button type="submit" class="btn-admin-final">[[ 🚀 PUBLICAR EN EL ÁLBUM GLOBAL ]]</button>
+     </form>
+
+    <!-- NUEVA SECCIÓN: CONSOLA DE BORRADO DE CARTAS -->
+    <div style="margin-top: 40px; border-top: 4px dashed #ff3333; padding-top: 20px;">
+        <h2 class="titulo-admin" style="color: #ff3333;">[[ 🗑️ DESTRUCTOR DE ACTIVOS GLOBAL ]]</h2>
+        <div class="form-grupo" style="display: flex; gap: 10px;">
+            <input type="number" id="id-carta-borrar" placeholder="ID CARTA (Ej: 14)" style="background:#000; color:#fff; font-family:'Press Start 2P'; font-size:10px; padding:10px; width:60%; border: 3px solid #ff3333;">
+            <button type="button" onclick="destruirCartaYMultimediaGlobal()" style="background:#ff3333; color:#fff; font-family:'Press Start 2P'; font-size:8px; padding:10px; border:3px solid #000; cursor:pointer; flex:1;">🗑️ BORRAR</button>
+        </div>
+    </div>
+</div>
                     </select>
                 </div>
                 <div class="campo-retro">

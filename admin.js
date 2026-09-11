@@ -2,8 +2,8 @@
 // 💻 PANEL DE CONTROL SUPREMO CENTRALIZADO - LOGICA DE OPERACIONES (ADMIN)
 // =============================================================================
 
-// Credenciales de conexión (Asegúrate de cambiar esto por tus datos reales de Supabase)
-const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
+// Credenciales de conexión oficiales sincronizadas
+const SUPABASE_URL = "https://supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // =============================================================================
-// 🎛️ 1. CONTROLADOR SPA: CAMBIO INTERACTIVO DE PESTAÑAS
+// 🎛️ 1. CONTROLADOR SPA: CAMBIO INTERACTIVO DE PESTAÑAS Y INTERRUPTOR DE MODO
 // =============================================================================
 function cambiarPestana(idPestana) {
     document.querySelectorAll('.contenido-pestana').forEach(seccion => {
@@ -30,12 +30,24 @@ function cambiarPestana(idPestana) {
     });
 
     document.getElementById(idPestana).classList.add('activa');
-    if (event && event.currentTarget) {
-        event.currentTarget.classList.add('activo');
+    if (window.event && window.event.currentTarget) {
+        window.event.currentTarget.classList.add('activo');
     }
 }
 
-// 📤 LÓGICA DE CARGA AUTOMATIZADA CON SUBIDA DE IMÁGENES JPG/PNG DIRECTAS
+function conmutarCamposFormulario(modo) {
+    const bloqueEstadisticas = document.getElementById('bloque-estadisticas-manuales');
+    if (!bloqueEstadisticas) return;
+    
+    if (modo === "LISTA") {
+        bloqueEstadisticas.style.display = "none"; // Oculta HP, ATK y Lore si subes el diseño externo final
+    } else {
+        bloqueEstadisticas.style.display = "block"; // Muestra los campos para estructurar por código
+    }
+}
+// =============================================================================
+// 📤 2. LÓGICA DE CARGA: PUBLICAR NUEVAS CRIATURAS (DUAL: MANUAL O ARTE FINAL)
+// =============================================================================
 function configurarFormularioCargaCartas() {
     const formCarga = document.getElementById('form-subir-carta');
     if (!formCarga) return;
@@ -51,11 +63,13 @@ function configurarFormularioCargaCartas() {
         }
 
         const archivoFoto = inputArchivo.files[0];
+        const modoCarga = document.getElementById('modo-diseno-carta') ? document.getElementById('modo-diseno-carta').value : "NORMAL";
+        
         // Inventar un nombre de archivo único para que no se machaquen las fotos en la nube
         const nombreArchivoUnico = `${Date.now()}_${archivoFoto.name.replace(/\s+/g, '_')}`;
 
         try {
-            alert("🛰️ Subiendo imagen a la nube de Supabase... Por favor espera.");
+            alert("🛰️ Transmitiendo imagen a la nube de Supabase... Por favor espera.");
 
             // 2. Subir el archivo JPG/PNG al Storage de Supabase de forma directa
             const { data: datosSubida, error: errorSubida } = await supabaseClient
@@ -77,18 +91,30 @@ function configurarFormularioCargaCartas() {
             const urlFinalDeLaImagen = urlPublica.publicUrl;
             console.log("🔗 Imagen guardada con éxito en la nube. URL pública:", urlFinalDeLaImagen);
 
-            // 4. Armar el objeto final inyectándole la URL generada automáticamente
-            const datosCarta = {
+            // 4. Evaluar el modo seleccionado para estructurar el registro final de datos
+            let datosCarta = {
                 nombre: document.getElementById('carta-nombre').value.trim(),
-                tipo: document.getElementById('carta-tipo').value,
-                salud: parseInt(document.getElementById('carta-salud').value) || 100,
-                poder: parseInt(document.getElementById('carta-poder').value) || 50,
-                ataque_nombre: document.getElementById('carta-ataque').value.trim(),
-                habitat: document.getElementById('carta-habitat').value.trim(),
                 rareza: document.getElementById('carta-rareza').value,
-                lore: document.getElementById('carta-lore').value.trim(),
-                url_imagen: urlFinalDeLaImagen // Se guarda el enlace generado solo
+                url_imagen: urlFinalDeLaImagen
             };
+
+            if (modoCarga === "NORMAL") {
+                // Modo Ficha Técnica: Mantiene los textos e inyecta las estadísticas mapeadas
+                datosCarta.tipo = document.getElementById('carta-tipo').value;
+                datosCarta.salud = parseInt(document.getElementById('carta-salud').value) || 100;
+                datosCarta.poder = parseInt(document.getElementById('carta-poder').value) || 50;
+                datosCarta.ataque_nombre = document.getElementById('carta-ataque').value.trim();
+                datosCarta.habitat = document.getElementById('carta-habitat').value.trim();
+                datosCarta.lore = document.getElementById('carta-lore').value.trim();
+            } else {
+                // Modo Imagen Lista: Configura flags especiales para saltarse los textos sobrepuestos
+                datosCarta.tipo = "ArteFinal";
+                datosCarta.salud = 0;
+                datosCarta.poder = 0;
+                datosCarta.ataque_nombre = "DiseñoExterno";
+                datosCarta.habitat = "Galaxia_Render";
+                datosCarta.lore = "Imagen completa renderizada por el Administrador de forma externa.";
+            }
 
             // 5. Insertar la criatura en el catálogo global de tu tabla de Supabase
             const { data: registroInsertado, error: errorInsertar } = await supabaseClient
@@ -104,23 +130,6 @@ function configurarFormularioCargaCartas() {
         } catch (error) {
             console.error("Fallo crítico en el cargador multimedia:", error);
             alert("❌ ERROR AL SUBIR MULTIMEDIA: " + error.message);
-        }
-    });
-}
-        try {
-            const { data, error } = await supabaseClient
-                .from('Cartas')
-                .insert([datosCarta])
-                .select();
-
-            if (error) throw error;
-
-            alert(`✅ ¡ÉXITO CRÍTICO!\nCarta publicada en el catálogo global.\nID Asignado: #${data[0].id_carta}`);
-            formCarga.reset();
-
-        } catch (error) {
-            console.error(error);
-            alert("❌ ERROR DE INYECCIÓN: " + error.message);
         }
     });
 }
@@ -157,7 +166,7 @@ function configurarBotonRegalosManuales() {
                 }
                 alert(`🎁 Drop sorpresa exitoso: ${cantidad} cartas al azar inyectadas a [${idUsuario}].`);
             }
-            document.getElementById('regalo-carta-id').value = "";
+            if (document.getElementById('regalo-carta-id')) document.getElementById('regalo-carta-id').value = "";
         } catch (error) {
             console.error(error);
             alert("❌ ERROR EN DROP: " + error.message);
@@ -184,9 +193,8 @@ async function procesarAsignacionEnInventario(idUser, idCard, cant) {
             .insert([{ id_usuario: idUser, id_carta: idCard, cantidad: cant }]);
     }
 }
-
 // =============================================================================
-// ⚖️ 4. NUEVA LOGICA: AUDITORÍA ESCROW Y APROBACIÓN DE PAGO MÓVIL (BOLÍVARES)
+// ⚖️ 4. LOGICA: AUDITORÍA ESCROW Y APROBACIÓN DE PAGO MÓVIL (BOLÍVARES)
 // =============================================================================
 async function cargarTransaccionesPendientesEscrow() {
     const tablaCuerpo = document.getElementById('tabla-escrow-cuerpo');
@@ -195,7 +203,6 @@ async function cargarTransaccionesPendientesEscrow() {
     tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#00ff66;text-align:center;">REVISANDO REPORTES BANCARIOS...</td></tr>`;
 
     try {
-        // Consultar de Supabase los registros de subastas/compras que estén en estado PENDIENTE
         const { data: registros, error } = await supabaseClient
             .from('Historial_Subastas_Liquidadas')
             .select('*')
@@ -211,13 +218,10 @@ async function cargarTransaccionesPendientesEscrow() {
             return;
         }
 
-        // Dibujar las filas de la tabla de auditoría con estilo retro
         registros.forEach(lote => {
             const fila = document.createElement('tr');
-            
-            // Cálculos automáticos de comisiones en base al bruto recibido
             const bruto = parseFloat(lote.monto_bruto_usd);
-            const comision = bruto * 0.10; // Tu regla fija del 10% de ganancia retenida
+            const comision = bruto * 0.10;
             const neto = bruto - comision;
 
             fila.innerHTML = `
@@ -226,7 +230,7 @@ async function cargarTransaccionesPendientesEscrow() {
                 <td class="txt-oro">$${comision.toFixed(2)}</td>
                 <td>$${neto.toFixed(2)}</td>
                 <td>
-                    <button class="btn-aprobar-p2p" onclick="validarYEntregarSobresBancarios(${lote.id_lote}, '${lote.vendedor_id}', ${bruto})">VALIDAR</button>
+                    <button class="btn-aprobar-p2p" onclick="validarYEntregarSobresBancarios(${lote.id_lote}, '${lote.comprador_id}', ${bruto})">VALIDAR</button>
                 </td>
             `;
             tablaCuerpo.appendChild(fila);
@@ -238,9 +242,7 @@ async function cargarTransaccionesPendientesEscrow() {
     }
 }
 
-// Función asociada al botón verde 'VALIDAR' de tu tabla
 async function validarYEntregarSobresBancarios(idLote, idJugador, montoUsd) {
-    // Ventana de confirmación técnica
     const confirmar = confirm(`¿Confirmas que el Pago Móvil del lote #${idLote} ya está disponible en tu cuenta bancaria?`);
     if (!confirmar) return;
 
@@ -253,20 +255,79 @@ async function validarYEntregarSobresBancarios(idLote, idJugador, montoUsd) {
 
         if (errUpdate) throw errUpdate;
 
-        // 2. Ejecutar el sorteo automático (lotería) para entregarle las cartas sorpresa al jugador
-        // Convertimos el monto de dólares a cantidad aproximada de sobres ($0.62 por sobre)
+        // 2. Calcular los sobres ganados ($0.62 por unidad) y ejecutar la apertura sorpresa
         const cantidadSobresComprados = Math.max(Math.floor(montoUsd / 0.62), 1);
         
-        // Llamar a la función del abridor de sobres que creamos en el paso previo
-        await ejecutarAperturaSobresSorpresa(idJugador, cantidadSobresComprados, 'Común');
+        // Ejecuta el abridor de sobres inyectando las barajitas al azar directo a su inventario
+        if (typeof ejecutarAperturaSobresSorpresa === 'function') {
+            await ejecutarAperturaSobresSorpresa(idJugador, cantidadSobresComprados, 'Común');
+        } else {
+            // Drop de respaldo básico por si la librería no ha cargado
+            const { data: pool } = await supabaseClient.from('Cartas').select('id_carta');
+            if (pool && pool.length > 0) {
+                for (let i = 0; i < (cantidadSobresComprados * 3); i++) {
+                    const rIdx = Math.floor(Math.random() * pool.length);
+                    await procesarAsignacionEnInventario(idJugador, pool[rIdx].id_carta, 1);
+                }
+            }
+        }
 
-        alert(`💰 ¡LOTE DE PAGO MÓVIL # ${idLote} VALIDADO EXITOSAMENTE!\nSe han procesado ${cantidadSobresComprados} sobre(s) al azar directo al álbum de [${idJugador}].`);
-        
-        // 3. Recargar la tabla en vivo para borrar el registro aprobado de la lista
+        alert(`💰 ¡LOTE DE PAGO MÓVIL #${idLote} VALIDADO EXITOSAMENTE!\nSe han procesado ${cantidadSobresComprados} sobre(s) al azar directo al álbum de [${idJugador}].`);
         await cargarTransaccionesPendientesEscrow();
 
     } catch (error) {
         console.error(error);
         alert("❌ Error al liquidar la transacción: " + error.message);
+    }
+}
+
+// =============================================================================
+// 🗑️ 5. LÓGICA DE DESTRUCTOR DE ACTIVOS GLOBAL (BORRA DE TABLA Y STORAGE)
+// =============================================================================
+async function destruirCartaYMultimediaGlobal() {
+    const inputId = document.getElementById('id-carta-borrar');
+    if (!inputId) return;
+    const idCarta = parseInt(inputId.value);
+
+    if (isNaN(idCarta)) return alert("❌ Introduce un ID numérico de carta válido.");
+
+    const confirmar = confirm(`⚠ ALERTA CRÍTICA ⚠\n¿Estás completamente seguro de borrar la carta #${idCarta} del catálogo?\nEsto eliminará su registro de Supabase y destruirá su imagen en la nube para siempre.`);
+    if (!confirmar) return;
+
+    try {
+        // 1. Consultar la carta para obtener el nombre exacto de su archivo en la nube
+        const { data: carta, error: errGet } = await supabaseClient
+            .from('Cartas')
+            .select('url_imagen')
+            .eq('id_carta', idCarta)
+            .maybeSingle();
+
+        if (errGet) throw errGet;
+        if (!carta) return alert("❌ ERROR: Ese ID de carta no existe en tu catálogo.");
+
+        // Extraer el nombre relativo del archivo del enlace público
+        const partesUrl = carta.url_imagen.split('/imagenes_cartas/');
+        if (partesUrl.length > 1) {
+            const nombreArchivoNube = partesUrl[1];
+            console.log("🗑️ Borrando del Storage:", nombreArchivoNube);
+            
+            // Eliminar el archivo del Storage bucket de forma definitiva
+            await supabaseClient.storage.from('imagenes_cartas').remove([nombreArchivoNube]);
+        }
+
+        // 2. Eliminar el registro de la tabla 'Cartas'
+        const { error: errDelete } = await supabaseClient
+            .from('Cartas')
+            .delete()
+            .eq('id_carta', idCarta);
+
+        if (errDelete) throw errDelete;
+
+        alert(`🗑️ ¡DEMOLICIÓN EXITOSA!\nLa carta #${idCarta} y su archivo multimedia han sido purgados por completo.`);
+        inputId.value = "";
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ FALLO EN LA CONSOLA DE DESTRUCCIÓN: " + error.message);
     }
 }

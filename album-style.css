@@ -1,293 +1,230 @@
-﻿/* Estilos Base y Tipografía */
-body {
-    background-color: #0c0c0e;
-    color: #ffffff;
-    font-family: 'Press Start 2P', monospace;
-    margin: 0;
-    padding: 15px;
-    display: flex;
-    justify-content: center;
-    -webkit-touch-callout: none;
-    user-select: none;
-}
+﻿/* =============================================================================
+   🎮 PANEL DE ADMINISTRACIÓN - HOJA DE ESTILOS OPTIMIZADA
+   ============================================================================= */
 
-.interfaz-juego {
-    width: 100%;
-    max-width: 440px; /* Ancho ideal optimizado para Telegram Mini Apps */
-}
-
-.marcador-progreso {
-    background-color: #16161a;
-    border: 4px solid #000000;
-    padding: 10px;
-    text-align: center;
-    font-size: 9px;
-    line-height: 1.6;
-    box-shadow: 4px 4px 0px #00ff66;
-    margin-bottom: 12px;
-}
-
-.resaltado-oro { color: #ffcc00; }
-
-/* El contenedor del Libro */
-.libro-contenedor {
-    background-color: #2b170c; /* Estilo estuche de cuero/madera */
-    border: 6px solid #000000;
-    padding: 10px;
-    box-shadow: 6px 6px 0px #140b06;
-}
-
-.pagina-cuadrula {
-    background-color: #111114;
-    border: 4px solid #000000;
-    padding: 8px;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5 columnas fijas */
-    gap: 6px;
-    min-height: 390px;
-}
-
-/* Slots de las miniaturas en la página */
-.miniatura-slot {
-    aspect-ratio: 1 / 1.35;
-    border: 2px solid #000000;
-    background-color: #070709;
-    cursor: pointer;
-    overflow: hidden;
-    position: relative;
-}
-
-.miniatura-slot img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    image-rendering: pixelated;
-}
-
-/* Shadow Lock (Silueta para cartas faltantes) */
-.miniatura-slot.bloqueada {
-    background-color: #000000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #252525;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-/* Controles de Navegación */
-.navegacion-libro {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 12px;
-}
-
-.btn-retro {
-    background-color: #00ff66;
-    color: #000000;
-    border: 4px solid #000000;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    padding: 10px 14px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 3px 3px 0px #009944;
-}
-
-.btn-retro:active {
-    transform: translate(3px, 3px);
-    box-shadow: 0px 0px 0px transparent;
-}
-
-/* ================= ENTORNO MODAL 3D ELÁSTICO ================= */
-.modal-visor {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.88);
-    z-index: 999;
-    justify-content: center;
-    align-items: center;
-    perspective: 1200px; /* Otorga el efecto de profundidad 3D al girar */
-}
-
-.carta-box-animacion {
-    width: 280px;
-    height: 400px;
-    position: relative;
-    transform-style: preserve-3d;
-    transform: scale(0.1) rotateY(0deg);
-    /* Transición con curva Bezier para lograr el rebote elástico adictivo */
-    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.35);
-}
-
-.carta-box-animacion.girar-y-ampliar {
-    transform: scale(1) rotateY(720deg); /* Dos vueltas completas de izquierda a derecha */
-}
-
-.carta-cara {
-    position: absolute;
-    width: 100%; height: 100%;
-    backface-visibility: hidden; /* Oculta la cara contraria al rotar */
-    border: 6px solid #000000;
+* {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-/* Reverso de la carta */
-.cara-reverso {
-    background-color: #5a1414;
-    border-color: #ffcc00;
+body {
+    background-color: #08080a;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    padding: 15px 10px 100px 10px;
     display: flex;
     justify-content: center;
-    align-items: center;
-    color: #ffcc00;
-    font-size: 40px;
-    text-shadow: 3px 3px 0px #000000;
+    min-height: 100vh;
 }
 
-/* Cara Frontal por Capas */
-.cara-frontal {
-    background-color: #1a1a1d;
-    transform: rotateY(180deg); /* Posición inicial invertida */
+.consola-admin {
+    background-color: #121216;
+    border: 4px solid #00ff66;
+    padding: 20px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 6px 6px 0px #092612;
+    border-radius: 4px;
 }
 
-/* ================= MAQUETACIÓN DE MARCOS P2P (TUS DISEÑOS) ================= */
-.carta-tcg {
-    width: 100%; height: 100%;
-    background-size: 100% 100%;
-    position: relative;
-    padding-top: 10px;
-}
-
-/* Clases de inyección automática según la naturaleza */
-.marco-azul      { background-image: url('imagenes/marcos/marco_azul.png'); }
-.marco-verde     { background-image: url('imagenes/marcos/marco_verde.png'); }
-.marco-marron    { background-image: url('imagenes/marcos/marco_marron.png'); }
-.marco-naranja   { background-image: url('imagenes/marcos/marco_naranja.png'); }
-.marco-morado    { background-image: url('imagenes/marcos/marco_morado.png'); }
-
-/* 🌈 Marco Mitológico con Brillo Holográfico */
-.marco-mitologica {
-    background-image: url('imagenes/marcos/marco_arcoiris.png');
-    animation: holoBrillo 2.5s infinite alternate ease-in-out;
-}
-
-@keyframes holoBrillo {
-    0% { filter: brightness(1) contrast(1); }
-    100% { filter: brightness(1.25) contrast(1.15); }
-}
-
-/* Elementos internos de la carta */
-.carta-encabezado {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 15px;
-    height: 25px;
-}
-
-.nombre-texto {
-    font-size: 9px;
-    color: #ffffff;
-    text-shadow: 2px 2px 0px #000000;
-}
-
-.estrellas-contenedor { display: flex; gap: 1px; }
-
-.estrella-oro {
-    color: #ffcc00;
+.titulo-admin {
     font-size: 10px;
-    text-shadow: 1px 1px 0px #000000;
-    animation: titileo 0.6s infinite alternate;
-}
-
-@keyframes titileo {
-    0% { opacity: 0.4; transform: scale(0.9); }
-    100% { opacity: 1; transform: scale(1.1); }
-}
-
-/* El cuadro negro donde se cuadra la imagen automáticamente */
-.arte-cuadro {
-    width: 224px;
-    height: 154px;
-    margin: 8px auto 0 auto;
-    background-color: #000000;
-    border: 3px solid #000000;
-    overflow: hidden;
-}
-
-.arte-cuadro img {
-    width: 100%; height: 100%;
-    object-fit: cover; /* Recorta y cuadra automáticamente la imagen subida */
-    image-rendering: pixelated;
-}
-
-/* Estadísticas Inferiores */
-.bloque-stats {
-    margin: 8px 18px 0 18px;
-    font-size: 7px;
+    color: #00ff66;
+    text-align: center;
+    margin-bottom: 20px;
     line-height: 1.5;
 }
 
-.fila-valores {
+/* Control de Pestañas */
+.menu-pestanas {
     display: flex;
-    justify-content: space-between;
-    background-color: rgba(0,0,0,0.5);
-    padding: 4px;
-    margin: 4px 0;
-    border: 1px solid #333;
-    color: #00ff66;
+    gap: 6px;
+    margin-bottom: 20px;
 }
 
-.texto-lore {
-    color: #b0b0b0;
-    font-style: italic;
-    font-size: 6px;
-    margin-top: 5px;
-}
-
-.pie-carta {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 18px;
-    position: absolute;
-    /* Barra contenedora fija abajo */
-.menu-navegacion-fijo {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 440px; /* Alieado con el ancho de tu juego */
-    background-color: #16161a;
-    border-top: 4px solid #000000;
-    display: flex;
-    justify-content: space-around;
-    padding: 10px 0;
-    z-index: 900;
-}
-
-/* Botones individuales de navegación */
-.btn-nav {
-    background-color: #0c0c0e;
-    color: #aaaaaa;
-    border: 3px solid #000000;
+.tab-btn {
+    flex: 1;
+    background-color: #1a1a1f;
+    color: #888888;
+    border: 2px solid #000;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    padding: 8px 12px;
+    padding: 10px 0;
     cursor: pointer;
 }
 
-/* Destacar la pestaña en la que se encuentra el usuario actualmente */
-.btn-nav.activo {
-    background-color: #00ff66; /* Verde dinero */
+.tab-btn.activo {
+    background-color: #00ff66;
     color: #000000;
     font-weight: bold;
-    box-shadow: 2px 2px 0px #009944;
+    box-shadow: 2px 2px 0px #000;
 }
 
-    bottom: 12px;
-    width: 87%;
-    font-size: 7px;
+.contenido-pestana { display: none; }
+.contenido-pestana.activa { display: block; }
+
+.subtitulo-admin {
+    font-size: 8px;
     color: #ffcc00;
+    margin-bottom: 15px;
+    border-bottom: 2px dashed #333;
+    padding-bottom: 8px;
+    line-height: 1.4;
+}
+
+/* Estructura de Formularios e Inputs */
+.campo-retro {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+    width: 100%;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+label {
+    font-size: 7px;
+    color: #aaaaaa;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+input[type="text"], 
+input[type="number"], 
+select, 
+textarea {
+    width: 100%;
+    background-color: #000000;
+    border: 3px solid #333333;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px;
+    outline: none;
+    border-radius: 0;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #00ff66;
+}
+
+textarea { resize: none; }
+
+.input-archivo-retro {
+    background-color: #000;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 10px;
+    border: 3px solid #333;
+    width: 100%;
+}
+
+/* Botones Principales */
+.btn-rojo-retro {
+    background-color: #00ff66;
+    color: #000000;
+    border: 3px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 14px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 4px 4px 0px #009944;
+}
+
+.btn-rojo-retro:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+/* Sección Destructor */
+.seccion-destructor {
+    margin-top: 30px;
+    border-top: 3px dashed #ff3333;
+    padding-top: 20px;
+}
+
+.grupo-destruccion {
+    display: flex;
+    gap: 10px;
+}
+
+.input-borrar {
+    background: #000;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px;
+    flex: 2;
+    border: 3px solid #ff3333;
+}
+
+.btn-borrar {
+    background: #ff3333;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px;
+    border: 3px solid #000;
+    cursor: pointer;
+    flex: 1;
+    box-shadow: 3px 3px 0px #801a1a;
+}
+
+.btn-borrar:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px #000;
+}
+
+/* Tablas e Interfaz Escrow */
+.nota-consola { font-size: 6px; color: #888; line-height: 1.5; margin-bottom: 15px; }
+.contenedor-tabla-retro { width: 100%; overflow-x: auto; }
+.tabla-retro { width: 100%; border-collapse: collapse; font-size: 6px; text-align: left; }
+.tabla-retro th { background-color: #000; padding: 8px; color: #ffcc00; border: 1px solid #333; }
+.tabla-retro td { padding: 8px; border: 1px solid #222; background-color: #16161a; }
+
+.btn-aprobar-p2p {
+    background-color: #00ff66;
+    color: #000;
+    border: 2px solid #000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 6px 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Menú Fijo Inferior */
+.menu-navegacion-fijo {
+    position: fixed;
+    bottom: 0; left: 0;
+    width: 100%;
+    background-color: #08080a;
+    border-top: 3px solid #1f2833;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 5px;
+    z-index: 100;
+}
+
+.btn-nav {
+    background-color: #1a1a1f;
+    color: #ffffff;
+    border: 2px solid #333;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px 5px;
+    cursor: pointer;
+    flex: 1;
+    max-width: 130px;
+    text-align: center;
 }

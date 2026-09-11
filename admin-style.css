@@ -33,7 +33,6 @@ body {
     line-height: 1.5;
 }
 
-/* NAVEGACIÓN */
 .menu-pestanas {
     display: flex;
     gap: 4px;
@@ -90,7 +89,6 @@ body {
     line-height: 1.4;
 }
 
-/* FORMULARIO E INPUTS */
 .campo-retro {
     display: flex;
     flex-direction: column;
@@ -98,13 +96,7 @@ body {
     width: 100%;
 }
 
-.grid-2-cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.stats-grid {
+.grid-2-cols, .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
@@ -141,7 +133,6 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 15px;
 }
 
-/* COMPONENTE CARTA TCG EN VIVO */
 .contenedor-vista-previa {
     margin: 20px 0;
     display: flex;
@@ -158,6 +149,7 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 12px;
 }
 
+/* CARTA BASE TCG */
 .tcg-card {
     width: 280px;
     min-height: 390px;
@@ -169,14 +161,16 @@ input:focus, select:focus, textarea:focus {
     justify-content: space-between;
     box-shadow: 0 10px 20px rgba(0,0,0,0.8);
     font-family: 'Cinzel', serif;
+    transition: background 0.3s ease;
 }
 
-.card-theme-arcoiris { background: linear-gradient(135deg, #FF0000 0%, #FF7F00 16.6%, #FFFF00 33.3%, #00FF00 50%, #0000FF 66.6%, #4B0082 83.3%, #9400D3 100%); }
-.card-theme-azul { background: linear-gradient(135deg, #38bdf8 0%, #1e40af 50%, #0f172a 100%); }
-.card-theme-verde { background: linear-gradient(135deg, #4ade80 0%, #15803d 50%, #052e16 100%); }
-.card-theme-marron { background: linear-gradient(135deg, #d97706 0%, #78350f 50%, #271c19 100%); }
-.card-theme-amarillo-naranja { background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #c2410c 100%); }
-.card-theme-morado { background: linear-gradient(135deg, #c084fc 0%, #7e22ce 50%, #3b0764 100%); }
+/* TEMAS APLICADOS POR CLASE */
+.tcg-card.card-theme-arcoiris { background: linear-gradient(135deg, #FF0000 0%, #FF7F00 16.6%, #FFFF00 33.3%, #00FF00 50%, #0000FF 66.6%, #4B0082 83.3%, #9400D3 100%) !important; }
+.tcg-card.card-theme-azul { background: linear-gradient(135deg, #38bdf8 0%, #1e40af 50%, #0f172a 100%) !important; }
+.tcg-card.card-theme-verde { background: linear-gradient(135deg, #4ade80 0%, #15803d 50%, #052e16 100%) !important; }
+.tcg-card.card-theme-marron { background: linear-gradient(135deg, #d97706 0%, #78350f 50%, #271c19 100%) !important; }
+.tcg-card.card-theme-amarillo-naranja { background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #c2410c 100%) !important; }
+.tcg-card.card-theme-morado { background: linear-gradient(135deg, #c084fc 0%, #7e22ce 50%, #3b0764 100%) !important; }
 
 .tcg-header {
     background: rgba(0,0,0,0.85);
@@ -224,7 +218,6 @@ input:focus, select:focus, textarea:focus {
 .tcg-lore { font-size: 8px; color: #ddd; font-style: italic; margin: 4px 0; line-height: 1.2; }
 .tcg-stats { display: flex; justify-content: flex-end; gap: 10px; font-size: 9px; border-top: 1px solid #333; padding-top: 4px; font-family: 'Cinzel', serif; }
 
-/* ÁLBUM DE CARTAS DEL ADMIN */
 .grid-cartas-admin {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -274,7 +267,6 @@ input:focus, select:focus, textarea:focus {
 .btn-mini-drop { background: #00ff66; color: #000; }
 .btn-mini-del { background: #ff3333; color: #fff; }
 
-/* BOTONES GLOBALES */
 .btn-rojo-retro {
     background-color: #ff3333;
     color: #ffffff;
@@ -293,7 +285,6 @@ input:focus, select:focus, textarea:focus {
 .input-borrar { flex: 2; border: 2px solid #ff3333; }
 .btn-borrar { flex: 1; background: #fff; color: #000; font-family: 'Press Start 2P', monospace; font-size: 8px; cursor: pointer; }
 
-/* ESCROW */
 .nota-consola { font-size: 6px; color: #888; margin-bottom: 12px; }
 .contenedor-tabla-retro { width: 100%; overflow-x: auto; }
 .tabla-retro { width: 100%; border-collapse: collapse; font-size: 6px; }

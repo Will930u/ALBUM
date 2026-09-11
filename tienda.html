@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda de Sobres Retro y Retiros</title>
-    <!-- Carga correcta de la fuente Pixelated Google Font -->
+    <!-- Importación de la fuente Pixelated -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="tienda-style.css?v=3">
+    <link rel="stylesheet" href="tienda-style.css">
 </head>
 <body>
 
@@ -17,14 +17,14 @@
         <h1 class="titulo-tienda">[ TIENDA DE SOBRES ]</h1>
         <p class="precio-unidad">1 SOBRE = <span class="resaltado-verde">$0.62 USD</span></p>
 
-        <!-- Selector de cantidad pixelado -->
+        <!-- Selector de cantidad -->
         <div class="control-cantidad">
             <button class="btn-cantidad" id="btn-menos">-</button>
             <input type="number" id="cantidad-sobres" value="1" min="1" max="99" readonly>
             <button class="btn-cantidad" id="btn-mas">+</button>
         </div>
 
-        <!-- Pantalla de totales electrónicos -->
+        <!-- Pantalla de totales -->
         <div class="pantalla-totales">
             <div class="fila-total">
                 <span>TOTAL USD:</span>
@@ -36,15 +36,15 @@
             </div>
         </div>
 
-        <!-- Selección de Pasarela de Pago -->
+        <!-- Selección de Pasarela -->
         <div class="opciones-pago">
             <label class="opcion-contenedor">
                 <input type="radio" name="pago" value="USDT" checked>
-                <span class="custom-radio"></span> TELEGRAM WALLET (USDT)
+                <span>TELEGRAM WALLET (USDT)</span>
             </label>
             <label class="opcion-contenedor">
                 <input type="radio" name="pago" value="PM">
-                <span class="custom-radio"></span> PAGO MÓVIL (BOLÍVARES)
+                <span>PAGO MÓVIL (BOLÍVARES)</span>
             </label>
         </div>
 
@@ -60,10 +60,8 @@
                 <button type="button" class="btn-metodo-tab" id="btn-select-pm" onclick="conmutarFormularioRetiro('PM')">🇻🇪 PAGO MÓVIL</button>
             </div>
 
-            <!-- Formulario dinámico -->
             <form id="form-perfil-financiero">
-                
-                <!-- Billetera TON/Telegram -->
+                <!-- Billetera TON -->
                 <div id="bloque-datos-usdt" class="bloque-metodo">
                     <label class="label-retro">DIRECCIÓN DE TU WALLET DE TELEGRAM (RED TON):</label>
                     <input type="text" id="user-wallet-address" class="input-retro txt-verde-input" placeholder="Ej: UQAsd9...">
@@ -123,7 +121,7 @@
         </div>
     </div>
 
-    <!-- MENÚ DE NAVEGACIÓN FIJA INFERIOR -->
+    <!-- MENÚ DE NAVEGACIÓN FIJO INFERIOR -->
     <div class="menu-navegacion-fijo">
         <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
         <button class="btn-nav activo" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>

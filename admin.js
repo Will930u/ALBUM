@@ -35,9 +35,7 @@ function cambiarPestana(idPestana) {
     }
 }
 
-// =============================================================================
-// 📤 2. LÓGICA DE CARGA: PUBLICAR NUEVAS CRIATURAS AL CATÁLOGO GLOBAL
-// =============================================================================
+// 📤 LÓGICA DE CARGA AUTOMATIZADA CON SUBIDA DE IMÁGENES JPG/PNG DIRECTAS
 function configurarFormularioCargaCartas() {
     const formCarga = document.getElementById('form-subir-carta');
     if (!formCarga) return;
@@ -45,18 +43,70 @@ function configurarFormularioCargaCartas() {
     formCarga.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const datosCarta = {
-            nombre: document.getElementById('carta-nombre').value.trim(),
-            tipo: document.getElementById('carta-tipo').value,
-            salud: parseInt(document.getElementById('carta-salud').value) || 100,
-            poder: parseInt(document.getElementById('carta-poder').value) || 50,
-            ataque_nombre: document.getElementById('carta-ataque').value.trim(),
-            habitat: document.getElementById('carta-habitat').value.trim(),
-            rareza: document.getElementById('carta-rareza').value,
-            lore: document.getElementById('carta-lore').value.trim(),
-            url_imagen: document.getElementById('carta-url-manual').value.trim()
-        };
+        // 1. Recuperar el archivo físico seleccionado por el administrador
+        const inputArchivo = document.getElementById('carta-archivo-jpg');
+        if (!inputArchivo || inputArchivo.files.length === 0) {
+            alert("❌ ERROR: Debes seleccionar un archivo de imagen JPG o PNG para la criatura.");
+            return;
+        }
 
+        const archivoFoto = inputArchivo.files[0];
+        // Inventar un nombre de archivo único para que no se machaquen las fotos en la nube
+        const nombreArchivoUnico = `${Date.now()}_${archivoFoto.name.replace(/\s+/g, '_')}`;
+
+        try {
+            alert("🛰️ Subiendo imagen a la nube de Supabase... Por favor espera.");
+
+            // 2. Subir el archivo JPG/PNG al Storage de Supabase de forma directa
+            const { data: datosSubida, error: errorSubida } = await supabaseClient
+                .storage
+                .from('imagenes_cartas')
+                .upload(nombreArchivoUnico, archivoFoto, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (errorSubida) throw errorSubida;
+
+            // 3. Obtener la URL pública que generó el servidor para esa foto
+            const { data: urlPublica } = supabaseClient
+                .storage
+                .from('imagenes_cartas')
+                .getPublicUrl(nombreArchivoUnico);
+
+            const urlFinalDeLaImagen = urlPublica.publicUrl;
+            console.log("🔗 Imagen guardada con éxito en la nube. URL pública:", urlFinalDeLaImagen);
+
+            // 4. Armar el objeto final inyectándole la URL generada automáticamente
+            const datosCarta = {
+                nombre: document.getElementById('carta-nombre').value.trim(),
+                tipo: document.getElementById('carta-tipo').value,
+                salud: parseInt(document.getElementById('carta-salud').value) || 100,
+                poder: parseInt(document.getElementById('carta-poder').value) || 50,
+                ataque_nombre: document.getElementById('carta-ataque').value.trim(),
+                habitat: document.getElementById('carta-habitat').value.trim(),
+                rareza: document.getElementById('carta-rareza').value,
+                lore: document.getElementById('carta-lore').value.trim(),
+                url_imagen: urlFinalDeLaImagen // Se guarda el enlace generado solo
+            };
+
+            // 5. Insertar la criatura en el catálogo global de tu tabla de Supabase
+            const { data: registroInsertado, error: errorInsertar } = await supabaseClient
+                .from('Cartas')
+                .insert([datosCarta])
+                .select();
+
+            if (errorInsertar) throw errorInsertar;
+
+            alert(`✅ ¡ÉXITO MAESTRO!\nLa imagen se subió a la nube y la criatura fue publicada con éxito.\nID Asignado: #${registroInsertado[0].id_carta}`);
+            formCarga.reset();
+
+        } catch (error) {
+            console.error("Fallo crítico en el cargador multimedia:", error);
+            alert("❌ ERROR AL SUBIR MULTIMEDIA: " + error.message);
+        }
+    });
+}
         try {
             const { data, error } = await supabaseClient
                 .from('Cartas')

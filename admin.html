@@ -14,14 +14,21 @@
     <div class="consola-admin">
         <h1 class="titulo-admin">💻 [ PANEL DE CONTROL SUPREMO ] 💻</h1>
         
-        <!-- Navegación de Pestañas -->
+        <!-- Pestañas Principales del Admin -->
         <div class="menu-pestanas">
             <button class="tab-btn activo" onclick="cambiarPestana('pestana-carga')">CARGA</button>
             <button class="tab-btn" onclick="cambiarPestana('seccion-regalos')">REGALOS</button>
             <button class="tab-btn" onclick="cambiarPestana('seccion-subastas')">ESCROW</button>
         </div>
 
-        <!-- PESTAÑA 1: SISTEMA DE CARGA Y DESTRUCTOR -->
+        <!-- Botones de Navegación del Jugador Integradados -->
+        <div class="menu-navegacion-retro">
+            <button class="btn-nav-retro" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
+            <button class="btn-nav-retro" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
+            <button class="btn-nav-retro" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
+        </div>
+
+        <!-- PESTAÑA 1: CARGA DE CARTAS Y BORRADO -->
         <div id="pestana-carga" class="contenido-pestana activa">
             <h2 class="subtitulo-admin">📤 SISTEMA DE INYECCIÓN MULTIMEDIA</h2>
     
@@ -29,7 +36,7 @@
                 <label style="color: #ffcc00;">TIPO DE CARGA:</label>
                 <select id="modo-diseno-carta" onchange="conmutarCamposFormulario(this.value)">
                     <option value="NORMAL">FICHA TÉCNICA (Plantilla por código)</option>
-                    <option value="LISTA">IMAGEN COMPLETA TERMINADA (Diseño externo .jpg/.png)</option>
+                    <option value="LISTA" selected>IMAGEN COMPLETA TERMINADA (Diseño externo)</option>
                 </select>
             </div>
 
@@ -49,8 +56,8 @@
                     </select>
                 </div>
 
-                <!-- Campos dinámicos de Estadísticas -->
-                <div id="bloque-estadisticas-manuales">
+                <!-- Campos opcionales para modo Normal -->
+                <div id="bloque-estadisticas-manuales" style="display: none;">
                     <div class="campo-retro">
                         <label>TIPO/ELEMENTO:</label>
                         <select id="carta-tipo">
@@ -96,11 +103,11 @@
                 <button type="submit" class="btn-rojo-retro">[[ 🚀 PUBLICAR EN EL ÁLBUM GLOBAL ]]</button>
             </form>
 
-            <!-- CONSOLA DE BORRADO -->
+            <!-- DESTRUCTOR DE ACTIVOS -->
             <div class="seccion-destructor">
                 <h2 class="subtitulo-admin" style="color: #ff3333; border-color: #ff3333;">🗑️ DESTRUCTOR DE ACTIVOS GLOBAL</h2>
                 <div class="grupo-destruccion">
-                    <input type="number" id="id-carta-borrar" placeholder="ID CARTA (Ej: 14)" class="input-borrar">
+                    <input type="number" id="id-carta-borrar" placeholder="2000" class="input-borrar">
                     <button type="button" onclick="destruirCartaYMultimediaGlobal()" class="btn-borrar">🗑️ BORRAR</button>
                 </div>
             </div>
@@ -136,7 +143,7 @@
             <button type="button" class="btn-rojo-retro" id="btn-enviar-regalo">[[ 🎁 INYECTAR DROP ]]</button>
         </div>
 
-        <!-- PESTAÑA 3: LIQUIDACIÓN ESCROW -->
+        <!-- PESTAÑA 3: ESCROW -->
         <div id="seccion-subastas" class="contenido-pestana">
             <h2 class="subtitulo-admin">⚖️ LIQUIDACIÓN ESCROW (10% COMISIÓN)</h2>
             <p class="nota-consola">Lista de transacciones P2P pendientes por verificación manual bancaria:</p>
@@ -153,19 +160,11 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-escrow-cuerpo">
-                        <!-- Las filas son inyectadas dinámicamente por admin.js -->
                     </tbody>
                 </table>
             </div>
         </div>
 
-    </div>
-
-    <!-- Menú Fijo Inferior de Navegación -->
-    <div class="menu-navegacion-fijo">
-        <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
-        <button class="btn-nav" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
-        <button class="btn-nav" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

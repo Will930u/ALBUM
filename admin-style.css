@@ -1,42 +1,50 @@
-﻿body {
+﻿* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
     background-color: #08080a;
     color: #ffffff;
     font-family: 'Press Start 2P', monospace;
-    padding: 15px;
+    padding: 20px 10px;
     display: flex;
     justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
 }
 
 .consola-admin {
     background-color: #121216;
-    border: 5px solid #00ff66; /* Contorno verde de sistema central */
+    border: 4px solid #00ff66;
     padding: 20px;
     max-width: 460px;
     width: 100%;
-    box-shadow: 8px 8px 0px #092612;
+    box-shadow: 6px 6px 0px #092612;
+    border-radius: 4px;
 }
 
 .titulo-admin {
-    font-size: 11px;
+    font-size: 10px;
     color: #00ff66;
     text-align: center;
     margin-bottom: 20px;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
-/* Sistema de Pestañas */
+/* Pestañas Principales Admin */
 .menu-pestanas {
     display: flex;
-    justify-content: space-between;
-    gap: 5px;
-    margin-bottom: 25px;
+    gap: 6px;
+    margin-bottom: 12px;
 }
 
 .tab-btn {
     flex: 1;
     background-color: #1a1a1f;
     color: #888888;
-    border: 3px solid #000;
+    border: 2px solid #000;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
     padding: 10px 0;
@@ -47,63 +55,112 @@
     background-color: #00ff66;
     color: #000000;
     font-weight: bold;
+    box-shadow: 2px 2px 0px #000;
 }
 
-/* Control de visibilidad de secciones */
+/* Fila de Botones Integrados (Álbum, Tienda, Subastas) */
+.menu-navegacion-retro {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 25px;
+    border-bottom: 2px dashed #1f2833;
+    padding-bottom: 15px;
+}
+
+.btn-nav-retro {
+    flex: 1;
+    background-color: #000000;
+    color: #ffffff;
+    border: 2px solid #333333;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 8px 2px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.1s ease;
+}
+
+.btn-nav-retro:hover {
+    border-color: #00ff66;
+    color: #00ff66;
+}
+
+.btn-nav-retro:active {
+    transform: translate(1px, 1px);
+    background-color: #1a1a1f;
+}
+
 .contenido-pestana { display: none; }
 .contenido-pestana.activa { display: block; }
 
 .subtitulo-admin {
-    font-size: 9px;
+    font-size: 8px;
     color: #ffcc00;
     margin-bottom: 15px;
     border-bottom: 2px dashed #333;
     padding-bottom: 8px;
+    line-height: 1.4;
 }
 
-/* Campos de entrada */
+/* Formulario */
 .campo-retro {
     display: flex;
     flex-direction: column;
     margin-bottom: 14px;
+    width: 100%;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 }
 
 label {
-    font-size: 8px;
+    font-size: 7px;
     color: #aaaaaa;
     margin-bottom: 6px;
     line-height: 1.3;
 }
 
-input[type="text"], input[type="number"], select, textarea {
+input[type="text"], 
+input[type="number"], 
+select, 
+textarea {
+    width: 100%;
     background-color: #000000;
-    border: 3px solid #333;
+    border: 3px solid #333333;
     color: #ffffff;
     font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
-    padding: 8px;
+    font-size: 8px;
+    padding: 10px;
     outline: none;
+    border-radius: 0;
 }
 
 input:focus, select:focus, textarea:focus {
     border-color: #00ff66;
 }
 
-.stats-linea {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
 textarea { resize: none; }
 
-/* Botones de acción masiva */
+.input-archivo-retro {
+    background-color: #000;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 10px;
+    border: 3px solid #333;
+    width: 100%;
+}
+
 .btn-rojo-retro {
     background-color: #ff3333;
     color: #ffffff;
-    border: 4px solid #000000;
+    border: 3px solid #000000;
     font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
+    font-size: 8px;
+    font-weight: bold;
     padding: 12px;
     width: 100%;
     cursor: pointer;
@@ -112,18 +169,56 @@ textarea { resize: none; }
 }
 
 .btn-rojo-retro:active {
-    transform: translate(4px, 4px);
-    box-shadow: 0px 0px 0px transparent;
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
 }
 
-/* Tablas Escrow */
-.nota-consola { font-size: 7px; color: #888; line-height: 1.4; margin-bottom: 15px;}
+/* Destructor */
+.seccion-destructor {
+    margin-top: 30px;
+    border-top: 3px dashed #ff3333;
+    padding-top: 20px;
+}
+
+.grupo-destruccion {
+    display: flex;
+    gap: 10px;
+}
+
+.input-borrar {
+    background: #000;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px;
+    flex: 2;
+    border: 3px solid #ff3333;
+}
+
+.btn-borrar {
+    background: #ffffff;
+    color: #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px;
+    border: 3px solid #000;
+    cursor: pointer;
+    flex: 1;
+    box-shadow: 3px 3px 0px #333;
+    font-weight: bold;
+}
+
+.btn-borrar:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px #000;
+}
+
+/* Escrow */
+.nota-consola { font-size: 6px; color: #888; line-height: 1.5; margin-bottom: 15px; }
 .contenedor-tabla-retro { width: 100%; overflow-x: auto; }
 .tabla-retro { width: 100%; border-collapse: collapse; font-size: 6px; text-align: left; }
 .tabla-retro th { background-color: #000; padding: 8px; color: #ffcc00; border: 1px solid #333; }
 .tabla-retro td { padding: 8px; border: 1px solid #222; background-color: #16161a; }
-.txt-verde { color: #00ff66; }
-.txt-oro { color: #ffcc00; }
 
 .btn-aprobar-p2p {
     background-color: #00ff66;
@@ -131,6 +226,7 @@ textarea { resize: none; }
     border: 2px solid #000;
     font-family: 'Press Start 2P', monospace;
     font-size: 6px;
-    padding: 4px;
+    padding: 6px 4px;
     cursor: pointer;
+    font-weight: bold;
 }

@@ -1,13 +1,14 @@
 // =============================================================================
-// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS
+// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA)
 // =============================================================================
 
 // Constantes de configuración
 const PRECIO_SOBRE_USD = 0.62;
-let TASA_BCV = 36.50; // Valor base por defecto, se actualiza dinámicamente si usas API
+const API_TASA_URL = 'https://ve.dolarapi.com/v1/dolares/oficial';
+let TASA_BCV = 833.00; // Valor de respaldo por si falla la conexión a la API
 
 // Esperar a que el DOM esté completamente cargado
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     
     // --- REFERENCIAS AL DOM ---
     const btnMenos = document.getElementById('btn-menos');
@@ -36,6 +37,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (txtTotalUsd) txtTotalUsd.innerText = `$${totalUsd.toFixed(2)}`;
         if (txtTotalBs) txtTotalBs.innerText = `${totalBs.toFixed(2)} Bs.`;
         if (txtMontoBsDinamico) txtMontoBsDinamico.innerText = `${totalBs.toFixed(2)} Bs.`;
+    }
+
+    // --- OBTENCIÓN DE TASA OFICIAL EN TIEMPO REAL DESDE DOLARAPI ---
+    async function obtenerTasaOficial() {
+        try {
+            const respuesta = await fetch(API_TASA_URL);
+            if (!respuesta.ok) throw new Error('Error en la respuesta de la red');
+            
+            const data = await respuesta.json();
+            
+            if (data && data.promedio) {
+                TASA_BCV = parseFloat(data.promedio);
+                console.log(`[DolarApi] Tasa Oficial obtenida con éxito: ${TASA_BCV} Bs.`);
+            }
+        } catch (error) {
+            console.warn('[DolarApi] No se pudo obtener la tasa en tiempo real, usando tasa de respaldo:', error);
+        } finally {
+            actualizarTotales();
+        }
     }
 
     // --- EVENTOS DEL SELECTOR DE CANTIDAD (+ / -) ---
@@ -111,13 +131,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Inicializar cálculos en primera carga
-    actualizarTotales();
+    // Ejecutar la consulta de tasa inmediatamente
+    await obtenerTasaOficial();
 });
 
 // =============================================================================
 // 🔄 FUNCIÓN GLOBAL DE CONMUTACIÓN DE PESTAÑAS (Formulario USDT / PM)
-// Debe estar FUERA de DOMContentLoaded para que onclick="" en HTML la detecte
 // =============================================================================
 function conmutarFormularioRetiro(metodo) {
     const bloqueUsdt = document.getElementById('bloque-datos-usdt');

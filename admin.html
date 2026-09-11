@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consola Central - Administrador</title>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin-style.css">
 </head>
 <body>
@@ -12,89 +14,107 @@
     <div class="consola-admin">
         <h1 class="titulo-admin">💻 [ PANEL DE CONTROL SUPREMO ] 💻</h1>
         
-        <!-- Menú de Navegación por Pestañas Pixeladas -->
+        <!-- Navegación de Pestañas -->
         <div class="menu-pestanas">
-            <button class="tab-btn activo" onclick="cambiarPestana('seccion-carga')">CARGA</button>
+            <button class="tab-btn activo" onclick="cambiarPestana('pestana-carga')">CARGA</button>
             <button class="tab-btn" onclick="cambiarPestana('seccion-regalos')">REGALOS</button>
             <button class="tab-btn" onclick="cambiarPestana('seccion-subastas')">ESCROW</button>
         </div>
 
-        <!-- PESTAÑA 1: CONTROL DE CRIATURAS (CARGA Y BORRADO) -->
+        <!-- PESTAÑA 1: SISTEMA DE CARGA Y DESTRUCTOR -->
         <div id="pestana-carga" class="contenido-pestana activa">
-            <h2 class="titulo-admin">[[ 📤 SISTEMA DE INYECCIÓN MULTIMEDIA ]]</h2>
+            <h2 class="subtitulo-admin">📤 SISTEMA DE INYECCIÓN MULTIMEDIA</h2>
     
-            <!-- Selector de Modo de Diseño -->
-           <div class="form-grupo" style="margin-bottom: 20px;">
-               <label style="font-size: 8px; color: #ffcc00;">TIPO DE CARGA:</label>
-               <select id="modo-diseno-carta" style="background:#000; color:#fff; font-family:'Press Start 2P'; font-size:8px; padding:8px; width:95%;" onchange="conmutarCamposFormulario(this.value)">
-                  <option value="NORMAL">FICHA TÉCNICA (Plantilla por código)</option>
-                  <option value="LISTA">IMAGEN COMPLETA TERMINADA (Diseño externo .jpg/.png)</option>
-               </select>
-           </div>
+            <div class="campo-retro">
+                <label style="color: #ffcc00;">TIPO DE CARGA:</label>
+                <select id="modo-diseno-carta" onchange="conmutarCamposFormulario(this.value)">
+                    <option value="NORMAL">FICHA TÉCNICA (Plantilla por código)</option>
+                    <option value="LISTA">IMAGEN COMPLETA TERMINADA (Diseño externo .jpg/.png)</option>
+                </select>
+            </div>
 
-           <form id="form-subir-carta">
-               <div class="form-grupo"><label>NOMBRE DE LA CRIATURA:</label><input type="text" id="carta-nombre" required></div>
-               <div class="form-grupo"><label>RAREZA:</label>
-            <select id="carta-rareza">
-                 <option value="Común">Común</option>
-                 <option value="Rara">Rara</option>
-                 <option value="Épica">Épica</option>
-                 <option value="Mitológica">Mitológica</option>
-             </select>
-         </div>
+            <form id="form-subir-carta">
+                <div class="campo-retro">
+                    <label>NOMBRE DE LA CRIATURA:</label>
+                    <input type="text" id="carta-nombre" required placeholder="Ej: Báquiro de Collar">
+                </div>
 
-         <!-- Campos dinámicos que se ocultarán en modo Imagen Lista -->
-         <div id="bloque-estadisticas-manuales">
-             <div class="form-grupo"><label>TIPO/ELEMENTO:</label>
-                 <select id="carta-tipo">
-                     <option value="Tierra">Tierra</option><option value="Agua">Agua</option><option value="Aire">Aire</option>
-                 </select>
-             </div>
-             <div class="form-grupo"><label>PUNTOS DE SALUD (HP):</label><input type="number" id="carta-salud" value="100"></div>
-             <div class="form-grupo"><label>PODER DE ATAQUE (ATK):</label><input type="number" id="carta-poder" value="50"></div>
-             <div class="form-grupo"><label>NOMBRE DEL ATAQUE:</label><input type="text" id="carta-ataque" value="Embestida"></div>
-             <div class="form-grupo"><label>HÁBITAT:</label><input type="text" id="carta-habitat" value="Desconocido"></div>
-             <div class="form-grupo"><label>HISTORIA / LORE:</label><textarea id="carta-lore">Criatura mística.</textarea></div>
-         </div>
-
-         <div class="form-grupo">
-             <label style="color:#00ff66;">[ SELECCIONAR ARCHIVO (.JPG / .PNG) ]</label>
-             <input type="file" id="carta-archivo-jpg" accept="image/jpeg, image/png" required style="background:#000; color:#fff; font-family:'Press Start 2P'; font-size:8px; padding:10px; width:90%;">
-         </div>
-
-         <button type="submit" class="btn-admin-final">[[ 🚀 PUBLICAR EN EL ÁLBUM GLOBAL ]]</button>
-     </form>
-
-    <!-- NUEVA SECCIÓN: CONSOLA DE BORRADO DE CARTAS -->
-    <div style="margin-top: 40px; border-top: 4px dashed #ff3333; padding-top: 20px;">
-        <h2 class="titulo-admin" style="color: #ff3333;">[[ 🗑️ DESTRUCTOR DE ACTIVOS GLOBAL ]]</h2>
-        <div class="form-grupo" style="display: flex; gap: 10px;">
-            <input type="number" id="id-carta-borrar" placeholder="ID CARTA (Ej: 14)" style="background:#000; color:#fff; font-family:'Press Start 2P'; font-size:10px; padding:10px; width:60%; border: 3px solid #ff3333;">
-            <button type="button" onclick="destruirCartaYMultimediaGlobal()" style="background:#ff3333; color:#fff; font-family:'Press Start 2P'; font-size:8px; padding:10px; border:3px solid #000; cursor:pointer; flex:1;">🗑️ BORRAR</button>
-        </div>
-    </div>
-</div>
+                <div class="campo-retro">
+                    <label>RAREZA:</label>
+                    <select id="carta-rareza">
+                        <option value="Común">Común</option>
+                        <option value="Rara">Rara</option>
+                        <option value="Épica">Épica</option>
+                        <option value="Mitológica">Mitológica</option>
                     </select>
                 </div>
-                <div class="campo-retro">
-                    <label>HISTORIA (LORE):</label>
-                    <textarea id="carta-lore" rows="2" required placeholder="Narra la mística..."></textarea>
+
+                <!-- Campos dinámicos de Estadísticas -->
+                <div id="bloque-estadisticas-manuales">
+                    <div class="campo-retro">
+                        <label>TIPO/ELEMENTO:</label>
+                        <select id="carta-tipo">
+                            <option value="Tierra">Tierra</option>
+                            <option value="Agua">Agua</option>
+                            <option value="Aire">Aire</option>
+                            <option value="Fuego">Fuego</option>
+                        </select>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="campo-retro">
+                            <label>SALUD (HP):</label>
+                            <input type="number" id="carta-salud" value="100">
+                        </div>
+                        <div class="campo-retro">
+                            <label>ATAQUE (ATK):</label>
+                            <input type="number" id="carta-poder" value="50">
+                        </div>
+                    </div>
+
+                    <div class="campo-retro">
+                        <label>NOMBRE DEL ATAQUE:</label>
+                        <input type="text" id="carta-ataque" value="Embestida">
+                    </div>
+
+                    <div class="campo-retro">
+                        <label>HÁBITAT:</label>
+                        <input type="text" id="carta-habitat" value="Desconocido">
+                    </div>
+
+                    <div class="campo-retro">
+                        <label>HISTORIA / LORE:</label>
+                        <textarea id="carta-lore" rows="3">Criatura mística.</textarea>
+                    </div>
                 </div>
-               <div class="form-grupo">
-                    <label style="font-family: 'Press Start 2P'; font-size: 8px; color: #aaa;">[ SELECCIONAR IMAGEN (.JPG / .PNG) ]</label>
-                    <input type="file" id="carta-archivo-jpg" accept="image/jpeg, image/png" style="background: #000; color: #fff; font-family: 'Press Start 2P'; font-size: 8px; padding: 10px; border: 3px solid #333; width: 90%;">
-               </div>
-                <button type="submit" class="btn-rojo-retro">[[ 📤 PUBLICAR ACTIVO ]]</button>
+
+                <div class="campo-retro">
+                    <label style="color:#00ff66;">[ SELECCIONAR IMAGEN (.JPG / .PNG) ]</label>
+                    <input type="file" id="carta-archivo-jpg" accept="image/jpeg, image/png" required class="input-archivo-retro">
+                </div>
+
+                <button type="submit" class="btn-rojo-retro">[[ 🚀 PUBLICAR EN EL ÁLBUM GLOBAL ]]</button>
             </form>
+
+            <!-- CONSOLA DE BORRADO -->
+            <div class="seccion-destructor">
+                <h2 class="subtitulo-admin" style="color: #ff3333; border-color: #ff3333;">🗑️ DESTRUCTOR DE ACTIVOS GLOBAL</h2>
+                <div class="grupo-destruccion">
+                    <input type="number" id="id-carta-borrar" placeholder="ID CARTA (Ej: 14)" class="input-borrar">
+                    <button type="button" onclick="destruirCartaYMultimediaGlobal()" class="btn-borrar">🗑️ BORRAR</button>
+                </div>
+            </div>
         </div>
 
-        <!-- 2. PESTAÑA: ENVÍO DE CARTAS DE REGALO / DROPS -->
+        <!-- PESTAÑA 2: DROPS Y PREMIOS -->
         <div id="seccion-regalos" class="contenido-pestana">
-            <h2 class="subtitulo-admin">🎁 ➔ DROPS Y PREMIOS MANUALES</h2>
+            <h2 class="subtitulo-admin">🎁 DROPS Y PREMIOS MANUALES</h2>
+            
             <div class="campo-retro">
                 <label>ID DEL JUGADOR DESTINO (TELEGRAM ID):</label>
                 <input type="text" id="regalo-usuario-id" placeholder="Ej: usuario_test_venezuela">
             </div>
+
             <div class="campo-retro">
                 <label>MODALIDAD DE REGALO:</label>
                 <select id="regalo-tipo-seleccion">
@@ -102,57 +122,54 @@
                     <option value="ESPECIFICA">CARTA ESPECÍFICA POR ID</option>
                 </select>
             </div>
+
             <div class="campo-retro">
                 <label>ID DE CARTA ESPECÍFICA (SI CORRESPONDE):</label>
                 <input type="number" id="regalo-carta-id" placeholder="Ej: 1">
             </div>
+
             <div class="campo-retro">
                 <label>CANTIDAD DE EJEMPLARES A REGALAR:</label>
                 <input type="number" id="regalo-cantidad" value="1" min="1">
             </div>
+
             <button type="button" class="btn-rojo-retro" id="btn-enviar-regalo">[[ 🎁 INYECTAR DROP ]]</button>
         </div>
 
-        <!-- 3. PESTAÑA: CONTROL ESCROW (APROBAR PAGOS) -->
+        <!-- PESTAÑA 3: LIQUIDACIÓN ESCROW -->
         <div id="seccion-subastas" class="contenido-pestana">
-            <h2 class="subtitulo-admin">⚖️ ➔ LIQUIDACIÓN ESCROW (10% COMISIÓN)</h2>
-            <p class="nota-consola">Lista de transacciones P2P pendientes por tu verificación manual bancaria:</p>
+            <h2 class="subtitulo-admin">⚖️ LIQUIDACIÓN ESCROW (10% COMISIÓN)</h2>
+            <p class="nota-consola">Lista de transacciones P2P pendientes por verificación manual bancaria:</p>
             
             <div class="contenedor-tabla-retro">
                 <table class="tabla-retro">
                     <thead>
                         <tr>
                             <th>LOTE</th>
-                            <th>MTO BRUTO</th>
-                            <th>TU 10%</th>
+                            <th>BRUTO</th>
+                            <th>10%</th>
                             <th>NETO VEND.</th>
                             <th>ESTADO</th>
                         </tr>
-                    </head>
-                    <body id="tabla-escrow-cuerpo">
-                        <!-- Simulación de fila cargada por tu script -->
-                        <tr>
-                            <td>#101</td>
-                            <td class="txt-verde">$5.50</td>
-                            <td class="txt-oro">$0.55</td>
-                            <td>$4.95</td>
-                            <td><button class="btn-aprobar-p2p" onclick="alert('Trato verificado. Se descuenta tu 10% y las cartas se transfieren automáticamente.')">VALIDAR</button></td>
-                        </tr>
-                    </body>
+                    </thead>
+                    <tbody id="tabla-escrow-cuerpo">
+                        <!-- Las filas son inyectadas dinámicamente por admin.js -->
+                    </tbody>
                 </table>
             </div>
         </div>
 
     </div>
 
-    <!-- Conexión a la base de datos segura -->
-    <script src="https://unpkg.com"></script>
+    <!-- Menú Fijo Inferior de Navegación -->
+    <div class="menu-navegacion-fijo">
+        <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
+        <button class="btn-nav" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
+        <button class="btn-nav" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="admin.js"></script>
-<!-- BARRA DE NAVEGACIÓN FIJA INFERIOR PARA EL JUGADOR -->
-   <div class="menu-navegacion-fijo">
-       <button class="btn-nav activo" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
-       <button class="btn-nav" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
-       <button class="btn-nav" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
-   </div>
+
 </body>
 </html>

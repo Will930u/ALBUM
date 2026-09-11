@@ -1,265 +1,351 @@
-// ========================================================
-// 💰 SCRIPT DE CONTROL DINÁMICO DE FACTURACIÓN Y PERFIL RETRO
-// ========================================================
+/* =============================================================================
+   🎮 TIENDA RETRO ARCADE - ESTILOS OFICIALES PARA TELEGRAM MINI APP
+   ============================================================================= */
 
-// Conexión con Supabase
-const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
-
-// Inicialización segura del cliente Supabase
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY) : null;
-
-// ID del jugador de pruebas (Luego se extraerá automáticamente desde Telegram WebApp)
-const JUGADOR_ID_MOCK = "usuario_test_venezuela"; 
-
-const PRECIO_SOBRE_USD = 0.62;
-let tasaBcvActual = 68.50; // Respaldo base
-
-// Elementos del DOM (Tienda)
-const inputCantidad = document.getElementById('cantidad-sobres');
-const btnMenos = document.getElementById('btn-menos');
-const btnMas = document.getElementById('btn-mas');
-const txtTotalUsd = document.getElementById('total-usd');
-const txtTotalBs = document.getElementById('total-bs');
-const btnCheckout = document.getElementById('btn-checkout');
-
-// Elementos del DOM (Perfil Financiero de Retiros)
-const btnGuardarPerfil = document.getElementById('btn-guardar-perfil');
-
-document.addEventListener('DOMContentLoaded', async () => {
-    await obtenerTasaBcvAutomatica();
-    await cargarDatosPreviosUsuario();
-});
-
-// 1. SELECTOR DE SOBRES PIXEL ART
-if (btnMas) {
-    btnMas.addEventListener('click', () => {
-        let cantidadActual = parseInt(inputCantidad.value) || 1;
-        if (cantidadActual < 99) { 
-            inputCantidad.value = cantidadActual + 1; 
-            calcularTotalesAlVuelo(); 
-        }
-    });
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-if (btnMenos) {
-    btnMenos.addEventListener('click', () => {
-        let cantidadActual = parseInt(inputCantidad.value) || 1;
-        if (cantidadActual > 1) { 
-            inputCantidad.value = cantidadActual - 1; 
-            calcularTotalesAlVuelo(); 
-        }
-    });
+body {
+    background-color: #0b0c10;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 15px 10px 90px 10px;
 }
 
-// 2. CONEXIÓN VIVA CON DOLARAPI (BCV EN TIEMPO REAL)
-async function obtenerTasaBcvAutomatica() {
-    try {
-        const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-        const datos = await respuesta.json();
-        if (datos && datos.promedio) { 
-            tasaBcvActual = parseFloat(datos.promedio); 
-        }
-    } catch (error) { 
-        console.error("Error en DolarApi, usando tasa de respaldo:", error); 
-    }
-    calcularTotalesAlVuelo();
+/* Contenedor tipo Consola */
+.consola-tienda {
+    background-color: #121317;
+    border: 4px solid #1f2833;
+    box-shadow: 0px 0px 20px rgba(0, 255, 102, 0.15), inset 0px 0px 10px #000;
+    padding: 20px 15px;
+    max-width: 480px;
+    width: 100%;
+    border-radius: 8px;
+    text-align: center;
 }
 
-function calcularTotalesAlVuelo() {
-    if (!inputCantidad) return;
-    const cantidad = parseInt(inputCantidad.value) || 1;
-    const totalDolares = cantidad * PRECIO_SOBRE_USD;
-    
-    if (txtTotalUsd) txtTotalUsd.innerText = `$${totalDolares.toFixed(2)}`;
-    if (txtTotalBs) {
-        const totalBolivares = totalDolares * tasaBcvActual;
-        txtTotalBs.innerText = `${totalBolivares.toFixed(2)} Bs.`;
-        const modalBs = document.getElementById('monto-bs-dinamico');
-        if (modalBs) modalBs.innerText = `${totalBolivares.toFixed(2)} Bs.`;
-    }
+.titulo-tienda {
+    font-size: 13px;
+    color: #00ff66;
+    text-shadow: 2px 2px 0px #000;
+    margin-bottom: 12px;
 }
 
-// 3. SELECCIÓN DE PASARELA DE COMPRA
-if (btnCheckout) {
-    btnCheckout.addEventListener('click', () => {
-        const cantidad = parseInt(inputCantidad.value) || 1;
-        const totalDolares = (cantidad * PRECIO_SOBRE_USD).toFixed(2);
-        const opcionSeleccionada = document.querySelector('input[name="pago"]:checked');
-        const pasarelaElegida = opcionSeleccionada ? opcionSeleccionada.value : 'USDT';
-
-        if (pasarelaElegida === 'USDT') {
-            alert(`[ CONEXIÓN WEB3 WALLET ]\n\nAbriendo pasarela nativa por ${totalDolares} USDT.`);
-        } else {
-            const modalPm = document.getElementById('modal-pm');
-            if (modalPm) modalPm.style.display = 'flex';
-        }
-    });
+.titulo-retiros {
+    color: #ffcc00;
 }
 
-// ========================================================
-// 💾 GESTIÓN DEL PERFIL DE COBROS CON SUPABASE
-// ========================================================
-
-// Cargar información previa resguardada del jugador
-async function cargarDatosPreviosUsuario() {
-    if (!supabaseClient) {
-        console.error("Supabase SDK no está cargado correctamente.");
-        return;
-    }
-    
-    try {
-        const { data: usuario, error } = await supabaseClient
-            .from('Usuarios')
-            .select('wallet_ton_address, pago_movil_banco, pago_movil_cedula, pago_movil_telefono')
-            .eq('id_usuario', JUGADOR_ID_MOCK)
-            .maybeSingle();
-
-        if (error) throw error;
-
-        if (usuario) {
-            const elWallet = document.getElementById('user-wallet-address');
-            const elBanco = document.getElementById('user-pm-banco');
-            const elCedula = document.getElementById('user-pm-cedula');
-            const elTelefono = document.getElementById('user-pm-telefono');
-
-            if (elWallet && usuario.wallet_ton_address) elWallet.value = usuario.wallet_ton_address;
-            if (elBanco && usuario.pago_movil_banco) elBanco.value = usuario.pago_movil_banco;
-            if (elCedula && usuario.pago_movil_cedula) elCedula.value = usuario.pago_movil_cedula;
-            if (elTelefono && usuario.pago_movil_telefono) elTelefono.value = usuario.pago_movil_telefono;
-            
-            console.log("⚙️ Perfil financiero cargado e inyectado correctamente.");
-        }
-    } catch (err) { 
-        console.error("Error al cargar perfil de Supabase:", err); 
-    }
+.precio-unidad {
+    font-size: 8px;
+    color: #aaaaaa;
+    margin-bottom: 20px;
 }
 
-// Guardar/Actualizar perfil financiero
-if (btnGuardarPerfil) {
-    btnGuardarPerfil.addEventListener('click', async () => {
-        if (!supabaseClient) {
-            alert("❌ ERROR: El SDK de Supabase no está disponible.");
-            return;
-        }
-
-        const walletAddress = document.getElementById('user-wallet-address')?.value.trim() || null;
-        const pmBanco = document.getElementById('user-pm-banco')?.value || null;
-        const pmCedula = document.getElementById('user-pm-cedula')?.value.trim() || null;
-        const pmTelefono = document.getElementById('user-pm-telefono')?.value.trim() || null;
-
-        try {
-            const { error } = await supabaseClient
-                .from('Usuarios')
-                .update({
-                    wallet_ton_address: walletAddress,
-                    pago_movil_banco: pmBanco,
-                    pago_movil_cedula: pmCedula,
-                    pago_movil_telefono: pmTelefono
-                })
-                .eq('id_usuario', JUGADOR_ID_MOCK);
-
-            if (error) throw error;
-
-            alert("💾 ¡ÉXITO RETRO!\nTus credenciales de cobro han sido encriptadas y guardadas con éxito en el servidor.");
-
-        } catch (error) {
-            console.error("Error guardando datos:", error);
-            alert("❌ FALLO DE SERVIDOR: No se pudieron resguardar los datos. " + error.message);
-        }
-    });
+.resaltado-verde {
+    color: #00ff66;
+    font-weight: bold;
 }
 
-// 🔄 CONMUTADOR VISUAL DE PESTAÑAS (USDT / PAGO MÓVIL)
-function conmutarFormularioRetiro(metodoElegido) {
-    const btnUsdt = document.getElementById('btn-select-usdt');
-    const btnPm = document.getElementById('btn-select-pm');
-    const bloqueUsdt = document.getElementById('bloque-datos-usdt');
-    const bloquePm = document.getElementById('bloque-datos-pm');
-
-    if (!btnUsdt || !btnPm || !bloqueUsdt || !bloquePm) return;
-
-    if (metodoElegido === 'USDT') {
-        btnUsdt.style.backgroundColor = '#ffcc00'; 
-        btnUsdt.style.color = '#000'; 
-        bloqueUsdt.style.display = 'block';
-        
-        btnPm.style.backgroundColor = '#1a1a1f'; 
-        btnPm.style.color = '#888'; 
-        bloquePm.style.display = 'none';
-    } else {
-        btnPm.style.backgroundColor = '#ffcc00'; 
-        btnPm.style.color = '#000'; 
-        bloquePm.style.display = 'block';
-        
-        btnUsdt.style.backgroundColor = '#1a1a1f'; 
-        btnUsdt.style.color = '#888'; 
-        bloqueUsdt.style.display = 'none';
-    }
+.resaltado-oro {
+    color: #ffcc00;
+    font-weight: bold;
 }
-// =============================================================================
-// 🛰️ CAPTURA Y ENVÍO DEL REPORTE DE PAGO MÓVIL A LA BASE DE DATOS
-// =============================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    configurarFormularioReportePagoMovil();
-});
+/* Selector de Cantidad */
+.control-cantidad {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
 
-function configurarFormularioReportePagoMovil() {
-    const formPagoMovil = document.getElementById('form-registro-referencia');
-    
-    if (formPagoMovil) {
-        formPagoMovil.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Evita que la página se recargue y borre el progreso
+.btn-cantidad {
+    background-color: #1f2833;
+    color: #66fcf1;
+    border: 3px solid #45a29e;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px;
+    width: 45px;
+    height: 45px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0px #000;
+}
 
-            if (!supabaseClient) {
-                alert("❌ ERROR CRÍTICO: El SDK de Supabase no está conectado.");
-                return;
-            }
+.btn-cantidad:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px #000;
+}
 
-            // 1. Recuperar los datos reales ingresados por el comprador en la interfaz pop-up
-            const numeroReferencia = document.getElementById('ref-bancaria').value.trim();
-            const telefonoOrigen = document.getElementById('telf-origen').value.trim();
-            
-            // Calcular el monto bruto en dólares que corresponde a la cantidad de sobres elegida
-            const cantidad = parseInt(inputCantidad.value) || 1;
-            const montoBrutoUsd = cantidad * PRECIO_SOBRE_USD;
+#cantidad-sobres {
+    width: 70px;
+    height: 45px;
+    background-color: #000000;
+    border: 3px solid #45a29e;
+    color: #00ff66;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+}
 
-            // Validación de seguridad básica antes de subir el reporte al servidor
-            if (numeroReferencia.length < 4) {
-                alert("❌ ERROR: El número de referencia bancaria es demasiado corto.");
-                return;
-            }
+/* Pantalla LCD Totales */
+.pantalla-totales {
+    background-color: #050505;
+    border: 3px solid #1f2833;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
 
-            try {
-                // 2. Inyectar el reporte de cobro en estado de retención ("PENDIENTE") en tu tabla Escrow
-                const { error } = await supabaseClient
-                    .from('Historial_Subastas_Liquidadas')
-                    .insert([{
-                        id_carta: null, // Se deja nulo porque es una compra de sobres de la tienda, no una subasta P2P
-                        vendedor_id: 'PLATAFORMA_TIENDA', // Identificador del dueño del negocio
-                        comprador_id: JUGADOR_ID_MOCK, // El ID de Telegram de la Mini App del jugador
-                        monto_bruto_usd: montoBrutoUsd,
-                        comision_plataforma_usd: 0.00, // No aplica descuento en venta directa de sobres
-                        monto_neto_vendedor_usd: montoBrutoUsd,
-                        estado_pago: 'PENDIENTE', // Pasa directo a tu panel administrativo privado
-                        referencia_bancaria: `PM_REF_${numeroReferencia}_TLF_${telefonoOrigen}`
-                    }]);
+.fila-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    margin-bottom: 8px;
+}
 
-                if (error) throw error;
+.fila-total:last-child {
+    margin-bottom: 0;
+}
 
-                // 3. Éxito: Cerrar el cuadro flotante y avisar al jugador con estilo clásico de consola
-                alert(`🛰️ ¡REPORTE ENVIADO CON ÉXITO!\nTu referencia #${numeroReferencia} está en proceso de auditoría.\nTus sobres se liberarán en tu álbum en cuanto el Administrador confirme la transferencia.`);
-                
-                formPagoMovil.reset();
-                
-                const modalPm = document.getElementById('modal-pm');
-                if (modalPm) modalPm.style.display = 'none'; // Oculta la pasarela y lo regresa al álbum
+/* Radio buttons personalizados */
+.opciones-pago {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    margin-bottom: 20px;
+}
 
-            } catch (error) {
-                console.error("Fallo crítico al reportar el Pago Móvil:", error);
-                alert("❌ ERROR DE RED: No se pudo subir tu reporte a Supabase. Comprueba tu conexión bancaria.\n" + error.message);
-            }
-        });
-    }
+.opcion-contenedor {
+    display: flex;
+    align-items: center;
+    font-size: 8px;
+    color: #c5c6c7;
+    cursor: pointer;
+    background-color: #0b0c10;
+    padding: 10px;
+    border: 2px solid #1f2833;
+}
+
+.opcion-contenedor input {
+    margin-right: 10px;
+    accent-color: #00ff66;
+}
+
+/* Botón principal de compra */
+.btn-comprar-final {
+    background-color: #00ff66;
+    color: #000000;
+    border: 3px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 14px;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #009944;
+}
+
+.btn-comprar-final:active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0px #000;
+}
+
+/* Sección de Retiro de Premios */
+.consola-retiros-retro {
+    margin-top: 30px;
+    border-top: 3px dashed #1f2833;
+    padding-top: 20px;
+}
+
+.selector-metodos-pago {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.btn-metodo-tab {
+    flex: 1;
+    background-color: #1f2833;
+    color: #888888;
+    border: 2px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 10px 5px;
+    cursor: pointer;
+}
+
+.btn-metodo-tab.activo {
+    background-color: #ffcc00;
+    color: #000000;
+    font-weight: bold;
+    box-shadow: 3px 3px 0px #b38f00;
+}
+
+/* Formularios Retro */
+.bloque-metodo {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.label-retro {
+    font-size: 7px;
+    color: #aaaaaa;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.input-retro, .select-retro {
+    width: 100%;
+    background-color: #000000;
+    border: 2px solid #1f2833;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px;
+    outline: none;
+    margin-bottom: 5px;
+}
+
+.input-retro:focus, .select-retro:focus {
+    border-color: #00ff66;
+}
+
+.txt-verde-input {
+    color: #00ff66;
+}
+
+.nota-verde {
+    font-size: 6px;
+    color: #00ff66;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+.input-pm-grupo {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    margin-bottom: 12px;
+}
+
+.btn-guardar-perfil {
+    background-color: #ffcc00;
+    color: #000000;
+    border: 3px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 12px;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #b38f00;
+}
+
+.btn-guardar-perfil:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px #000;
+}
+
+/* Modal Flotante (Pago Móvil P2P) */
+.modal-pago-movil {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.88);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    padding: 15px;
+}
+
+.caja-pago-retro {
+    background-color: #121317;
+    border: 4px solid #ff3333;
+    padding: 20px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0px 0px 15px rgba(255, 51, 51, 0.3);
+    text-align: center;
+}
+
+.titulo-pm {
+    font-size: 10px;
+    color: #ff3333;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 0px #000;
+}
+
+.datos-plataforma-box {
+    background-color: #000000;
+    border: 2px solid #333333;
+    padding: 10px;
+    text-align: left;
+    font-size: 7px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.txt-oro { color: #ffcc00; }
+.txt-verde { color: #00ff66; font-size: 9px; font-weight: bold; }
+
+.btn-confirmar-pm {
+    background-color: #ff3333;
+    color: #ffffff;
+    border: 3px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 12px;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: 3px 3px 0px #801a1a;
+}
+
+.btn-confirmar-pm:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px transparent;
+}
+
+/* Menú Navegación Fijo Inferior */
+.menu-navegacion-fijo {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #0b0c10;
+    border-top: 3px solid #1f2833;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 5px;
+    z-index: 100;
+}
+
+.btn-nav {
+    background-color: #1f2833;
+    color: #ffffff;
+    border: 2px solid #45a29e;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    flex: 1;
+    margin: 0 3px;
+    max-width: 120px;
+}
+
+.btn-nav.activo {
+    background-color: #66fcf1;
+    color: #000000;
+    font-weight: bold;
+    border-color: #00ff66;
 }

@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // 🌐 CONEXIÓN VIVA CON DOLARAPI CORREGIDA (EVITA ERRORES CORS)
 async function obtenerTasaBcvSubastas() {
     try {
-        const respuesta = await fetch('https://dolarapi.com');
+        const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
         const datos = await respuesta.json();
         if (datos && datos.promedio) {
             tasaBcvSubasta = parseFloat(datos.promedio);

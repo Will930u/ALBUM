@@ -4,7 +4,7 @@
 
 // Credenciales de Supabase (Sincronizadas con tus otros archivos)
 const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
+const SUPABASE_KEY = "SUPABASE_SERVICE_ROLE_KEY";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Datos del lote activo simulados (Luego se leerán en bucle desde tu base de datos)

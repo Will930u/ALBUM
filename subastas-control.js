@@ -106,19 +106,21 @@ async function ejecutarCierreLoteEscrow() {
     console.log("💰 LIQUIDACIÓN: Bruto $" + montoBrutoFinal + " | Tu Comisión: $" + comisionPlataforma.toFixed(2) + " | Neto Vendedor: $" + netoParaElVendedor.toFixed(2));
 
     try {
-        // 3. Registrar de forma inmutable el balance del cierre en Supabase para tu verificación manual bancaria
-        const { error } = await supabaseClient
-            // CORRECCIÓN EXACTA EN LA LÍNEA DE CONSULTA:
-            .from('Historial_Subastas_Liquidadas')
-            .insert([{
-                id_carta: loteActivo.id_carta,
-                vendedor_id: loteActivo.vendedor_id,
-                comprador_id: loteActivo.ultimo_postulante,
-                monto_bruto_usd: montoBrutoFinal,
-                comision_plataforma_usd: comisionPlataforma,
-                monto_neto_vendedor_usd: netoParaElVendedor,
-                estado_pago: "PENDIENTE" // Pasa directamente a tu pestaña de ESCROW en el panel supremo
-            }]);
+       // SOLUCIÓN EXACTA PARA TU SCRIPT DE SUBASTAS:
+const { error: errInsert } = await supabaseClient
+    .from('Historial_Subastas_Liquidadas') // TODO PEGADO, SIN ESPACIOS NI GUIONES BAJOS ADICIONALES
+    .insert([{
+        id_carta: idCartaActual, // Revisa que este nombre coincida con tu variable
+        vendedor_id: vendedorIdActual,
+        comprador_id: compradorIdActual,
+        monto_bruto_usd: liquidacionBruto,
+        comision_plataforma_usd: liquidacionComision,
+        monto_neto_vendedor_usd: liquidacionNeto,
+        estado_pago: 'PENDIENTE',
+        referencia_bancaria: 'ESPERANDO_P2P'
+    }]);
+
+if (errInsert) throw errInsert;
 
         if (error) throw error;
         alert(`🚨 ¡LOTE FINALIZADO!\nLa oferta ganadora fue de $${montoBrutoFinal} USDT.\nSe ha calculado tu 10% de comisión.`);

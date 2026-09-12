@@ -1,13 +1,13 @@
-﻿// ========================================================
-// 🔨 CONTROLADOR MAESTRO DE SUBASTAS ESCROW (10% COMISIÓN)
-// ========================================================
+﻿// =============================================================================
+// 🔨 CONTROLADOR MAESTRO DE SUBASTAS ESCROW (10% COMISIÓN) - PARTE 1
+// =============================================================================
 
 // Credenciales de Supabase (Sincronizadas con tus otros archivos)
-const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
+const SUPABASE_URL = "https://supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Datos del lote activo simulados (Luego se leerán en bucle desde tu base de datos)
+// Datos del lote activo simulados
 let loteActivo = {
     id_lote: 101,
     id_carta: 1501,
@@ -38,11 +38,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1000);
 });
 
-/// 🌐 CONEXIÓN VIVA CON DOLARAPI CORREGIDA
+// 🌐 CONEXIÓN VIVA CON DOLARAPI CORREGIDA (EVITA ERRORES CORS)
 async function obtenerTasaBcvSubastas() {
     try {
-       // CAMBIO EXACTO PARA LA LÍNEA 45 DE SUBASTAS-CONTROL.JS
-        const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+        const respuesta = await fetch('https://dolarapi.com');
         const datos = await respuesta.json();
         if (datos && datos.promedio) {
             tasaBcvSubasta = parseFloat(datos.promedio);
@@ -77,7 +76,9 @@ function actualizarVisualLote() {
     }
 }
 
-// 🏛️ ALGORITMO FINANCIERO ESCROW (CIERRE AUTOMÁTICO)
+// =============================================================================
+// 🏛️ ALGORITMO FINANCIERO ESCROW (CIERRE AUTOMÁTICO EN LA NUBE) - PARTE 2
+// =============================================================================
 async function ejecutarCierreLoteEscrow() {
     const txtTimer = document.getElementById('timer-1');
     if (txtTimer) {
@@ -106,26 +107,26 @@ async function ejecutarCierreLoteEscrow() {
     console.log("💰 LIQUIDACIÓN: Bruto $" + montoBrutoFinal + " | Tu Comisión: $" + comisionPlataforma.toFixed(2) + " | Neto Vendedor: $" + netoParaElVendedor.toFixed(2));
 
     try {
-       // SOLUCIÓN EXACTA PARA TU SCRIPT DE SUBASTAS:
-const { error: errInsert } = await supabaseClient
-    .from('Historial_Subastas_Liquidadas') // TODO PEGADO, SIN ESPACIOS NI GUIONES BAJOS ADICIONALES
-    .insert([{
-        id_carta: idCartaActual, // Revisa que este nombre coincida con tu variable
-        vendedor_id: vendedorIdActual,
-        comprador_id: compradorIdActual,
-        monto_bruto_usd: liquidacionBruto,
-        comision_plataforma_usd: liquidacionComision,
-        monto_neto_vendedor_usd: liquidacionNeto,
-        estado_pago: 'PENDIENTE',
-        referencia_bancaria: 'ESPERANDO_P2P'
-    }]);
+        // CORRECCIÓN CRÍTICA DE ASIGNACIÓN: Sincronizado estricto con los datos reales del lote activo
+        const { error: errInsert } = await supabaseClient
+            .from('Historial_Subastas_Liquidadas')
+            .insert([{
+                id_carta: loteActivo.id_carta, // Corregido de idCartaActual a la propiedad del objeto
+                vendedor_id: loteActivo.vendedor_id, // Corregido de vendedorIdActual
+                comprador_id: loteActivo.ultimo_postulante, // Corregido de compradorIdActual al ganador real de la puja
+                monto_bruto_usd: montoBrutoFinal,
+                comision_plataforma_usd: comisionPlataforma,
+                monto_neto_vendedor_usd: netoParaElVendedor,
+                estado_pago: 'PENDIENTE',
+                referencia_bancaria: 'ESPERANDO_P2P'
+            }]);
 
-if (errInsert) throw errInsert;
+        if (errInsert) throw errInsert;
 
-        if (error) throw error;
-        alert(`🚨 ¡LOTE FINALIZADO!\nLa oferta ganadora fue de $${montoBrutoFinal} USDT.\nSe ha calculado tu 10% de comisión.`);
+        alert(`🚨 ¡LOTE FINALIZADO!\nLa oferta ganadora fue de $${montoBrutoFinal.toFixed(2)} USDT.\nEl lote ha ingresado al Escrow administrativo para tu revisión.`);
 
     } catch (err) {
-        console.error("Error al asentar el cierre financiero en las tablas:", err);
+        console.error("Error al asentar el cierre financiero en las tablas de Supabase:", err);
+        alert("❌ ERROR DE RED: No se pudo asentar la liquidación. Revisa la consola.");
     }
 }

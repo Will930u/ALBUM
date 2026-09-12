@@ -108,6 +108,7 @@ async function ejecutarCierreLoteEscrow() {
     try {
         // 3. Registrar de forma inmutable el balance del cierre en Supabase para tu verificación manual bancaria
         const { error } = await supabaseClient
+            // CORRECCIÓN EXACTA EN LA LÍNEA DE CONSULTA:
             .from('Historial_Subastas_Liquidadas')
             .insert([{
                 id_carta: loteActivo.id_carta,

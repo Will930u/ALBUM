@@ -48,38 +48,63 @@ function inicializarEventosVistaPrevia() {
     // Conmutador del modo de diseño (Ficha vs Imagen Completa)
     selectorModo?.addEventListener('change', (e) => {
         const esLista = (e.target.value === "LISTA");
-        document.getElementById('bloque-estadisticas-manuales').style.display = esLista ? "none" : "block";
-        document.getElementById('bloque-opciones-tcg').style.display = esLista ? "none" : "grid";
         
-        document.getElementById('wrapper-tcg-completo').style.display = esLista ? "none" : "block";
-        document.getElementById('wrapper-imagen-lista').style.display = esLista ? "block" : "none";
+        const bloqueStats = document.getElementById('bloque-estadisticas-manuales');
+        if (bloqueStats) bloqueStats.style.display = esLista ? "none" : "block";
+        
+        const bloqueTcg = document.getElementById('bloque-opciones-tcg');
+        if (bloqueTcg) bloqueTcg.style.display = esLista ? "none" : "grid";
+        
+        const wrapperTcg = document.getElementById('wrapper-tcg-completo');
+        if (wrapperTcg) wrapperTcg.style.display = esLista ? "none" : "block";
+        
+        const wrapperLista = document.getElementById('wrapper-imagen-lista');
+        if (wrapperLista) wrapperLista.style.display = esLista ? "block" : "none";
 
         const cardContainer = document.getElementById('cardContainer');
-        if (esLista) {
-            cardContainer.style.background = "#000000";
-        } else {
-            const temaActual = inputColor ? inputColor.value : "arcoiris";
-            cardContainer.className = `tcg-card card-theme-${temaActual}`;
+        if (cardContainer) {
+            if (esLista) {
+                cardContainer.style.background = "#000000";
+            } else {
+                const temaActual = inputColor ? inputColor.value : "arcoiris";
+                cardContainer.className = `tcg-card card-theme-${temaActual}`;
+            }
         }
     });
 
     // Cambio de Texto en Vivo
-    inputNombre?.addEventListener('input', e => document.getElementById('preview-nombre').textContent = e.target.value || 'Nombre');
-    inputTipo?.addEventListener('input', e => document.getElementById('preview-tipo').textContent = e.target.value || '[ Tipo ]');
-    inputAtk?.addEventListener('input', e => document.getElementById('preview-atk').textContent = e.target.value || '0');
-    inputSalud?.addEventListener('input', e => document.getElementById('preview-def').textContent = e.target.value || '0');
-    inputLore?.addEventListener('input', e => document.getElementById('preview-lore').textContent = e.target.value || 'Lore...');
+    inputNombre?.addEventListener('input', e => {
+        const preview = document.getElementById('preview-nombre');
+        if (preview) preview.textContent = e.target.value || 'Nombre';
+    });
+    inputTipo?.addEventListener('input', e => {
+        const preview = document.getElementById('preview-tipo');
+        if (preview) preview.textContent = e.target.value || '[ Tipo ]';
+    });
+    inputAtk?.addEventListener('input', e => {
+        const preview = document.getElementById('preview-atk');
+        if (preview) preview.textContent = e.target.value || '0';
+    });
+    inputSalud?.addEventListener('input', e => {
+        const preview = document.getElementById('preview-def');
+        if (preview) preview.textContent = e.target.value || '0';
+    });
+    inputLore?.addEventListener('input', e => {
+        const preview = document.getElementById('preview-lore');
+        if (preview) preview.textContent = e.target.value || 'Lore...';
+    });
     
     // Cambio de Color de Fondo en Vivo
     inputColor?.addEventListener('change', e => {
         const cardContainer = document.getElementById('cardContainer');
-        cardContainer.className = `tcg-card card-theme-${e.target.value}`;
+        if (cardContainer) cardContainer.className = `tcg-card card-theme-${e.target.value}`;
     });
 
     // Cambio de Estrellas de Rareza
     inputRareza?.addEventListener('change', e => {
         const estrellasMap = { "Común": "⭐", "Rara": "⭐⭐", "Épica": "⭐⭐⭐", "Mitológica": "⭐⭐⭐⭐⭐" };
-        document.getElementById('preview-rareza').textContent = estrellasMap[e.target.value] || "⭐";
+        const preview = document.getElementById('preview-rareza');
+        if (preview) preview.textContent = estrellasMap[e.target.value] || "⭐";
     });
 
     // Carga e Inyección de Imagen
@@ -89,7 +114,8 @@ function inicializarEventosVistaPrevia() {
             const reader = new FileReader();
             reader.onload = evt => {
                 rawImageSrc = evt.target.result;
-                document.getElementById('preview-imagen-lista').src = rawImageSrc;
+                const previewLista = document.getElementById('preview-imagen-lista');
+                if (previewLista) previewLista.src = rawImageSrc;
                 aplicarFiltroPixelArt();
             };
             reader.readAsDataURL(file);
@@ -98,7 +124,8 @@ function inicializarEventosVistaPrevia() {
 
     // Opciones Pixel Art
     togglePixel?.addEventListener('change', e => {
-        document.getElementById('pixelControls').style.display = e.target.checked ? "grid" : "none";
+        const pixelCtrl = document.getElementById('pixelControls');
+        if (pixelCtrl) pixelCtrl.style.display = e.target.checked ? "grid" : "none";
         aplicarFiltroPixelArt();
     });
 
@@ -112,22 +139,26 @@ function aplicarFiltroPixelArt() {
     const resSel = document.getElementById('selectPixelRes');
 
     if (!toggle || !toggle.checked) {
-        previewImg.src = rawImageSrc;
-        previewListaImg.src = rawImageSrc;
-        previewImg.classList.remove('pixelated');
-        previewListaImg.classList.remove('pixelated');
+        if (previewImg) {
+            previewImg.src = rawImageSrc;
+            previewImg.classList.remove('pixelated');
+        }
+        if (previewListaImg) {
+            previewListaImg.src = rawImageSrc;
+            previewListaImg.classList.remove('pixelated');
+        }
         return;
     }
 
-    previewImg.classList.add('pixelated');
-    previewListaImg.classList.add('pixelated');
+    if (previewImg) previewImg.classList.add('pixelated');
+    if (previewListaImg) previewListaImg.classList.add('pixelated');
 
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = function() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const targetWidth = parseInt(resSel.value);
+        const targetWidth = parseInt(resSel ? resSel.value : 64) || 64;
         const ratio = img.height / img.width;
 
         canvas.width = targetWidth;
@@ -137,8 +168,8 @@ function aplicarFiltroPixelArt() {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
         const dataPixel = canvas.toDataURL();
-        previewImg.src = dataPixel;
-        previewListaImg.src = dataPixel;
+        if (previewImg) previewImg.src = dataPixel;
+        if (previewListaImg) previewListaImg.src = dataPixel;
     };
     img.src = rawImageSrc;
 }
@@ -152,18 +183,20 @@ function configurarFormularioCargaCartas() {
         e.preventDefault();
 
         const previewImg = document.getElementById('preview-imagen');
-        const modoCarga = document.getElementById('modo-diseno-carta').value;
+        const modoCargaElem = document.getElementById('modo-diseno-carta');
+        const modoCarga = modoCargaElem ? modoCargaElem.value : "NORMAL";
 
         try {
             alert("🛰️ Guardando colección...");
 
             let blobFinal;
-            if (document.getElementById('togglePixel').checked) {
+            const togglePixel = document.getElementById('togglePixel');
+            if (togglePixel && togglePixel.checked && previewImg) {
                 const resp = await fetch(previewImg.src);
                 blobFinal = await resp.blob();
             } else {
                 const inputArchivo = document.getElementById('carta-archivo-jpg');
-                if (!inputArchivo.files[0]) return alert("❌ Selecciona un archivo de imagen.");
+                if (!inputArchivo || !inputArchivo.files[0]) return alert("❌ Selecciona un archivo de imagen.");
                 blobFinal = inputArchivo.files[0];
             }
 
@@ -178,16 +211,16 @@ function configurarFormularioCargaCartas() {
             const { data: urlPublica } = supabaseClient.storage.from('imagenes_cartas').getPublicUrl(nombreArchivo);
 
             let datosCarta = {
-                nombre: document.getElementById('carta-nombre').value.trim(),
-                rareza: document.getElementById('carta-rareza').value,
+                nombre: (document.getElementById('carta-nombre')?.value || '').trim(),
+                rareza: document.getElementById('carta-rareza')?.value || 'Común',
                 imagen_url: urlPublica.publicUrl
             };
 
             if (modoCarga === "NORMAL") {
-                datosCarta.tipo = document.getElementById('carta-tipo-etiqueta').value.trim();
-                datosCarta.poder = parseInt(document.getElementById('carta-poder').value) || 0;
-                datosCarta.salud = parseInt(document.getElementById('carta-salud').value) || 0;
-                datosCarta.lore = document.getElementById('carta-lore').value.trim();
+                datosCarta.tipo = (document.getElementById('carta-tipo-etiqueta')?.value || '').trim();
+                datosCarta.poder = parseInt(document.getElementById('carta-poder')?.value) || 0;
+                datosCarta.salud = parseInt(document.getElementById('carta-salud')?.value) || 0;
+                datosCarta.lore = (document.getElementById('carta-lore')?.value || '').trim();
                 datosCarta.ataque = "Golpe Directo";
                 datosCarta.habitat = "Desconocido";
             } else {
@@ -224,7 +257,8 @@ async function cargarAlbumGlobalAdmin() {
             .order('id', { ascending: false });
 
         if (error) {
-            grid.innerHTML = `<p style="font-size:7px; color:#ff3333;">ERROR DE AUTENTICACIÓN / TABLA</p>`;
+            console.error("Error al cargar el álbum:", error);
+            grid.innerHTML = `<p style="font-size:7px; color:#ff3333;">ERROR AL OBTENER DATOS (${error.message || '400'})</p>`;
             return;
         }
 
@@ -241,8 +275,8 @@ async function cargarAlbumGlobalAdmin() {
             cardItem.innerHTML = `
                 <img src="${carta.imagen_url || 'https://via.placeholder.com/150'}" alt="Carta">
                 <div class="info-admin-card">
-                    <strong>#${carta.id} ${carta.nombre}</strong>
-                    <span>${carta.rareza}</span>
+                    <strong>#${carta.id} ${carta.nombre || 'Sin Nombre'}</strong>
+                    <span>${carta.rareza || 'Común'}</span>
                 </div>
                 <div class="acciones-card-admin">
                     <button class="btn-mini-admin btn-mini-drop" onclick="prepararRegaloDirecto(${carta.id})">🎁</button>
@@ -253,19 +287,22 @@ async function cargarAlbumGlobalAdmin() {
         });
 
     } catch (err) {
-        console.error("Error álbum admin:", err);
+        console.error("Error inesperado en álbum admin:", err);
     }
 }
 
 function prepararRegaloDirecto(idCarta) {
     cambiarPestana('seccion-regalos');
-    document.getElementById('regalo-tipo-seleccion').value = "ESPECIFICA";
-    document.getElementById('regalo-carta-id').value = idCarta;
+    const regaloTipo = document.getElementById('regalo-tipo-seleccion');
+    const regaloId = document.getElementById('regalo-carta-id');
+    if (regaloTipo) regaloTipo.value = "ESPECIFICA";
+    if (regaloId) regaloId.value = idCarta;
 }
 
 async function destruirCartaPorIdDirecto(idCarta) {
     if (!confirm(`¿Destruir carta #${idCarta}?`)) return;
-    document.getElementById('id-carta-borrar').value = idCarta;
+    const inputBorrar = document.getElementById('id-carta-borrar');
+    if (inputBorrar) inputBorrar.value = idCarta;
     await window.destruirCartaYMultimediaGlobal();
     await cargarAlbumGlobalAdmin();
 }
@@ -276,10 +313,10 @@ function configurarBotonRegalosManuales() {
     if (!btnRegalo) return;
 
     btnRegalo.addEventListener('click', async () => {
-        const idUsuario = document.getElementById('regalo-usuario-id').value.trim();
-        const tipoRegalo = document.getElementById('regalo-tipo-seleccion').value;
-        const idCarta = parseInt(document.getElementById('regalo-carta-id').value);
-        const cantidad = parseInt(document.getElementById('regalo-cantidad').value) || 1;
+        const idUsuario = (document.getElementById('regalo-usuario-id')?.value || '').trim();
+        const tipoRegalo = document.getElementById('regalo-tipo-seleccion')?.value;
+        const idCarta = parseInt(document.getElementById('regalo-carta-id')?.value);
+        const cantidad = parseInt(document.getElementById('regalo-cantidad')?.value) || 1;
 
         if (!idUsuario) return alert("❌ Ingresa el ID del usuario.");
 
@@ -289,7 +326,8 @@ function configurarBotonRegalosManuales() {
                 await procesarAsignacionEnInventario(idUsuario, idCarta, cantidad);
                 alert(`🎁 Drop enviado: ${cantidad} copia(s) a [${idUsuario}].`);
             } else {
-                const { data: pool } = await supabaseClient.from('Cartas').select('id');
+                const { data: pool, error: errPool } = await supabaseClient.from('Cartas').select('id');
+                if (errPool) throw errPool;
                 if (!pool || pool.length === 0) return alert("❌ No hay cartas.");
 
                 for (let i = 0; i < cantidad; i++) {

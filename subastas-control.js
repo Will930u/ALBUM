@@ -41,8 +41,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 /// 🌐 CONEXIÓN VIVA CON DOLARAPI CORREGIDA
 async function obtenerTasaBcvSubastas() {
     try {
-        // AGREGAMOS LA RUTA COMPLETA DE VENEZUELA PARA EVITAR EL BLOQUEO CORS
-        const respuesta = await fetch('https://dolarapi.com');
+       // CAMBIO EXACTO PARA LA LÍNEA 45 DE SUBASTAS-CONTROL.JS
+        const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
         const datos = await respuesta.json();
         if (datos && datos.promedio) {
             tasaBcvSubasta = parseFloat(datos.promedio);

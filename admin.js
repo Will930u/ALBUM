@@ -469,3 +469,14 @@ window.destruirCartaYMultimediaGlobal = async function() {
         if (errDelete) throw errDelete;
 
         alert(`🗑️ ¡OPERACIÓN DESTRUCCIÓN COMPLETADA!\nLa carta #${idCarta} y su archivo físico han sido erradicados.`);
+        alert(`🗑️ ¡OPERACIÓN DESTRUCCIÓN COMPLETADA!\nLa carta #${idCarta} y su archivo físico han sido erradicados.`);
+        inputId.value = "";
+        
+        // Refrescar inmediatamente el catálogo visual del panel de administración
+        await cargarAlbumGlobalAdmin();
+
+    } catch (error) {
+        console.error("Fallo crítico en el destructor:", error);
+        alert("❌ ERROR DE PURGA: " + error.message);
+    }
+};

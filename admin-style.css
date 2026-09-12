@@ -1,4 +1,7 @@
-﻿* {
+﻿/* =============================================================================
+ * 🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL (PARTE 1)
+ * ============================================================================= */
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -15,7 +18,8 @@ body {
     min-height: 100vh;
 }
 
-.consola-admin {
+/* Contenedor centralizado estilo máquina arcade */
+.contenedor-central {
     background-color: #121216;
     border: 4px solid #00ff66;
     padding: 20px;
@@ -25,7 +29,7 @@ body {
     border-radius: 4px;
 }
 
-.titulo-admin {
+.titulo-central {
     font-size: 10px;
     color: #00ff66;
     text-align: center;
@@ -33,7 +37,8 @@ body {
     line-height: 1.5;
 }
 
-.menu-pestanas {
+/* Barra SPA elástica para intercambio de pestañas */
+.barra-pestanas {
     display: flex;
     gap: 4px;
     margin-bottom: 12px;
@@ -48,6 +53,12 @@ body {
     font-size: 7px;
     padding: 10px 0;
     cursor: pointer;
+    transition: background 0.1s;
+}
+
+.tab-btn:hover {
+    color: #fff;
+    background-color: #22222a;
 }
 
 .tab-btn.activo {
@@ -55,26 +66,6 @@ body {
     color: #000000;
     font-weight: bold;
     box-shadow: 2px 2px 0px #000;
-}
-
-.menu-navegacion-retro {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 25px;
-    border-bottom: 2px dashed #1f2833;
-    padding-bottom: 15px;
-}
-
-.btn-nav-retro {
-    flex: 1;
-    background-color: #000000;
-    color: #ffffff;
-    border: 2px solid #333333;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 7px;
-    padding: 8px 2px;
-    cursor: pointer;
-    text-align: center;
 }
 
 .contenido-pestana { display: none; }
@@ -89,17 +80,12 @@ body {
     line-height: 1.4;
 }
 
-.campo-retro {
+/* Estructura rígida para bloques de datos */
+.form-grupo {
     display: flex;
     flex-direction: column;
     margin-bottom: 12px;
     width: 100%;
-}
-
-.grid-2-cols, .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
 }
 
 label {
@@ -126,150 +112,32 @@ input:focus, select:focus, textarea:focus {
     border-color: #00ff66;
 }
 
-.caja-pixel-art {
-    background: #000;
-    border: 1px dashed #ffcc00;
+textarea {
+    resize: none;
+    height: 65px;
+}
+/* =============================================================================
+ * 🎨 CONSOLA DE ADMINISTRACIÓN - BOTONES MULTIMEDIA Y TABLAS ESCROW (PARTE 2)
+ * ============================================================================= */
+
+/* Nuevo inyector estético para la subida de archivos JPG/PNG directos */
+.input-archivo-retro {
+    background-color: #000000;
+    border: 2px dashed #ffcc00;
+    color: #ffcc00;
     padding: 10px;
-    margin-bottom: 15px;
-}
-
-.contenedor-vista-previa {
-    margin: 20px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: #000;
-    padding: 15px;
-    border: 2px dashed #333;
-}
-
-.label-previa {
-    font-size: 7px;
-    color: #00ff66;
-    margin-bottom: 12px;
-}
-
-/* CARTA BASE TCG */
-.tcg-card {
-    width: 280px;
-    min-height: 390px;
-    border-radius: 12px;
-    padding: 10px;
-    border: 3px solid #fcd34d;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
-    font-family: 'Cinzel', serif;
-    transition: background 0.3s ease;
-}
-
-/* TEMAS APLICADOS POR CLASE */
-.tcg-card.card-theme-arcoiris { background: linear-gradient(135deg, #FF0000 0%, #FF7F00 16.6%, #FFFF00 33.3%, #00FF00 50%, #0000FF 66.6%, #4B0082 83.3%, #9400D3 100%) !important; }
-.tcg-card.card-theme-azul { background: linear-gradient(135deg, #38bdf8 0%, #1e40af 50%, #0f172a 100%) !important; }
-.tcg-card.card-theme-verde { background: linear-gradient(135deg, #4ade80 0%, #15803d 50%, #052e16 100%) !important; }
-.tcg-card.card-theme-marron { background: linear-gradient(135deg, #d97706 0%, #78350f 50%, #271c19 100%) !important; }
-.tcg-card.card-theme-amarillo-naranja { background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #c2410c 100%) !important; }
-.tcg-card.card-theme-morado { background: linear-gradient(135deg, #c084fc 0%, #7e22ce 50%, #3b0764 100%) !important; }
-
-.tcg-header {
-    background: rgba(0,0,0,0.85);
-    padding: 6px;
-    border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid rgba(255,204,0,0.4);
-}
-
-.tcg-title { font-size: 11px; color: #fcd34d; font-weight: 900; }
-.tcg-stars { font-size: 8px; color: #fcd34d; }
-
-.tcg-art-frame {
-    width: 100%;
-    height: 160px;
-    background: #000;
-    margin: 8px 0;
-    border: 2px solid rgba(255,204,0,0.5);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.tcg-art-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.pixelated {
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-}
-
-.tcg-body {
-    background: rgba(0,0,0,0.85);
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.2);
-    font-family: sans-serif;
-}
-
-.tcg-type { font-size: 9px; color: #fcd34d; font-weight: bold; font-family: 'Cinzel', serif; }
-.tcg-lore { font-size: 8px; color: #ddd; font-style: italic; margin: 4px 0; line-height: 1.2; }
-.tcg-stats { display: flex; justify-content: flex-end; gap: 10px; font-size: 9px; border-top: 1px solid #333; padding-top: 4px; font-family: 'Cinzel', serif; }
-
-.grid-cartas-admin {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 12px;
-    max-height: 500px;
-    overflow-y: auto;
-    padding-right: 5px;
-}
-
-.tarjeta-admin-item {
-    background: #000;
-    border: 2px solid #333;
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.tarjeta-admin-item img {
-    width: 100%;
-    height: 110px;
-    object-fit: cover;
-    border: 1px solid #222;
-    margin-bottom: 6px;
-}
-
-.info-admin-card { font-size: 6px; color: #aaa; width: 100%; }
-.info-admin-card strong { color: #00ff66; font-size: 7px; display: block; margin-bottom: 2px; }
-
-.acciones-card-admin {
-    display: flex;
-    gap: 4px;
-    width: 100%;
-    margin-top: 6px;
-}
-
-.btn-mini-admin {
-    flex: 1;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 6px;
-    padding: 4px 0;
-    border: 1px solid #000;
     cursor: pointer;
 }
 
-.btn-mini-drop { background: #00ff66; color: #000; }
-.btn-mini-del { background: #ff3333; color: #fff; }
+.input-archivo-retro:focus {
+    border-color: #00ff66;
+    color: #00ff66;
+}
 
-.btn-rojo-retro {
-    background-color: #ff3333;
-    color: #ffffff;
+/* Botón supremo para publicar cartas en el álbum global */
+.btn-admin-final {
+    background-color: #00ff66;
+    color: #000000;
     border: 3px solid #000000;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
@@ -277,17 +145,113 @@ input:focus, select:focus, textarea:focus {
     padding: 12px;
     width: 100%;
     cursor: pointer;
-    box-shadow: 4px 4px 0px #801a1a;
+    box-shadow: 4px 4px 0px #092612;
+    margin-top: 10px;
 }
 
-.seccion-destructor { margin-top: 25px; border-top: 2px dashed #ff3333; padding-top: 15px; }
-.grupo-destruccion { display: flex; gap: 8px; }
-.input-borrar { flex: 2; border: 2px solid #ff3333; }
-.btn-borrar { flex: 1; background: #fff; color: #000; font-family: 'Press Start 2P', monospace; font-size: 8px; cursor: pointer; }
+.btn-admin-final:hover {
+    background-color: #ffffff;
+    box-shadow: 4px 4px 0px #333333;
+}
 
-.nota-consola { font-size: 6px; color: #888; margin-bottom: 12px; }
-.contenedor-tabla-retro { width: 100%; overflow-x: auto; }
-.tabla-retro { width: 100%; border-collapse: collapse; font-size: 6px; }
-.tabla-retro th { background-color: #000; padding: 6px; color: #ffcc00; border: 1px solid #333; }
-.tabla-retro td { padding: 6px; border: 1px solid #222; background-color: #16161a; }
-.btn-aprobar-p2p { background-color: #00ff66; color: #000; border: 1px solid #000; font-family: 'Press Start 2P', monospace; font-size: 6px; padding: 4px; cursor: pointer; }
+/* =============================================================================
+ * ⚖️ TABLA DE LIQUIDACIÓN DE PAGOS BANCARIOS P2P ESCROW
+ * ============================================================================= */
+.nota-auditoria {
+    font-size: 6px;
+    color: #888888;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.tabla-contenedor {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tabla-retro {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 6px;
+}
+
+.tabla-retro th {
+    background-color: #000000;
+    padding: 8px;
+    color: #ffcc00;
+    border: 1px solid #333333;
+    text-align: left;
+}
+
+.tabla-retro td {
+    padding: 8px;
+    border: 1px solid #222222;
+    background-color: #16161a;
+    color: #ffffff;
+}
+
+.txt-verde { color: #00ff66; }
+.txt-oro { color: #ffcc00; }
+
+/* Botón verde para validar transacciones bancarias */
+.btn-aprobar-p2p {
+    background-color: #00ff66;
+    color: #000000;
+    border: 1px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-aprobar-p2p:hover {
+    background-color: #ffffff;
+}
+
+/* =============================================================================
+ * 🗑️ CONSOLA DE DESTRUCCIÓN GLOBAL (ZONA ROJA APOCALÍPTICA)
+ * ============================================================================= */
+.bloque-destruccion {
+    margin-top: 25px;
+    border-top: 2px dashed #ff3333;
+    padding-top: 15px;
+}
+
+.txt-rojo {
+    color: #ff3333 !important;
+}
+
+.form-grupo-fila {
+    display: flex;
+    gap: 8px;
+}
+
+.form-grupo-fila input[type="number"] {
+    flex: 2;
+    border: 2px solid #ff3333;
+    color: #ff3333;
+}
+
+.form-grupo-fila input[type="number"]:focus {
+    border-color: #ffffff;
+    color: #ffffff;
+}
+
+.btn-destruir {
+    flex: 1;
+    background-color: #ff3333;
+    color: #ffffff;
+    border: 2px solid #000000;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px #500a0a;
+}
+
+.btn-destruir:hover {
+    background-color: #ffffff;
+    color: #000000;
+    box-shadow: 2px 2px 0px #333333;
+}

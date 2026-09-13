@@ -16,13 +16,13 @@ body {
 
 .consola-subasta {
     width: 100%;
-    max-width: 1000px; /* Ampliado para una excelente presencia visual en PC */
+    max-width: 1500px; /* Ampliado para una excelente presencia visual en PC */
     background-color: #111115;
     border: 6px double #ff3333; /* Borde doble rojo estilo judicial */
     padding: 20px;
     box-shadow: 0px 0px 20px rgba(255, 51, 51, 0.4);
     box-sizing: border-box;
-    margin-bottom: 700px; /* Espacio de cortesía para que el menú no tape los lotes */
+    margin-bottom: 1200px; /* Espacio de cortesía para que el menú no tape los lotes */
 }
 
 .titulo-subasta {

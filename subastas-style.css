@@ -16,7 +16,7 @@ body {
 
 .consola-subasta {
     width: 100%;
-    max-width: 650px; /* Ampliado para una excelente presencia visual en PC */
+    max-width: 800px; /* Ampliado para una excelente presencia visual en PC */
     background-color: #111115;
     border: 6px double #ff3333; /* Borde doble rojo estilo judicial */
     padding: 20px;

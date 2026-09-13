@@ -72,91 +72,112 @@
 
                 <!-- Pago Móvil -->
                 <div id="bloque-datos-pm" class="bloque-metodo" style="display: none;">
-                    <div class="input-pm-grupo">
-                        <label class="label-retro" for="banco-destino">BANCO DESTINO:</label>
-                        <select id="banco-destino" class="select-retro" required>
-                            <option value="" disabled selected>Selecciona un banco</option>
-                            <option value="0102">Banco de Venezuela (BDV)</option>
-                            <option value="0105">Mercantil Banco</option>
-                            <option value="0108">Provincial (BBVA)</option>
-                            <option value="0114">Bancaribe</option>
-                            <option value="0115">Banco Exterior</option>
-                            <option value="0128">Banco Caroní</option>
-                            <option value="0134">Banesco</option>
-                            <option value="0151">BFC Banco Fondo Común</option>
-                            <option value="0156">100% Banco</option>
-                            <option value="0157">DelSur Banco Universal</option>
-                            <option value="0163">Banco del Tesoro</option>
-                            <option value="0166">Banco Agrícola de Venezuela</option>
-                            <option value="0168">Bancrecer</option>
-                            <option value="0169">Mi Banco</option>
-                            <option value="0172">Bancamiga</option>
-                            <option value="0174">Banplus</option>
-                            <option value="0175">Banco Bicentenario</option>
-                            <option value="0177">Banfanb</option>
-                            <option value="0191">BNC Banco Nacional de Crédito</option>
-                        </select>
-                    </div>
-                </div>
-                    <div class="input-pm-grupo">
-                        <label class="label-retro">CÉDULA DE IDENTIDAD:</label>
-                        <input type="text" id="user-pm-cedula" class="input-retro" placeholder="Ej: V-12345678">
-                    </div>
-                    <div class="input-pm-grupo">
-                        <label class="label-retro" for="cedula">CÉDULA DE IDENTIDAD:</label>
-                        <div class="grupo-cedula" style="display: flex; gap: 5px;">
-                            <!-- Selector de Nacionalidad -->
-                            <select id="nacionalidad" class="select-retro" style="width: 60px;" required>
-                                <option value="V">V</option>
-                                <option value="E">E</option>
-                            </select>
-    
-                            <!-- Campo numérico para la cédula -->
-                            <input 
-                                type="text" 
-                                id="cedula" 
-                                class="input-retro" 
-                                placeholder="12345678" 
-                                pattern="[0-9]{5,9}" 
-                                inputmode="numeric" 
-                                required 
-                                autocomplete="off"
-                                style="flex-grow: 1;"
-                                >
-                        </div>
-                <button type="button" class="btn-guardar-perfil" id="btn-guardar-perfil">[[ 💾 GUARDAR DATOS DE COBRO ]]</button>
-            </form>
-        </div>
+    <div class="input-pm-grupo">
+        <label class="label-retro" for="banco-destino">BANCO DESTINO:</label>
+        <select id="banco-destino" class="select-retro" required>
+            <option value="" disabled selected>Selecciona un banco</option>
+            <option value="0102">Banco de Venezuela (BDV)</option>
+            <option value="0105">Mercantil Banco</option>
+            <option value="0108">Provincial (BBVA)</option>
+            <option value="0114">Bancaribe</option>
+            <option value="0115">Banco Exterior</option>
+            <option value="0128">Banco Caroní</option>
+            <option value="0134">Banesco</option>
+            <option value="0151">BFC Banco Fondo Común</option>
+            <option value="0156">100% Banco</option>
+            <option value="0157">DelSur Banco Universal</option>
+            <option value="0163">Banco del Tesoro</option>
+            <option value="0166">Banco Agrícola de Venezuela</option>
+            <option value="0168">Bancrecer</option>
+            <option value="0169">Mi Banco</option>
+            <option value="0172">Bancamiga</option>
+            <option value="0174">Banplus</option>
+            <option value="0175">Banco Bicentenario</option>
+            <option value="0177">Banfanb</option>
+            <option value="0191">BNC Banco Nacional de Crédito</option>
+        </select>
     </div>
+</div>
 
-    <!-- VENTANA MODAL PASARELA PAGO MÓVIL -->
-    <div class="modal-pago-movil" id="modal-pm" style="display: none;">
-        <div class="caja-pago-retro">
-            <h2 class="titulo-pm">[ PASARELA PAGO MÓVIL ]</h2>
+<!-- Eliminado el input duplicado 'user-pm-cedula' que rompía la accesibilidad -->
+<div class="input-pm-grupo">
+    <label class="label-retro" for="cedula">CÉDULA DE IDENTIDAD:</label>
+    <div class="grupo-cedula" style="display: flex; gap: 5px;">
+        <!-- Selector de Nacionalidad -->
+        <select id="nacionalidad" class="select-retro" style="width: 60px;" required>
+            <option value="V">V</option>
+            <option value="E">E</option>
+        </select>
+
+        <!-- Campo numérico para la cédula -->
+        <input 
+            type="text" 
+            id="cedula" 
+            class="input-retro" 
+            placeholder="12345678" 
+            pattern="[0-9]{5,9}" 
+            inputmode="numeric" 
+            required 
+            autocomplete="off"
+            style="flex-grow: 1;"
+        >
+    </div>
+</div>
+
+<button type="button" class="btn-guardar-perfil" id="btn-guardar-perfil">[[ 💾 GUARDAR DATOS DE COBRO ]]</button>
+</form> <!-- Asegúrate de revisar que la etiqueta de apertura de este </form> esté arriba en tu código completo -->
+</div>
+</div>
+
+<!-- VENTANA MODAL PASARELA PAGO MÓVIL -->
+<div class="modal-pago-movil" id="modal-pm" style="display: none;">
+    <div class="caja-pago-retro">
+        <h2 class="titulo-pm">[ PASARELA PAGO MÓVIL ]</h2>
+        
+        <div class="datos-plataforma-box">
+            <p>BANCO: <span class="txt-oro">BANCO DE VENEZUELA</span></p>
+            <p>TELÉFONO: <span class="txt-oro">0412-1234567</span></p>
+            <p>CÉDULA: <span class="txt-oro">V-12345678</span></p>
+            <p>MONTO A PAGAR: <span class="txt-verde" id="monto-bs-dinamico">0.00 Bs.</span></p>
+        </div>
+
+        <form id="form-registro-referencia">
+            <!-- CORREGIDO: Añadido for="ref-bancaria" y optimizado para teclado numérico de 6 dígitos -->
+            <div class="input-pm-grupo">
+                <label class="label-retro" for="ref-bancaria">NÚMERO DE REFERENCIA (ÚLTIMOS 6 DÍGITOS):</label>
+                <input 
+                    type="text" 
+                    id="ref-bancaria" 
+                    required 
+                    maxlength="6" 
+                    pattern="[0-9]{6}" 
+                    inputmode="numeric" 
+                    class="input-retro" 
+                    placeholder="Ej: 874521"
+                    autocomplete="off"
+                >
+            </div>
             
-            <div class="datos-plataforma-box">
-                <p>BANCO: <span class="txt-oro">BANCO DE VENEZUELA</span></p>
-                <p>TELÉFONO: <span class="txt-oro">0412-1234567</span></p>
-                <p>CÉDULA: <span class="txt-oro">V-12345678</span></p>
-                <p>MONTO A PAGAR: <span class="txt-verde" id="monto-bs-dinamico">0.00 Bs.</span></p>
+            <!-- CORREGIDO: Añadido for="telf-origen" y optimizado para validación estricta de operadoras de Venezuela -->
+            <div class="input-pm-grupo">
+                <label class="label-retro" for="telf-origen">TU TELÉFONO DESDE EL QUE PAGASTE:</label>
+                <input 
+                    type="tel" 
+                    id="telf-origen" 
+                    required 
+                    maxlength="11" 
+                    pattern="04(12|14|24|16|26)[0-9]{7}" 
+                    inputmode="numeric" 
+                    class="input-retro" 
+                    placeholder="Ej: 04147654321"
+                    autocomplete="off"
+                >
             </div>
 
-            <form id="form-registro-referencia">
-                <div class="input-pm-grupo">
-                    <label class="label-retro">NÚMERO DE REFERENCIA (ÚLTIMOS 6 DÍGITOS):</label>
-                    <input type="text" id="ref-bancaria" required maxlength="8" class="input-retro" placeholder="Ej: 874521">
-                </div>
-                
-                <div class="input-pm-grupo">
-                    <label class="label-retro">TU TELÉFONO DESDE EL QUE PAGASTE:</label>
-                    <input type="text" id="telf-origen" required class="input-retro" placeholder="Ej: 04147654321">
-                </div>
-
-                <button type="submit" class="btn-confirmar-pm">[[ 🛰️ ENVIAR REPORTE ]]</button>
-            </form>
-        </div>
+            <button type="submit" class="btn-confirmar-pm">[[ 🛰️ ENVIAR REPORTE ]]</button>
+        </form>
     </div>
-
+</div>
     <!-- MENÚ DE NAVEGACIÓN FIJO INFERIOR -->
     <div class="menu-navegacion-fijo">
         <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>

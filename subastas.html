@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subasta de la Corte - Mercado Negro</title>
-    <!-- Importamos la fuente oficial de videojuegos pixel art -->
-        <!-- Importamos la fuente oficial de videojuegos pixel art -->
-    <!-- Importamos la fuente oficial de videojuegos pixel art -->
-<link rel="preconnect" href="https://googleapis.com">
-<link rel="preconnect" href="https://gstatic.com" crossorigin>
-<link href="https://googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
-<!-- Bloque de estilos corregido (href de primero para evitar el 404) -->
-<link rel="stylesheet" href="https://cloudflare.com">
-
+    
+    <!-- Importación corregida de Google Fonts (Press Start 2P) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Hoja de estilos principal -->
+    <link href="subastas-style.css" rel="stylesheet">
 </head>
 <body>
 
@@ -22,10 +20,10 @@
         <h1 class="titulo-subasta">⚙️ [ SUBASTA DE LA CORTE ] ⚙️</h1>
         <p class="alerta-escrow">* FONDO RETENIDO POR EL ADMINISTRADOR (10% COMISIÓN) *</p>
 
-        <!-- CONTENEDOR DINÁMICO: Aquí se inyectarán todos los lotes activos desde JavaScript -->
+        <!-- CONTENEDOR DINÁMICO: Aquí se inyectarán todos los lotes activos -->
         <div id="contenedor-lotes-subasta">
             
-            <!-- LOTE EJEMPLO (Maquetado idéntico para que visualices la estructura) -->
+            <!-- LOTE EJEMPLO -->
             <div class="lote-card">
                 <!-- Miniatura de la carta en disputa con su marco de color -->
                 <div class="preview-carta-subasta marco-mitologica">
@@ -39,13 +37,12 @@
                     
                     <div class="marcador-precios">
                         <p>OFERTA ACTUAL:<br><span class="precio-usd-puja" id="oferta-usd-1">$5.50 USDT</span></p>
-                        <!-- ID asignado para que la API del BCV inyecte la conversión en Bolívares -->
                         <p class="precio-bs-puja" id="oferta-bs-1">~ 0.00 Bs.</p>
                     </div>
 
                     <!-- Formulario de Oferta Pixelado -->
                     <div class="control-puja-formulario">
-                        <label class="lbl-tu-oferta" for="monto-pujar-1">TU PUJA (USDT):</label>
+                        <label class="lbl-tu-oferta">TU PUJA (USDT):</label>
                         <div class="input-grupo-retro">
                             <input type="number" id="monto-pujar-1" value="6.00" min="5.60" step="0.10">
                             <button type="button" class="btn-pujar" onclick="ejecutarPujaInteractiva(1)">¡PUJAR!</button>
@@ -57,7 +54,7 @@
 
         </div>
 
-        <!-- Historial o Información de Respaldo Financiero -->
+        <!-- Información de Respaldo Financiero -->
         <div class="info-pie-subasta">
             <p>SISTEMA ESCROW BLINDADO: El comprador deposita los fondos a las cuentas de la plataforma. Al confirmarse el intercambio del activo digital, el vendedor recibe su saldo neto menos el 10% de comisión de mediación retenido automáticamente.</p>
         </div>
@@ -70,11 +67,8 @@
         <button class="btn-nav activo" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
     </div>
 
-    <!-- ======================================================= -->
-    <!-- ENLACE DE CONEXIÓN CON TU MOTOR DE BASE DE DATOS -->
-    <!-- ======================================================= -->
-    <!-- Reemplaza tu línea 76 vieja por esta corregida -->
-    <script src="https://unpkg.com"></script>
+    <!-- SDK SUPABASE Y CONTROLADOR MAESTRO -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="subastas-control.js"></script>
 </body>
 </html>

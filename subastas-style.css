@@ -1,5 +1,5 @@
 ﻿/* ========================================================
-   ⚙️ CONSOLA DE SUBASTAS RETRO 8/16-BIT - ESTILOS GENERALES
+   ⚙️ CONSOLA DE SUBASTAS RETRO 8/16-BIT - RESPONSIVA FLEX
    ======================================================== */
 
 body {
@@ -15,18 +15,19 @@ body {
 }
 
 .consola-subasta {
-    width: 100%;
-    max-width: 1500px; /* Ampliado para una excelente presencia visual en PC */
+    width: 35vw; /* Ocupa el 35% exacto del ancho de cualquier pantalla */
+    min-width: 320px; /* Tamaño mínimo para no deformar móviles */
+    max-width: 600px; /* Límite para monitores Ultrawide o 4K */
     background-color: #111115;
-    border: 6px double #ff3333; /* Borde doble rojo estilo judicial */
-    padding: 20px;
+    border: 6px double #ff3333;
+    padding: 18px;
     box-shadow: 0px 0px 20px rgba(255, 51, 51, 0.4);
     box-sizing: border-box;
-    margin-bottom: 1200px; /* Espacio de cortesía para que el menú no tape los lotes */
+    margin-bottom: 95px;
 }
 
 .titulo-subasta {
-    font-size: 14px;
+    font-size: clamp(10px, 1.2vw, 14px);
     text-align: center;
     color: #ff3333;
     margin-top: 5px;
@@ -36,7 +37,7 @@ body {
 }
 
 .alerta-escrow {
-    font-size: 8px;
+    font-size: clamp(6px, 0.7vw, 8px);
     text-align: center;
     color: #aaaaaa;
     margin-bottom: 22px;
@@ -45,42 +46,39 @@ body {
 }
 
 /* ========================================================
-   📦 TARJETAS DE LOTES P2P (CAPAS DE DISEÑO)
+   📦 TARJETAS DE LOTES P2P
    ======================================================== */
 
 .lote-card {
     background-color: #171721;
     border: 4px solid #000000;
-    padding: 16px;
+    padding: 14px;
     display: flex;
-    gap: 16px;
+    gap: 14px;
     margin-bottom: 18px;
     box-shadow: 4px 4px 0px #000000;
     box-sizing: border-box;
     align-items: stretch;
 }
 
-/* Contenedor de la miniatura de la carta en disputa */
 .preview-carta-subasta {
-    width: 120px;
-    height: 170px;
+    width: 100px;
+    height: 145px;
     background-color: #000000;
     border: 3px solid #000000;
     position: relative;
     background-size: 100% 100%;
     background-position: center;
     image-rendering: pixelated;
-    flex-shrink: 0; /* Evita que el cuadro se deforme */
+    flex-shrink: 0;
 }
 
-/* Plantillas cargadas como fondo */
 .marco-azul        { background-image: url('imagenes/marcos/marco_azul.png'); }
 .marco-verde       { background-image: url('imagenes/marcos/marco_verde.png'); }
 .marco-marron      { background-image: url('imagenes/marcos/marco_marron.png'); }
 .marco-naranja     { background-image: url('imagenes/marcos/marco_naranja.png'); }
 .marco-morado      { background-image: url('imagenes/marcos/marco_morado.png'); }
 
-/* 🌈 Animación arcoíris holográfica para los lotes mitológicos */
 .marco-mitologica {
     background-image: url('imagenes/marcos/marco_arcoiris.png');
     animation: holoBrilloSubasta 2.5s infinite alternate ease-in-out;
@@ -95,14 +93,14 @@ body {
     position: absolute;
     bottom: 4px;
     right: 4px;
-    font-size: 7px;
+    font-size: 6px;
     background-color: #000000;
-    padding: 4px;
+    padding: 3px;
     color: #ffcc00;
 }
 
 /* ========================================================
-   📊 DETALLES DE LA PUJA Y CALCULADORA ELECTRÓNICA
+   📊 DETALLES DE LA PUJA
    ======================================================== */
 
 .detalles-puja {
@@ -113,7 +111,7 @@ body {
 }
 
 .nombre-carta-subasta {
-    font-size: 12px;
+    font-size: clamp(8px, 1vw, 11px);
     color: #ffffff;
     margin: 0 0 8px 0;
     text-shadow: 1px 1px 0px #000;
@@ -121,12 +119,11 @@ body {
 }
 
 .reloj-retro {
-    font-size: 9px;
+    font-size: clamp(7px, 0.8vw, 9px);
     color: #ff3333;
     margin-bottom: 10px;
 }
 
-/* Tiempo titilante de urgencia arcade */
 .tiempo-parpadeo {
     animation: flashTiempoRetro 1s infinite alternate;
 }
@@ -136,7 +133,6 @@ body {
     100% { opacity: 1; }
 }
 
-/* Marcador verde de dinero retenido */
 .marcador-precios {
     background-color: #0c0c10;
     border-left: 4px solid #00ff66;
@@ -146,48 +142,47 @@ body {
 
 .marcador-precios p {
     margin: 0;
-    font-size: 8px;
+    font-size: clamp(6px, 0.7vw, 8px);
     color: #888888;
     line-height: 1.5;
 }
 
 .precio-usd-puja {
-    font-size: 14px;
+    font-size: clamp(10px, 1.2vw, 13px);
     color: #00ff66;
     font-weight: bold;
 }
 
 .precio-bs-puja {
-    font-size: 9px;
+    font-size: clamp(7px, 0.8vw, 9px);
     color: #ffcc00;
     margin-top: 4px !important;
 }
 
-/* Formulario rígido para pujar */
 .control-puja-formulario {
     display: flex;
     flex-direction: column;
 }
 
 .lbl-tu-oferta {
-    font-size: 8px;
+    font-size: clamp(6px, 0.7vw, 8px);
     color: #aaaaaa;
     margin-bottom: 6px;
 }
 
 .input-grupo-retro {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .input-grupo-retro input {
-    width: 90px;
+    width: 50%;
     background-color: #000000;
     border: 3px solid #333;
     color: #00ff66;
     font-family: 'Press Start 2P', monospace;
-    font-size: 11px;
-    padding: 8px;
+    font-size: clamp(8px, 0.9vw, 10px);
+    padding: 6px;
     outline: none;
     box-sizing: border-box;
 }
@@ -196,15 +191,15 @@ body {
     border-color: #ff3333;
 }
 
-/* Botón interactivo de oferta */
 .btn-pujar {
+    width: 50%;
     background-color: #ff3333;
     color: #ffffff;
     border: 3px solid #000000;
     font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
+    font-size: clamp(7px, 0.8vw, 9px);
     font-weight: bold;
-    padding: 8px 14px;
+    padding: 6px 8px;
     cursor: pointer;
     box-shadow: 2px 2px 0px #990000;
 }
@@ -215,7 +210,7 @@ body {
 }
 
 .info-pie-subasta {
-    font-size: 7.5px;
+    font-size: clamp(6px, 0.7vw, 7.5px);
     color: #777777;
     line-height: 1.6;
     text-align: justify;
@@ -225,7 +220,7 @@ body {
 }
 
 /* ========================================================
-   📔 BARRA DE NAVEGACIÓN FIJA INFERIOR INTERCONECTADA
+   📔 BARRA DE NAVEGACIÓN FIJA INFERIOR
    ======================================================== */
 
 .menu-navegacion-fijo {
@@ -233,13 +228,14 @@ body {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 100%;
-    max-width: 650px; /* Alineado exactamente al mismo ancho de la consola */
+    width: 35vw;
+    min-width: 320px;
+    max-width: 600px;
     background-color: #16161a;
     border-top: 4px solid #000000;
     display: flex;
     justify-content: space-around;
-    padding: 12px 0;
+    padding: 10px 0;
     z-index: 900;
     box-sizing: border-box;
 }
@@ -249,37 +245,26 @@ body {
     color: #888888;
     border: 3px solid #000000;
     font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    padding: 10px 16px;
+    font-size: clamp(7px, 0.8vw, 9px);
+    padding: 8px 12px;
     cursor: pointer;
     outline: none;
 }
 
 .btn-nav.activo {
-    background-color: #00ff66; /* Resalta en verde dinero */
+    background-color: #00ff66;
     color: #000000;
     font-weight: bold;
     box-shadow: 2px 2px 0px #009944;
 }
 
 /* ========================================================
-   📱 AJUSTE AUTOMÁTICO PARA PANTALLAS PEQUEÑAS (MÓVILES)
+   📱 VISTA MÓVIL AUTOMÁTICA
    ======================================================== */
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
     .consola-subasta, .menu-navegacion-fijo {
+        width: 100%;
         max-width: 100%;
     }
-    
-    .preview-carta-subasta {
-        width: 95px;
-        height: 135px;
-    }
-
-    .titulo-subasta { font-size: 11px; }
-    .nombre-carta-subasta { font-size: 9px; }
-    .precio-usd-puja { font-size: 11px; }
-    .btn-nav { font-size: 8px; padding: 8px 10px; }
-    .input-grupo-retro input { width: 65px; font-size: 9px; }
-    .btn-pujar { font-size: 8px; padding: 6px 10px; }
 }

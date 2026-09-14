@@ -1,6 +1,6 @@
 // CONFIGURACIÓN DE CONEXIÓN CON TU SERVIDOR DE SUPABASE
-const SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
+const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ID del jugador de pruebas (En la Fase 4 lo tomaremos automáticamente desde el Telegram ID)
@@ -8,6 +8,9 @@ const USUARIO_ID_MOCK = "usuario_test_venezuela";
 
 let paginaActual = 1;
 const cartasPorPagina = 50;
+
+// Caché global en memoria para optimizar la red de Venezuela (Evita lag de carga)
+let inventarioUsuarioCache = new Map();
 
 // Vinculación con los objetos de la interfaz
 const grillaCartas = document.getElementById('grilla-cartas');
@@ -17,7 +20,11 @@ const modalVisor = document.getElementById('modal-visor');
 const cartaAnimada = document.getElementById('carta-animada');
 const contenidoFrontal = document.getElementById('contenido-carta-frontal');
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    // 🚀 MEJORA: Descargamos el inventario del usuario UNA SOLA VEZ al abrir la app
+    await cargarInventarioInicial();
+    
+    // Renderizar la primera página con los slots fijos
     renderizarLibro(paginaActual);
 
     // Navegación interactiva de las páginas del libro
@@ -35,7 +42,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// Función central dinámica
+// Función para descargar las posesiones del jugador al iniciar
+async function cargarInventarioInicial() {
+    try {
+        const { data, error } = await supabaseClient.from('Coleccion_Usuario')
+            .select('id_carta, cantidad')
+            .eq('id_usuario', USUARIO_ID_MOCK);
+        
+        if (error) throw error;
+        // Guardamos el mapa en memoria de forma global
+        inventarioUsuarioCache = new Map(data.map(i => [i.id_carta, i.cantidad]));
+    } catch (err) {
+        console.error("Error al cargar inventario del jugador:", err);
+    }
+}
+
+// Función central dinámica optimizada para grillas de 50 fijas
 async function renderizarLibro(pagina) {
     grillaCartas.innerHTML = "<p style='color:#00ff66;font-size:8px;grid-column:span 5;text-align:center;'>ABRIENDO LIBRO...</p>";
     
@@ -50,51 +72,49 @@ async function renderizarLibro(pagina) {
     tituloBloque.innerText = eraTexto;
 
     try {
-        // 1. Consultar a Supabase las 50 cartas que corresponden a esta página del libro
-       const { data: catalogoCartas, error: errCartas } = await supabaseClient.from('Cartas')
+        // Consultar a Supabase ÚNICAMENTE el catálogo de cartas de esta página
+        const { data: catalogoCartas, error: errCartas } = await supabaseClient.from('Cartas')
             .select('*')
             .gte('id_carta', inicioRango)
-            .lte('id_carta', finRango)
-            .order('id_carta', { ascending: true });
+            .lte('id_carta', finRango);
 
         if (errCartas) throw errCartas;
 
-       // 2. Consultar cuáles de esas cartas posee el usuario actual en su cuenta
-       const { data: inventarioUsuario, error: errInventario } = await supabaseClient.from('Coleccion_Usuario')
-            .select('id_carta, cantidad')
-            .eq('id_usuario', USUARIO_ID_MOCK);
-       
-        if (errInventario) throw errInventario;
-
-        // Crear una estructura de mapa rápido en memoria para cruzar los datos en un milisegundo
-        const mapaPosesiones = new Map(inventarioUsuario.map(i => [i.id_carta, i.cantidad]));
+        // Convertimos el catálogo obtenido en un mapa de consulta rápida
+        const mapaCatalogo = new Map(catalogoCartas.map(c => [c.id_carta, c]));
         
         // Actualizar contadores de cabecera
         contadorProgreso.innerText = `PÁG. ${pagina} | RESTRICCIÓN: #${inicioRango}-#${finRango}`;
         grillaCartas.innerHTML = "";
 
-        // 3. Pintar los 50 slots uno a uno
-        catalogoCartas.forEach(carta => {
+        // 🚀 EL PASO MAESTRO: Forzamos un ciclo rígido de 50 repeticiones exactas por página
+        for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
             const slot = document.createElement('div');
             slot.classList.add('miniatura-slot');
 
-            if (mapaPosesiones.has(carta.id_carta)) {
-                // EL JUGADOR LA TIENE: Se inyecta la imagen a color
-                slot.innerHTML = `<img src="${carta.url_imagen}" alt="Card">`;
+            // 1. Buscamos si el catálogo de Supabase tiene cargada esta carta
+            const datosCarta = mapaCatalogo.get(idCarta);
+
+            // 2. Buscamos si el usuario posee esta carta en su inventario en caché
+            const jugadorLaPosee = inventarioUsuarioCache.has(idCarta);
+
+            if (datosCarta && jugadorLaPosee) {
+                // CASO A: La carta existe en el juego Y el jugador ya la compró
+                slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Card">`;
                 
-                // Al tocar la miniatura, se dispara el visor 3D elástico
                 slot.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    desplegarCarta3D(carta);
+                    desplegarCarta3D(datosCarta);
                 });
             } else {
-                // SHADOW LOCK: El jugador no la tiene. Silueta negra con incógnita
+                // CASO B: El jugador no la tiene (o la carta aún no se ha creado en la Base de Datos)
+                // Se dibuja el slot vacío con el signo "?" respetando la grilla arcade
                 slot.classList.add('bloqueada');
                 slot.innerHTML = `<span>?</span>`;
             }
 
             grillaCartas.appendChild(slot);
-        });
+        }
 
     } catch (error) {
         console.error("Error crítico de renderizado:", error);
@@ -102,22 +122,19 @@ async function renderizarLibro(pagina) {
     }
 }
 
-// 4. Mecánica visual adictiva: Fusión de Capas, Marcos y Estrellas Doradas
+// Mecánica visual adictiva: Fusión de Capas, Marcos y Estrellas Doradas
 function desplegarCarta3D(carta) {
-    // Calcular estrellas dinámicamente según su poder de ataque (1 estrella por cada 100 ptos, máx 5)
     const numeroEstrellas = Math.min(Math.max(Math.floor(carta.poder / 100), 1), 5);
     let estrellasHtml = "";
     for (let i = 0; i < numeroEstrellas; i++) {
         estrellasHtml += "<span class='estrella-oro'>★</span>";
     }
 
-    // Determinar qué clase de marco aplicar según el tipo/rareza de tu diseño P2P
     let claseMarco = `marco-${carta.tipo.trim().toLowerCase()}`;
     if (carta.rareza.toLowerCase() === 'mitológica') {
         claseMarco = 'marco-mitologica'; // Activa el filtro arcoíris animado
     }
 
-    // Maquetar la cara frontal cruzando los datos de Supabase con tus estilos de capas
     contenidoFrontal.innerHTML = `
         <div class="carta-tcg ${claseMarco}">
             <div class="carta-encabezado">
@@ -146,7 +163,6 @@ function desplegarCarta3D(carta) {
         </div>
     `;
 
-    // Abrir modal y disparar la animación elástica
     modalVisor.style.display = 'flex';
     setTimeout(() => {
         cartaAnimada.classList.add('girar-y-ampliar');

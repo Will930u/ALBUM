@@ -1,26 +1,25 @@
+// =============================================================================
+// 🎮 ÁLBUM RETRO ARCADE - CONTROLADOR DE GRILLA (VERSIÓN CONFIGURADA A 25 SLOTS)
+// =============================================================================
+
 // CONFIGURACIÓN DE CONEXIÓN CON TU SERVIDOR DE SUPABASE
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
-
-// Inicializar cliente Supabase de manera segura
-let supabaseClient = null;
-if (window.supabase) {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-}
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Inicialización de Telegram WebApp
 const tg = window.Telegram?.WebApp;
 if (tg) {
-    tg.expand();
+    tg.expand(); // Fuerza a la Mini App a abrirse en pantalla completa dentro de Telegram
 }
 
-// Variables globales
+// Variables globales organizadas
 let idUsuarioTelegram = "usuario_test_venezuela";
 let paginaActual = 1;
-const cartasPorPagina = 25;
-const totalPaginas = 40;
+const cartasPorPagina = 25; // Sincronizado con tu grilla visual de 5x5
+const totalPaginas = 80;    // CORREGIDO: 80 páginas × 25 slots = 2000 cartas totales
 
-// Caché global en memoria
+// Caché global en memoria (Evita congelamiento de red en Venezuela)
 let inventarioUsuarioCache = new Map();
 
 // Elementos del DOM
@@ -32,33 +31,27 @@ const modalVisor = document.getElementById('modal-visor');
 const cartaAnimada = document.getElementById('carta-animada');
 const contenidoFrontal = document.getElementById('contenido-carta-frontal');
 
+// Escuchador principal de arranque
 document.addEventListener("DOMContentLoaded", async () => {
-    // 1. Cargar datos del usuario de Telegram
-    inicializarUsuarioTelegram();
-
-    // 2. Actualizar año
-    const elAno = document.getElementById('ano-actual');
-    if (elAno) elAno.innerText = new Date().getFullYear();
-
-    // 3. Cargar inventario inicial de forma segura
-    await cargarInventarioInicial();
-    
-    // 4. Renderizar libro (25 slots garantizados por página)
-    await renderizarLibro(paginaActual);
-
-    // 5. Escuchar en vivo si Supabase está activo
-    if (supabaseClient) {
-        activarEscuchaColeccionEnVivo();
+    // 1. Intentar capturar los datos reales del usuario si entra desde Telegram
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        idUsuarioTelegram = String(tg.initDataUnsafe.user.id);
+        console.log(`🤖 Jugador autenticado por Telegram ID: ${idUsuarioTelegram}`);
     }
 
-    // Controles de navegación
+    // 2. Descargar inventario e inicializar libro
+    await cargarInventarioInicial();
+    renderizarLibro(paginaActual);
+    activarEscuchaColeccionEnVivo();
+
+    // 3. Eventos interactivos de los botones de navegación
     document.getElementById('btn-anterior').addEventListener('click', () => {
         if (paginaActual > 1) { 
             paginaActual--; 
             renderizarLibro(paginaActual); 
         }
     });
-
+    
     document.getElementById('btn-siguiente').addEventListener('click', () => {
         if (paginaActual < totalPaginas) { 
             paginaActual++; 
@@ -66,153 +59,143 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Cerrar visor modal
-    modalVisor.addEventListener('click', () => {
-        cartaAnimada.classList.remove('girar-y-ampliar');
-        setTimeout(() => { modalVisor.style.display = 'none'; }, 250);
-    });
+    // Cerrar el visor modal 3D al hacer clic en el fondo oscuro
+    if (modalVisor) {
+        modalVisor.addEventListener('click', () => {
+            if (cartaAnimada) cartaAnimada.classList.remove('girar-y-ampliar');
+            setTimeout(() => { modalVisor.style.display = 'none'; }, 250);
+        });
+    }
 });
 
-function inicializarUsuarioTelegram() {
-    const avatarImg = document.getElementById('user-avatar');
-    
-    // Asignar avatar por defecto tipo SVG SVG inmune a bloqueos
-    avatarImg.onerror = function() {
-        this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='%2300ff66'><circle cx='12' cy='8' r='4'/><path d='M12 14c-6.1 0-8 4-8 4v2h16v-2s-1.9-4-8-4z'/></svg>";
-    };
-
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
-        idUsuarioTelegram = user.id.toString();
-        
-        document.getElementById('user-username').innerText = user.username ? `@${user.username}` : `@id_${user.id}`;
-        document.getElementById('user-fullname').innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-        
-        if (user.photo_url) {
-            avatarImg.src = user.photo_url;
-        } else {
-            avatarImg.onerror();
-        }
-    } else {
-        avatarImg.onerror();
-    }
-}
-
+// Carga inicial inmutable del inventario del usuario
 async function cargarInventarioInicial() {
-    if (!supabaseClient) return;
     try {
         const { data, error } = await supabaseClient.from('Coleccion_Usuario')
             .select('id_carta, cantidad')
             .eq('id_usuario', idUsuarioTelegram);
         
-        if (!error && data) {
-            inventarioUsuarioCache = new Map(data.map(i => [Number(i.id_carta), i.cantidad]));
-        }
+        if (error) throw error;
+        inventarioUsuarioCache = new Map(data.map(i => [i.id_carta, i.cantidad]));
     } catch (err) {
-        console.warn("Advertencia al cargar inventario:", err);
+        console.error("Error al sincronizar inventario inicial:", err);
     }
 }
 
+// Función central: Dibuja los 25 cuadros fijos con sus identificadores
 async function renderizarLibro(pagina) {
+    if (!grillaCartas) return;
+    grillaCartas.innerHTML = "<p style='color:#00ff66;font-size:8px;grid-column:span 5;text-align:center;'>ABRIENDO PÁGINA...</p>";
+    
     const inicioRango = (pagina - 1) * cartasPorPagina + 1;
     const finRango = pagina * cartasPorPagina;
 
-    indicadorPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
-
+    // Control dinámico de las Eras en base al ID de carta
     let eraTexto = "ERA 1: COTIDIANOS 🐾";
     if (inicioRango > 500)  eraTexto = "ERA 2: SILVESTRES 🦅";
     if (inicioRango > 1000) eraTexto = "ERA 3: EXTINTOS 🦖";
     if (inicioRango > 1500) eraTexto = "ERA 4: MITOLÓGICOS 🔮";
-    tituloBloque.innerText = eraTexto;
+    
+    if (tituloBloque) tituloBloque.innerText = eraTexto;
+    if (indicadorPagina) indicadorPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
 
-    let mapaCatalogo = new Map();
+    try {
+        // Consultar el catálogo de cartas vigentes para este rango de la página
+        const { data: catalogoCartas, error: errCartas } = await supabaseClient.from('Cartas')
+            .select('*')
+            .gte('id_carta', inicioRango)
+            .lte('id_carta', finRango);
 
-    if (supabaseClient) {
-        try {
-            const { data: catalogoCartas, error: errCartas } = await supabaseClient.from('Cartas')
-                .select('*')
-                .gte('id_carta', inicioRango)
-                .lte('id_carta', finRango);
+        if (errCartas) throw errCartas;
+        const mapaCatalogo = new Map(catalogoCartas.map(c => [c.id_carta, c]));
+        
+        // Actualizar contadores de cabecera
+        if (contadorProgreso) {
+            contadorProgreso.innerText = `PÁG. ${pagina} | RESTRICCIÓN: #${inicioRango}-#${finRango}`;
+        }
+        grillaCartas.innerHTML = "";
 
-            if (!errCartas && catalogoCartas) {
-                mapaCatalogo = new Map(catalogoCartas.map(c => [Number(c.id_carta), c]));
+        // 🚀 EL BUCLE SUPREMO DE 25 REPETICIONES EXACTAS
+        for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
+            const slot = document.createElement('div');
+            slot.classList.add('miniatura-slot');
+
+            const datosCarta = mapaCatalogo.get(idCarta);
+            const jugadorLaPosee = inventarioUsuarioCache.has(idCarta);
+
+            if (datosCarta && jugadorLaPosee) {
+                // CASO 1: Desbloqueada y comprada. Se muestra la criatura a color
+                slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Card">`;
+                slot.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    desplegarCarta3D(datosCarta);
+                });
+            } else {
+                // CASO 2: Ranura vacía/bloqueada. Muestra el número correspondiente del slot (Ej: 1, 2, 26, 27...)
+                slot.classList.add('bloqueada');
+                slot.innerHTML = `<span>${idCarta}</span>`;
             }
-        } catch (err) {
-            console.warn("Error consultando la base de datos:", err);
-        }
-    }
 
-    // Actualizar progreso
-    const poseidasTotales = inventarioUsuarioCache.size;
-    contadorProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
-
-    // Limpiar y rellenar exactamente 25 cuadros (del 1 al 25, 26 al 50, etc.)
-    grillaCartas.innerHTML = "";
-
-    for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
-        const slot = document.createElement('div');
-        slot.classList.add('miniatura-slot');
-
-        const datosCarta = mapaCatalogo.get(idCarta);
-        const jugadorLaPosee = inventarioUsuarioCache.has(idCarta);
-
-        if (datosCarta && jugadorLaPosee) {
-            slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Barajita ${idCarta}">`;
-            slot.addEventListener('click', (e) => {
-                e.stopPropagation();
-                desplegarCarta3D(datosCarta);
-            });
-        } else {
-            // Muestra siempre el número ordinal correspondiente
-            slot.classList.add('bloqueada');
-            slot.innerText = idCarta;
+            grillaCartas.appendChild(slot);
         }
 
-        grillaCartas.appendChild(slot);
+    } catch (error) {
+        console.error("Error crítico en grilla:", error);
+        grillaCartas.innerHTML = "<p style='color:#ff3333;font-size:8px;grid-column:span 5;text-align:center;'>ERROR DE CONEXIÓN</p>";
     }
 }
 
+// Despliegue 3D elástico con metadatos de Supabase
 function desplegarCarta3D(carta) {
-    const numeroEstrellas = Math.min(Math.max(Math.floor((carta.poder || 100) / 100), 1), 5);
-    let estrellasHtml = "★".repeat(numeroEstrellas);
+    if (!contenidoFrontal || !modalVisor) return;
+    
+    const numeroEstrellas = Math.min(Math.max(Math.floor(carta.poder / 100), 1), 5);
+    let estrellasHtml = "";
+    for (let i = 0; i < numeroEstrellas; i++) estrellasHtml += "<span class='estrella-oro'>★</span>";
+
+    let claseMarco = `marco-${carta.tipo.trim().toLowerCase()}`;
+    if (carta.rareza.toLowerCase() === 'mitológica') claseMarco = 'marco-mitologica';
 
     contenidoFrontal.innerHTML = `
-        <div style="text-align:center; padding: 10px;">
-            <h3 style="font-size:10px; color:#ffcc00; margin-bottom:5px;">${(carta.nombre || 'BARAJITA').toUpperCase()}</h3>
-            <p style="font-size:8px; color:#00ff66; margin-bottom:10px;">${estrellasHtml}</p>
-            <img src="${carta.url_imagen}" style="width:100%; height:180px; object-fit:cover; border-radius:4px; border:2px solid #3a6ea5;">
-            <p style="font-size:7px; color:#aaa; margin-top:10px;">#${String(carta.id_carta).padStart(4, '0')}</p>
+        <div class="carta-tcg ${claseMarco}">
+            <div class="carta-encabezado">
+                <span class="nombre-texto">${carta.nombre.toUpperCase()}</span>
+                <div class="estrellas-contenedor">${estrellasHtml}</div>
+            </div>
+            <div class="arte-cuadro"><img src="${carta.url_imagen}" alt="Criatura"></div>
+            <div class="bloque-stats">
+                <p>HÁBITAT: ${carta.habitat.toUpperCase()}</p>
+                <p>ATAQUE: ⚔️ ${carta.ataque_nombre.toUpperCase()}</p>
+                <div class="fila-valores"><span>HP: ${carta.salud}</span><span>ATK: ${carta.poder}</span></div>
+                <p class="texto-lore">"${carta.lore}"</p>
+            </div>
+            <div class="pie-carta"><span>#${String(carta.id_carta).padStart(4, '0')}</span><span>${carta.rareza.toUpperCase()}</span></div>
         </div>
     `;
 
     modalVisor.style.display = 'flex';
-    setTimeout(() => {
-        cartaAnimada.classList.add('girar-y-ampliar');
-    }, 30);
+    setTimeout(() => { if (cartaAnimada) cartaAnimada.classList.add('girar-y-ampliar'); }, 30);
 }
 
+// Escucha en tiempo real para actualizaciones automáticas al procesarse el pago
 function activarEscuchaColeccionEnVivo() {
     supabaseClient
         .channel('cambios-album-en-vivo')
-        .on(
-            'postgres_changes', 
-            { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'Coleccion_Usuario',
-                filter: `id_usuario=eq.${idUsuarioTelegram}`
-            }, 
-            (payload) => {
-                const nuevaCarta = payload.new;
-                inventarioUsuarioCache.set(Number(nuevaCarta.id_carta), nuevaCarta.cantidad);
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'Coleccion_Usuario',
+            filter: `id_usuario=eq.${idUsuarioTelegram}` 
+        }, (payload) => {
+            const nuevaCarta = payload.new;
+            inventarioUsuarioCache.set(nuevaCarta.id_carta, nuevaCarta.cantidad);
 
-                const inicioRango = (paginaActual - 1) * cartasPorPagina + 1;
-                const finRango = paginaActual * cartasPorPagina;
+            const inicioRango = (paginaActual - 1) * cartasPorPagina + 1;
+            const finRango = paginaActual * cartasPorPagina;
 
-                if (nuevaCarta.id_carta >= inicioRango && nuevaCarta.id_carta <= finRango) {
-                    renderizarLibro(paginaActual);
-                }
+            if (nuevaCarta.id_carta >= inicioRango && nuevaCarta.id_carta <= finRango) {
+                renderizarLibro(paginaActual);
             }
-        )
+        })
         .subscribe();
 }

@@ -6,7 +6,7 @@ const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// BANCO DE RECURSOS EN SVG/CANVAS DINÁMICOS (SIN ARCHIVOS EXTERNOS PESADOS)
+// BANCO DE RECURSOS EN SVG/CANVAS DINÁMICOS
 const BANCO_RECURSOS = {
     fondos: {
         COTIDIANO: ["#1e293b", "#0f172a", "#334155"],
@@ -107,7 +107,7 @@ function generarCombinacionAleatoria() {
     }
 }
 
-// BUCLE DE ANIMACIÓN ESTILO HARRY POTTER EN CANVAS HTML5
+// BUCLE DE ANIMACIÓN EN CANVAS HTML5
 function iniciarBucleAnimacion() {
     const canvas = document.getElementById('canvasCartaGenerada');
     if (!canvas) return;
@@ -116,11 +116,9 @@ function iniciarBucleAnimacion() {
     function renderFrame() {
         tiempoAnimacion += 0.05;
         
-        // 1. Fondo base de la etapa
         ctx.fillStyle = combinacionActual.fondoColor || "#000000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. Efecto de partículas / brillo según etapa
         ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
         for (let i = 0; i < 5; i++) {
             let px = (Math.sin(tiempoAnimacion + i) * 100) + 150;
@@ -130,9 +128,8 @@ function iniciarBucleAnimacion() {
             ctx.fill();
         }
 
-        // 3. Personaje animado (Flotación y respiración con senos matemáticos)
-        let offsetY = Math.sin(tiempoAnimacion * 2) * 12; // Movimiento vertical
-        let escala = 1 + (Math.cos(tiempoAnimacion * 1.5) * 0.04); // Respiración
+        let offsetY = Math.sin(tiempoAnimacion * 2) * 12;
+        let escala = 1 + (Math.cos(tiempoAnimacion * 1.5) * 0.04);
 
         ctx.save();
         ctx.translate(canvas.width / 2, (canvas.height / 2) - 20 + offsetY);
@@ -143,7 +140,6 @@ function iniciarBucleAnimacion() {
         ctx.fillText(combinacionActual.simbolo || "👾", 0, 0);
         ctx.restore();
 
-        // 4. Marco Neón/Cyber dibujado en Canvas
         ctx.strokeStyle = combinacionActual.marcoColor || "#64748b";
         ctx.lineWidth = 10;
         ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
@@ -152,7 +148,6 @@ function iniciarBucleAnimacion() {
         ctx.lineWidth = 2;
         ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
 
-        // 5. Etiqueta inferior con el nombre
         ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
         ctx.fillRect(15, canvas.height - 55, canvas.width - 30, 40);
         ctx.strokeStyle = combinacionActual.marcoColor;
@@ -241,7 +236,6 @@ async function cargarAlbumGlobalAdmin() {
         }
 
         cartas.forEach(carta => {
-            // Llenar selector de drops
             if (selectDrop) {
                 const opt = document.createElement('option');
                 opt.value = carta.id;
@@ -249,7 +243,6 @@ async function cargarAlbumGlobalAdmin() {
                 selectDrop.appendChild(opt);
             }
 
-            // Renderizar minicard en grid
             let receta = {};
             try { receta = JSON.parse(carta.imagen_url); } catch(e){}
 
@@ -292,13 +285,19 @@ async function destruirCartaPorIdDirecto(idCarta) {
     await window.destruirCartaYMultimediaGlobal();
 }
 
-// INYECCIÓN DE DROPS / REGALOS AL INVENTARIO
+// INYECCIÓN DE DROPS / REGALOS AL INVENTARIO (NORMALIZACIÓN DE ID Y MANEJO ASÍNCRONO)
 function configurarBotonRegalosManuales() {
     const btnRegalo = document.getElementById('btn-enviar-regalo');
     if (!btnRegalo) return;
 
     btnRegalo.addEventListener('click', async () => {
-        const idUsuario = (document.getElementById('regalo-usuario-id')?.value || '').trim();
+        let idUsuario = (document.getElementById('regalo-usuario-id')?.value || '').trim();
+        
+        // Normalización: remueve el símbolo '@' si el admin lo incluye manualmente
+        if (idUsuario.startsWith('@')) {
+            idUsuario = idUsuario.substring(1).trim();
+        }
+
         const tipoRegalo = document.getElementById('regalo-tipo-seleccion')?.value;
         const idCarta = parseInt(document.getElementById('regalo-carta-id-select')?.value);
         const cantidad = parseInt(document.getElementById('regalo-cantidad')?.value) || 1;
@@ -313,38 +312,43 @@ function configurarBotonRegalosManuales() {
             } else {
                 const { data: pool, error: errPool } = await supabaseClient.from('Cartas').select('id');
                 if (errPool) throw errPool;
-                if (!pool || pool.length === 0) return alert("❌ No hay cartas en la base.");
+                if (!pool || pool.length === 0) return alert("❌ No hay cartas en la base de datos.");
 
+                // Procesa cada carta en serie esperando el resultado de la promesa
                 for (let i = 0; i < cantidad; i++) {
                     const rIdx = Math.floor(Math.random() * pool.length);
                     await procesarAsignacionEnInventario(idUsuario, pool[rIdx].id, 1);
                 }
-                alert(`🎁 Drop al azar de ${cantidad} carta(s) enviado.`);
+                alert(`🎁 Drop al azar de ${cantidad} carta(s) enviado exitosamente a [${idUsuario}].`);
             }
         } catch (error) {
             console.error("Error en drop:", error);
-            alert("❌ ERROR: " + error.message);
+            alert("❌ ERROR AL INYECTAR DROP: " + error.message);
         }
     });
 }
 
 async function procesarAsignacionEnInventario(idUser, idCard, cant) {
-    const { data: existente } = await supabaseClient
+    const { data: existente, error: errConsulta } = await supabaseClient
         .from('Coleccion_Usuario')
         .select('*')
         .eq('usuario_id', idUser)
         .eq('carta_id', idCard)
         .maybeSingle();
 
+    if (errConsulta) throw errConsulta;
+
     if (existente) {
-        await supabaseClient
+        const { error: errUpdate } = await supabaseClient
             .from('Coleccion_Usuario')
             .update({ cantidad: existente.cantidad + cant })
             .eq('id', existente.id);
+        if (errUpdate) throw errUpdate;
     } else {
-        await supabaseClient
+        const { error: errInsert } = await supabaseClient
             .from('Coleccion_Usuario')
             .insert([{ usuario_id: idUser, carta_id: idCard, cantidad: cant }]);
+        if (errInsert) throw errInsert;
     }
 }
 

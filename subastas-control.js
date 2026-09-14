@@ -2,46 +2,39 @@
 // 🔨 CONTROLADOR MAESTRO DE SUBASTAS ESCROW (10% COMISIÓN)
 // ========================================================
 
-// Credenciales de Supabase (Sincronizadas con tus otros archivos)
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Datos del lote activo simulados (Luego se leerán en bucle desde tu base de datos)
 let loteActivo = {
     id_lote: 101,
     id_carta: 1501,
     vendedor_id: "usuario_vendedor_test",
     ultimo_postulante: "usuario_test_venezuela",
     oferta_actual_usd: 5.50,
-    tiempo_restante_segundos: 25, // Tiempo de prueba corto para ver el cierre elástico
-    comision_porcentaje: 0.10 // Tu regla fija del 10% de ganancia
+    tiempo_restante_segundos: 25,
+    comision_porcentaje: 0.10
 };
 
-let tasaBcvSubasta = 832.48; // Respaldo actualizado basado en tu DolarApi exitoso
+let tasaBcvSubasta = 832.48;
 let cronometroSubasta;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Sincronizar la tasa oficial del BCV antes de renderizar los precios
     await obtenerTasaBcvSubastas();
     
-    // 2. Iniciar la cuenta regresiva en reversa (cada 1 segundo)
     cronometroSubasta = setInterval(() => {
         if (loteActivo.tiempo_restante_segundos > 0) {
             loteActivo.tiempo_restante_segundos--;
             actualizarRelojRetro();
         } else {
-            // ¡EL TIEMPO TERMINÓ! Ejecutar el algoritmo de liquidación
             clearInterval(cronometroSubasta);
             ejecutarCierreLoteEscrow();
         }
     }, 1000);
 });
 
-/// 🌐 CONEXIÓN VIVA CON DOLARAPI CORREGIDA
 async function obtenerTasaBcvSubastas() {
     try {
-       // CAMBIO EXACTO PARA LA LÍNEA 45 DE SUBASTAS-CONTROL.JS
         const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
         const datos = await respuesta.json();
         if (datos && datos.promedio) {
@@ -53,7 +46,6 @@ async function obtenerTasaBcvSubastas() {
     actualizarVisualLote();
 }
 
-// ⏱️ RELOJ EN REVERSA PARPADEANTE
 function actualizarRelojRetro() {
     const txtTimer = document.getElementById('timer-1');
     if (!txtTimer) return;
@@ -65,7 +57,6 @@ function actualizarRelojRetro() {
     txtTimer.innerText = `${String(horas).padStart(2,'0')}h : ${String(minutos).padStart(2,'0')}m : ${String(segundos).padStart(2,'0')}s`;
 }
 
-// 📊 CONTROLADOR DE MONEDA AL VUELO
 function actualizarVisualLote() {
     const txtUsd = document.getElementById('oferta-usd-1');
     const txtBs = document.getElementById('oferta-bs-1');
@@ -77,7 +68,6 @@ function actualizarVisualLote() {
     }
 }
 
-// 🏛️ ALGORITMO FINANCIERO ESCROW (CIERRE AUTOMÁTICO)
 async function ejecutarCierreLoteEscrow() {
     const txtTimer = document.getElementById('timer-1');
     if (txtTimer) {
@@ -85,7 +75,6 @@ async function ejecutarCierreLoteEscrow() {
         txtTimer.style.color = "#ffcc00";
     }
 
-    // Desactivar las entradas del lote para congelar el sistema de inmediato
     const inputPuja = document.getElementById('monto-pujar-1');
     const btnPujar = document.querySelector('.btn-pujar');
     if (inputPuja) inputPuja.disabled = true;
@@ -94,19 +83,13 @@ async function ejecutarCierreLoteEscrow() {
         btnPujar.style.backgroundColor = '#555';
     }
 
-    // --- REGLA MATEMÁTICA ESTABLECIDA POR EL PROPIETARIO ---
     const montoBrutoFinal = loteActivo.oferta_actual_usd;
-    
-    // 1. Calcular tu 10% limpio de comisión por mediar
     const comisionPlataforma = montoBrutoFinal * loteActivo.comision_porcentaje;
-    
-    // 2. Calcular el 90% neto sobrante que se le acreditará al vendedor
     const netoParaElVendedor = montoBrutoFinal - comisionPlataforma;
 
-    console.log("💰 LIQUIDACIÓN: Bruto $" + montoBrutoFinal + " | Tu Comisión: $" + comisionPlataforma.toFixed(2) + " | Neto Vendedor: $" + netoParaElVendedor.toFixed(2));
+    console.log(`💰 LIQUIDACIÓN: Bruto $${montoBrutoFinal} | Comisión 10%: $${comisionPlataforma.toFixed(2)} | Neto Vendedor: $${netoParaElVendedor.toFixed(2)}`);
 
     try {
-        // SOLUCIÓN EXACTA PARA TU SCRIPT DE SUBASTAS:
         const { error: errInsert } = await supabaseClient
             .from('Historial_Subastas_Liquidadas') 
             .insert([{
@@ -121,20 +104,24 @@ async function ejecutarCierreLoteEscrow() {
             }]);
 
         if (errInsert) throw errInsert;
-        alert(`🚨 ¡LOTE FINALIZADO!\nLa oferta ganadora fue de $${montoBrutoFinal} USDT.\nSe ha calculado tu 10% de comisión.`);
+        alert(`🚨 ¡LOTE FINALIZADO!\nLa oferta ganadora fue de $${montoBrutoFinal.toFixed(2)} USDT.\nSe ha retenido el 10% ($${comisionPlataforma.toFixed(2)} USDT).`);
 
     } catch (err) {
-        console.error("Error al asentar el cierre financiero en las tablas:", err);
+        console.error("Error al asentar la liquidación en Supabase:", err);
     }
 }
-    }]);
 
-if (errInsert) throw errInsert;
-
-        if (error) throw error;
-        alert(`🚨 ¡LOTE FINALIZADO!\nLa oferta ganadora fue de $${montoBrutoFinal} USDT.\nSe ha calculado tu 10% de comisión.`);
-
-    } catch (err) {
-        console.error("Error al asentar el cierre financiero en las tablas:", err);
+function ejecutarPujaInteractiva(idLote) {
+    const inputMonto = document.getElementById(`monto-pujar-${idLote}`);
+    if (!inputMonto) return;
+    
+    const nuevoMonto = parseFloat(inputMonto.value);
+    if (nuevoMonto > loteActivo.oferta_actual_usd) {
+        loteActivo.oferta_actual_usd = nuevoMonto;
+        loteActivo.ultimo_postulante = "usuario_local";
+        actualizarVisualLote();
+        alert(`✅ Puja registrada por $${nuevoMonto.toFixed(2)} USDT.`);
+    } else {
+        alert("⚠️ La oferta debe ser superior al monto actual.");
     }
 }

@@ -18,7 +18,7 @@ let loteActivo = {
     comision_porcentaje: 0.10 // Tu regla fija del 10% de ganancia
 };
 
-let tasaBcvSubasta = 68.50; // Respaldo por defecto
+let tasaBcvSubasta = 832.48; // Respaldo actualizado basado en tu DolarApi exitoso
 let cronometroSubasta;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -106,18 +106,27 @@ async function ejecutarCierreLoteEscrow() {
     console.log("💰 LIQUIDACIÓN: Bruto $" + montoBrutoFinal + " | Tu Comisión: $" + comisionPlataforma.toFixed(2) + " | Neto Vendedor: $" + netoParaElVendedor.toFixed(2));
 
     try {
-       // SOLUCIÓN EXACTA PARA TU SCRIPT DE SUBASTAS:
-const { error: errInsert } = await supabaseClient
-    .from('Historial_Subastas_Liquidadas') // TODO PEGADO, SIN ESPACIOS NI GUIONES BAJOS ADICIONALES
-    .insert([{
-        id_carta: idCartaActual, // Revisa que este nombre coincida con tu variable
-        vendedor_id: vendedorIdActual,
-        comprador_id: compradorIdActual,
-        monto_bruto_usd: liquidacionBruto,
-        comision_plataforma_usd: liquidacionComision,
-        monto_neto_vendedor_usd: liquidacionNeto,
-        estado_pago: 'PENDIENTE',
-        referencia_bancaria: 'ESPERANDO_P2P'
+        // SOLUCIÓN EXACTA PARA TU SCRIPT DE SUBASTAS:
+        const { error: errInsert } = await supabaseClient
+            .from('Historial_Subastas_Liquidadas') 
+            .insert([{
+                id_carta: loteActivo.id_carta, 
+                vendedor_id: loteActivo.vendedor_id,
+                comprador_id: loteActivo.ultimo_postulante, 
+                monto_bruto_usd: montoBrutoFinal,
+                comision_plataforma_usd: comisionPlataforma,
+                monto_neto_vendedor_usd: netoParaElVendedor,
+                estado_pago: 'PENDIENTE',
+                referencia_bancaria: 'ESPERANDO_P2P'
+            }]);
+
+        if (errInsert) throw errInsert;
+        alert(`🚨 ¡LOTE FINALIZADO!\nLa oferta ganadora fue de $${montoBrutoFinal} USDT.\nSe ha calculado tu 10% de comisión.`);
+
+    } catch (err) {
+        console.error("Error al asentar el cierre financiero en las tablas:", err);
+    }
+}
     }]);
 
 if (errInsert) throw errInsert;

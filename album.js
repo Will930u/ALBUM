@@ -168,3 +168,56 @@ function desplegarCarta3D(carta) {
         cartaAnimada.classList.add('girar-y-ampliar');
     }, 30);
 }
+// =============================================================================
+// 🛰️ MOTOR EN TIEMPO REAL: ACTUALIZACIÓN AUTOMÁTICA AL APROBARSE EL PAGO
+// =============================================================================
+
+function activarEscuchaColeccionEnVivo() {
+    console.log("📡 Sincronizando canal de escucha en tiempo real con Supabase...");
+
+    // Nos suscribimos a los cambios de la tabla 'Coleccion_Usuario' para este jugador
+    supabaseClient
+        .channel('cambios-album-en-vivo')
+        .on(
+            'postgres_changes', 
+            { 
+                event: 'INSERT', // Escucha solo cuando se añade una nueva barajita comprada
+                schema: 'public', 
+                table: 'Coleccion_Usuario',
+                filter: `id_usuario=eq.${USUARIO_ID_MOCK}` // Filtra para que solo afecte a este jugador
+            }, 
+            (payload) => {
+                // 1. Extraemos los datos de la barajita recién aprobada
+                const nuevaCarta = payload.new;
+                console.log(`🎁 ¡Nueva barajita detectada en tu cuenta! ID: ${nuevaCarta.id_carta}`);
+
+                // 2. Inyectamos la carta en nuestra lista en memoria para que el sistema sepa que ya la posee
+                inventarioUsuarioCache.set(nuevaCarta.id_carta, nuevaCarta.cantidad);
+
+                // 3. Verificamos si la barajita pertenece a la página que el usuario está viendo actualmente
+                const inicioRango = (paginaActual - 1) * cartasPorPagina + 1;
+                const finRango = paginaActual * cartasPorPagina;
+
+                if (nuevaCarta.id_carta >= inicioRango && nuevaCarta.id_carta <= finRango) {
+                    // 🚀 ¡La carta está en esta página! Forzamos el rediseño instantáneo de la grilla
+                    console.log("✨ Actualizando ranura visual en la cuadrícula...");
+                    renderizarLibro(paginaActual);
+                }
+                
+                // Opcional: Actualizar el marcador de progreso global aquí si lo deseas
+            }
+        )
+        .subscribe();
+}
+
+// 🎯 ACTIVACIÓN AUTOMÁTICA AL INICIAR EL JUEGO
+// Modifica tu bloque 'DOMContentLoaded' existente para que llame a esta función al final:
+document.addEventListener("DOMContentLoaded", async () => {
+    await cargarInventarioInicial();
+    renderizarLibro(paginaActual);
+    
+    // ENCENDEMOS EL MOTOR EN VIVO:
+    activarEscuchaColeccionEnVivo();
+
+    // (Tus códigos de escucha de botones btn-anterior y btn-siguiente se mantienen igual)
+});

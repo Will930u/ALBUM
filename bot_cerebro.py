@@ -55,15 +55,15 @@ def recibir_alerta_payout_supabase():
 
             print(f"🚨 ¡ALERTA DE RECOMPENSA! El jugador [{id_jugador}] reclama un premio de ${monto_recompensa} USDT.")
 
-            # 1. Consultar a Supabase la billetera TON (Telegram Wallet) que guardó desde la tienda
-            res_usuario = supabase.table("Usuarios").select("wallet_ton_address, username").eq("id_usuario", id_jugador).maybe_single().execute()
+            # CORREGIDO: Usando 'usuario_id' alineado con tu Coleccion_Usuario
+            res_usuario = supabase.table("Usuarios").select("wallet_ton_address, username").eq("usuario_id", id_jugador).maybe_single().execute()
             datos_usuario = res_usuario.data
 
             if not datos_usuario or not datos_usuario.get('wallet_ton_address'):
                 print(f"❌ Pago Cancelado: El usuario [{id_jugador}] no configuró su billetera en el perfil.")
-                # Cambiar estado en Supabase a FALLIDO por falta de datos financieros
-                supabase.table("Historial_Subastas_Liquidadas").update({"estado_pago": "ERROR_SIN_WALLET"}).eq("id_lote", id_lote).execute()
-                return jsonify({"status": "abortado", "reason": "Usuario sin billetera configurada"}), 200
+             # CORREGIDO: Asegurando consistencia de tabla inmutable
+            supabase.table("Historial_Subastas_Liquidadas").update({"estado_pago": "ERROR_SIN_WALLET"}).eq("id_lote", id_lote).execute()
+            return jsonify({"status": "abortado", "reason": "Usuario sin billetera configurada"}), 200
 
             wallet_destino = datos_usuario['wallet_ton_address']
             username_telegram = datos_usuario.get('username', 'Jugador_Anonimo')
@@ -74,7 +74,7 @@ def recibir_alerta_payout_supabase():
             # Simulación de Hash seguro de transacción blockchain exitosa
             hash_blockchain = f"TON_TX_SUCCESS_{id_lote}_REWARD"
 
-            # 3. Actualizar la fila en Supabase marcándola como LIQUIDADA de forma inmutable
+           # BUSCA ESTA LÍNEA MÁS ABAJO (ALREDEDOR DE LA 64) Y ASEGÚRATE DE QUE QUEDE ASÍ:
             supabase.table("Historial_Subastas_Liquidadas").update({
                 "estado_pago": "LIQUIDADO",
                 "referencia_bancaria": hash_blockchain

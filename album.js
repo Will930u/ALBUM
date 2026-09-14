@@ -36,64 +36,76 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 1. Cargar datos del usuario de Telegram
     inicializarUsuarioTelegram();
 
-    // 2. Actualizar año
+    // 2. Actualizar año en el DOM si existe el contenedor
     const elAno = document.getElementById('ano-actual');
     if (elAno) elAno.innerText = new Date().getFullYear();
 
-    // 3. Cargar inventario inicial de forma segura
+    // 3. Cargar inventario inicial apuntando a 'album_usuario'
     await cargarInventarioInicial();
     
     // 4. Renderizar libro (25 slots garantizados por página)
     await renderizarLibro(paginaActual);
 
-    // 5. Escuchar en vivo si Supabase está activo
+    // 5. Escuchar cambios en vivo
     if (supabaseClient) {
         activarEscuchaColeccionEnVivo();
     }
 
     // Controles de navegación
-    document.getElementById('btn-anterior').addEventListener('click', () => {
-        if (paginaActual > 1) { 
-            paginaActual--; 
-            renderizarLibro(paginaActual); 
-        }
-    });
+    const btnAnterior = document.getElementById('btn-anterior');
+    if (btnAnterior) {
+        btnAnterior.addEventListener('click', () => {
+            if (paginaActual > 1) { 
+                paginaActual--; 
+                renderizarLibro(paginaActual); 
+            }
+        });
+    }
 
-    document.getElementById('btn-siguiente').addEventListener('click', () => {
-        if (paginaActual < totalPaginas) { 
-            paginaActual++; 
-            renderizarLibro(paginaActual); 
-        }
-    });
+    const btnSiguiente = document.getElementById('btn-siguiente');
+    if (btnSiguiente) {
+        btnSiguiente.addEventListener('click', () => {
+            if (paginaActual < totalPaginas) { 
+                paginaActual++; 
+                renderizarLibro(paginaActual); 
+            }
+        });
+    }
 
     // Cerrar visor modal
-    modalVisor.addEventListener('click', () => {
-        cartaAnimada.classList.remove('girar-y-ampliar');
-        setTimeout(() => { modalVisor.style.display = 'none'; }, 250);
-    });
+    if (modalVisor) {
+        modalVisor.addEventListener('click', () => {
+            if (cartaAnimada) cartaAnimada.classList.remove('girar-y-ampliar');
+            setTimeout(() => { modalVisor.style.display = 'none'; }, 250);
+        });
+    }
 });
 
 function inicializarUsuarioTelegram() {
     const avatarImg = document.getElementById('user-avatar');
     
-    // Asignar avatar por defecto tipo SVG SVG inmune a bloqueos
-    avatarImg.onerror = function() {
-        this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='%2300ff66'><circle cx='12' cy='8' r='4'/><path d='M12 14c-6.1 0-8 4-8 4v2h16v-2s-1.9-4-8-4z'/></svg>";
-    };
+    if (avatarImg) {
+        avatarImg.onerror = function() {
+            this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='%2300ff66'><circle cx='12' cy='8' r='4'/><path d='M12 14c-6.1 0-8 4-8 4v2h16v-2s-1.9-4-8-4z'/></svg>";
+        };
+    }
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
         const user = tg.initDataUnsafe.user;
         idUsuarioTelegram = user.id.toString();
         
-        document.getElementById('user-username').innerText = user.username ? `@${user.username}` : `@id_${user.id}`;
-        document.getElementById('user-fullname').innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        const elUsername = document.getElementById('user-username');
+        const elFullname = document.getElementById('user-fullname');
         
-        if (user.photo_url) {
+        if (elUsername) elUsername.innerText = user.username ? `@${user.username}` : `@id_${user.id}`;
+        if (elFullname) elFullname.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        
+        if (avatarImg && user.photo_url) {
             avatarImg.src = user.photo_url;
-        } else {
+        } else if (avatarImg) {
             avatarImg.onerror();
         }
-    } else {
+    } else if (avatarImg) {
         avatarImg.onerror();
     }
 }
@@ -101,15 +113,18 @@ function inicializarUsuarioTelegram() {
 async function cargarInventarioInicial() {
     if (!supabaseClient) return;
     try {
-        const { data, error } = await supabaseClient.from('Coleccion_Usuario')
+        const { data, error } = await supabaseClient
+            .from('album_usuario')
             .select('id_carta, cantidad')
             .eq('id_usuario', idUsuarioTelegram);
         
         if (!error && data) {
             inventarioUsuarioCache = new Map(data.map(i => [Number(i.id_carta), i.cantidad]));
+        } else if (error) {
+            console.warn("Error consultando album_usuario:", error.message);
         }
     } catch (err) {
-        console.warn("Advertencia al cargar inventario:", err);
+        console.warn("Excepción al cargar inventario:", err);
     }
 }
 
@@ -117,19 +132,20 @@ async function renderizarLibro(pagina) {
     const inicioRango = (pagina - 1) * cartasPorPagina + 1;
     const finRango = pagina * cartasPorPagina;
 
-    indicadorPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
+    if (indicadorPagina) indicadorPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
 
     let eraTexto = "ERA 1: COTIDIANOS 🐾";
     if (inicioRango > 500)  eraTexto = "ERA 2: SILVESTRES 🦅";
     if (inicioRango > 1000) eraTexto = "ERA 3: EXTINTOS 🦖";
     if (inicioRango > 1500) eraTexto = "ERA 4: MITOLÓGICOS 🔮";
-    tituloBloque.innerText = eraTexto;
+    if (tituloBloque) tituloBloque.innerText = eraTexto;
 
     let mapaCatalogo = new Map();
 
     if (supabaseClient) {
         try {
-            const { data: catalogoCartas, error: errCartas } = await supabaseClient.from('Cartas')
+            const { data: catalogoCartas, error: errCartas } = await supabaseClient
+                .from('cartas')
                 .select('*')
                 .gte('id_carta', inicioRango)
                 .lte('id_carta', finRango);
@@ -138,41 +154,46 @@ async function renderizarLibro(pagina) {
                 mapaCatalogo = new Map(catalogoCartas.map(c => [Number(c.id_carta), c]));
             }
         } catch (err) {
-            console.warn("Error consultando la base de datos:", err);
+            console.warn("Error leyendo la tabla cartas:", err);
         }
     }
 
-    // Actualizar progreso
+    // Actualizar contador de progreso
     const poseidasTotales = inventarioUsuarioCache.size;
-    contadorProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
+    if (contadorProgreso) {
+        contadorProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
+    }
 
-    // Limpiar y rellenar exactamente 25 cuadros (del 1 al 25, 26 al 50, etc.)
-    grillaCartas.innerHTML = "";
+    // Dibujar las 25 celdas de la página
+    if (grillaCartas) {
+        grillaCartas.innerHTML = "";
 
-    for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
-        const slot = document.createElement('div');
-        slot.classList.add('miniatura-slot');
+        for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
+            const slot = document.createElement('div');
+            slot.classList.add('miniatura-slot');
 
-        const datosCarta = mapaCatalogo.get(idCarta);
-        const jugadorLaPosee = inventarioUsuarioCache.has(idCarta);
+            const datosCarta = mapaCatalogo.get(idCarta);
+            const jugadorLaPosee = inventarioUsuarioCache.has(idCarta);
 
-        if (datosCarta && jugadorLaPosee) {
-            slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Barajita ${idCarta}">`;
-            slot.addEventListener('click', (e) => {
-                e.stopPropagation();
-                desplegarCarta3D(datosCarta);
-            });
-        } else {
-            // Muestra siempre el número ordinal correspondiente
-            slot.classList.add('bloqueada');
-            slot.innerText = idCarta;
+            if (datosCarta && jugadorLaPosee) {
+                slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Barajita ${idCarta}">`;
+                slot.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    desplegarCarta3D(datosCarta);
+                });
+            } else {
+                slot.classList.add('bloqueada');
+                slot.innerText = idCarta;
+            }
+
+            grillaCartas.appendChild(slot);
         }
-
-        grillaCartas.appendChild(slot);
     }
 }
 
 function desplegarCarta3D(carta) {
+    if (!contenidoFrontal || !modalVisor || !cartaAnimada) return;
+
     const numeroEstrellas = Math.min(Math.max(Math.floor((carta.poder || 100) / 100), 1), 5);
     let estrellasHtml = "★".repeat(numeroEstrellas);
 
@@ -199,7 +220,7 @@ function activarEscuchaColeccionEnVivo() {
             { 
                 event: 'INSERT', 
                 schema: 'public', 
-                table: 'Coleccion_Usuario',
+                table: 'album_usuario',
                 filter: `id_usuario=eq.${idUsuarioTelegram}`
             }, 
             (payload) => {

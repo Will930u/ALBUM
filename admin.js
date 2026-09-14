@@ -1,25 +1,59 @@
 // =============================================================================
-// 💻 CONTROLADOR ADMINISTRATIVO CON PREVISUALIZADOR Y DUAL-MODE
+// 💻 CONTROLADOR ADMINISTRATIVO ALGORÍTMICO Y RENDERIZADOR CANVAS ANIMADO
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
-// REEMPLAZA EL TEXTO ANTERIOR POR TU CLAVE PÚBLICA (ANON KEY):
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
-
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// SVG Inline Seguro que nunca falla por red
-let rawImageSrc = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%231a1a24'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%2300ff66' font-size='16' font-family='sans-serif'>SELECCIONA+UNA+IMAGEN</text></svg>";
+// BANCO DE RECURSOS EN SVG/CANVAS DINÁMICOS (SIN ARCHIVOS EXTERNOS PESADOS)
+const BANCO_RECURSOS = {
+    fondos: {
+        COTIDIANO: ["#1e293b", "#0f172a", "#334155"],
+        SALVAJE: ["#064e3b", "#14532d", "#022c22"],
+        RARO: ["#581c87", "#3b0764", "#4c1d95"],
+        MITOLOGICO: ["#831843", "#701a75", "#450a0a"]
+    },
+    marcos: {
+        COTIDIANO: "#64748b",
+        SALVAJE: "#22c55e",
+        RARO: "#a855f7",
+        MITOLOGICO: "#eab308"
+    },
+    personajes: [
+        { id: 1, nombre: "Fénix", sim: "🔥" },
+        { id: 2, nombre: "Dragón", sim: "🐉" },
+        { id: 3, nombre: "Bestia", sim: "🐺" },
+        { id: 4, nombre: "Espectro", sim: "👻" },
+        { id: 5, nombre: "Robot", sim: "🤖" },
+        { id: 6, nombre: "Alien", sim: "👾" },
+        { id: 7, nombre: "Mago", sim: "🧙" },
+        { id: 8, nombre: "Guerrero", sim: "⚔️" }
+    ]
+};
+
+let combinacionActual = {
+    etapa: "COTIDIANO",
+    fondoIdx: 0,
+    personajeIdx: 0,
+    marcoColor: "#64748b",
+    simbolo: "🔥"
+};
+
+let animFrameId = null;
+let tiempoAnimacion = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    inicializarEventosVistaPrevia();
-    configurarFormularioCargaCartas();
+    configurarSelectorEtapa();
+    generarCombinacionAleatoria();
+    iniciarBucleAnimacion();
+    configurarFormularioGenerador();
     configurarBotonRegalosManuales();
     await cargarAlbumGlobalAdmin();
     await cargarTransaccionesPendientesEscrow();
 });
 
-// CAMBIO DE PESTAÑAS
+// CAMBIO DE PESTAÑAS SPA
 function cambiarPestana(idPestana) {
     document.querySelectorAll('.contenido-pestana').forEach(s => s.classList.remove('activa'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
@@ -32,224 +66,164 @@ function cambiarPestana(idPestana) {
     }
 }
 
-// BINDINGS EN VIVO
-function inicializarEventosVistaPrevia() {
-    const selectorModo = document.getElementById('modo-diseno-carta');
-    const inputNombre = document.getElementById('carta-nombre');
-    const inputColor = document.getElementById('carta-tema-color');
-    const inputRareza = document.getElementById('carta-rareza');
-    const inputTipo = document.getElementById('carta-tipo-etiqueta');
-    const inputAtk = document.getElementById('carta-poder');
-    const inputSalud = document.getElementById('carta-salud');
-    const inputLore = document.getElementById('carta-lore');
-    const inputArchivo = document.getElementById('carta-archivo-jpg');
-    const togglePixel = document.getElementById('togglePixel');
-    const selectPixelRes = document.getElementById('selectPixelRes');
-
-    // Conmutador del modo de diseño (Ficha vs Imagen Completa)
-    selectorModo?.addEventListener('change', (e) => {
-        const esLista = (e.target.value === "LISTA");
-        
-        const bloqueStats = document.getElementById('bloque-estadisticas-manuales');
-        if (bloqueStats) bloqueStats.style.display = esLista ? "none" : "block";
-        
-        const bloqueTcg = document.getElementById('bloque-opciones-tcg');
-        if (bloqueTcg) bloqueTcg.style.display = esLista ? "none" : "grid";
-        
-        const wrapperTcg = document.getElementById('wrapper-tcg-completo');
-        if (wrapperTcg) wrapperTcg.style.display = esLista ? "none" : "block";
-        
-        const wrapperLista = document.getElementById('wrapper-imagen-lista');
-        if (wrapperLista) wrapperLista.style.display = esLista ? "block" : "none";
-
-        const cardContainer = document.getElementById('cardContainer');
-        if (cardContainer) {
-            if (esLista) {
-                cardContainer.style.background = "#000000";
-            } else {
-                const temaActual = inputColor ? inputColor.value : "arcoiris";
-                cardContainer.className = `tcg-card card-theme-${temaActual}`;
-            }
-        }
+// CONFIGURACIÓN DEL SELECTOR DE ETAPA
+function configurarSelectorEtapa() {
+    const selEtapa = document.getElementById('gen-etapa-rareza');
+    selEtapa?.addEventListener('change', () => {
+        generarCombinacionAleatoria();
     });
-
-    // Cambio de Texto en Vivo
-    inputNombre?.addEventListener('input', e => {
-        const preview = document.getElementById('preview-nombre');
-        if (preview) preview.textContent = e.target.value || 'Nombre';
-    });
-    inputTipo?.addEventListener('input', e => {
-        const preview = document.getElementById('preview-tipo');
-        if (preview) preview.textContent = e.target.value || '[ Tipo ]';
-    });
-    inputAtk?.addEventListener('input', e => {
-        const preview = document.getElementById('preview-atk');
-        if (preview) preview.textContent = e.target.value || '0';
-    });
-    inputSalud?.addEventListener('input', e => {
-        const preview = document.getElementById('preview-def');
-        if (preview) preview.textContent = e.target.value || '0';
-    });
-    inputLore?.addEventListener('input', e => {
-        const preview = document.getElementById('preview-lore');
-        if (preview) preview.textContent = e.target.value || 'Lore...';
-    });
-    
-    // Cambio de Color de Fondo en Vivo
-    inputColor?.addEventListener('change', e => {
-        const cardContainer = document.getElementById('cardContainer');
-        if (cardContainer) cardContainer.className = `tcg-card card-theme-${e.target.value}`;
-    });
-
-    // Cambio de Estrellas de Rareza
-    inputRareza?.addEventListener('change', e => {
-        const estrellasMap = { "Común": "⭐", "Rara": "⭐⭐", "Épica": "⭐⭐⭐", "Mitológica": "⭐⭐⭐⭐⭐" };
-        const preview = document.getElementById('preview-rareza');
-        if (preview) preview.textContent = estrellasMap[e.target.value] || "⭐";
-    });
-
-    // Carga e Inyección de Imagen
-    inputArchivo?.addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = evt => {
-                rawImageSrc = evt.target.result;
-                const previewLista = document.getElementById('preview-imagen-lista');
-                if (previewLista) previewLista.src = rawImageSrc;
-                aplicarFiltroPixelArt();
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // Opciones Pixel Art
-    togglePixel?.addEventListener('change', e => {
-        const pixelCtrl = document.getElementById('pixelControls');
-        if (pixelCtrl) pixelCtrl.style.display = e.target.checked ? "grid" : "none";
-        aplicarFiltroPixelArt();
-    });
-
-    selectPixelRes?.addEventListener('change', aplicarFiltroPixelArt);
 }
 
-function aplicarFiltroPixelArt() {
-    const toggle = document.getElementById('togglePixel');
-    const previewImg = document.getElementById('preview-imagen');
-    const previewListaImg = document.getElementById('preview-imagen-lista');
-    const resSel = document.getElementById('selectPixelRes');
+// GENERACIÓN ALEATORIA SEGÚN ETAPA SELECCIONADA
+function generarCombinacionAleatoria() {
+    const etapa = document.getElementById('gen-etapa-rareza')?.value || "COTIDIANO";
+    const fondosDisponibles = BANCO_RECURSOS.fondos[etapa];
+    const marco = BANCO_RECURSOS.marcos[etapa];
+    
+    const rFondo = Math.floor(Math.random() * fondosDisponibles.length);
+    const rPersonaje = Math.floor(Math.random() * BANCO_RECURSOS.personajes.length);
+    const pObj = BANCO_RECURSOS.personajes[rPersonaje];
 
-    if (!toggle || !toggle.checked) {
-        if (previewImg) {
-            previewImg.src = rawImageSrc;
-            previewImg.classList.remove('pixelated');
+    combinacionActual = {
+        etapa: etapa,
+        fondoColor: fondosDisponibles[rFondo],
+        fondoIdx: rFondo,
+        personajeIdx: rPersonaje,
+        personajeNombre: pObj.nombre,
+        simbolo: pObj.sim,
+        marcoColor: marco
+    };
+
+    const inputNombre = document.getElementById('gen-carta-nombre');
+    if (inputNombre) inputNombre.value = `${pObj.nombre} ${etapa.charAt(0) + etapa.slice(1).toLowerCase()}`;
+
+    const txtSemilla = document.getElementById('txt-semilla-json');
+    if (txtSemilla) {
+        txtSemilla.innerText = JSON.stringify({
+            etapa: combinacionActual.etapa,
+            f: combinacionActual.fondoIdx,
+            p: combinacionActual.personajeIdx
+        });
+    }
+}
+
+// BUCLE DE ANIMACIÓN ESTILO HARRY POTTER EN CANVAS HTML5
+function iniciarBucleAnimacion() {
+    const canvas = document.getElementById('canvasCartaGenerada');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    function renderFrame() {
+        tiempoAnimacion += 0.05;
+        
+        // 1. Fondo base de la etapa
+        ctx.fillStyle = combinacionActual.fondoColor || "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Efecto de partículas / brillo según etapa
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+        for (let i = 0; i < 5; i++) {
+            let px = (Math.sin(tiempoAnimacion + i) * 100) + 150;
+            let py = (Math.cos(tiempoAnimacion * 0.5 + i) * 150) + 210;
+            ctx.beginPath();
+            ctx.arc(px, py, 4 + i, 0, Math.PI * 2);
+            ctx.fill();
         }
-        if (previewListaImg) {
-            previewListaImg.src = rawImageSrc;
-            previewListaImg.classList.remove('pixelated');
-        }
-        return;
+
+        // 3. Personaje animado (Flotación y respiración con senos matemáticos)
+        let offsetY = Math.sin(tiempoAnimacion * 2) * 12; // Movimiento vertical
+        let escala = 1 + (Math.cos(tiempoAnimacion * 1.5) * 0.04); // Respiración
+
+        ctx.save();
+        ctx.translate(canvas.width / 2, (canvas.height / 2) - 20 + offsetY);
+        ctx.scale(escala, escala);
+        ctx.font = "70px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(combinacionActual.simbolo || "👾", 0, 0);
+        ctx.restore();
+
+        // 4. Marco Neón/Cyber dibujado en Canvas
+        ctx.strokeStyle = combinacionActual.marcoColor || "#64748b";
+        ctx.lineWidth = 10;
+        ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
+
+        // 5. Etiqueta inferior con el nombre
+        ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
+        ctx.fillRect(15, canvas.height - 55, canvas.width - 30, 40);
+        ctx.strokeStyle = combinacionActual.marcoColor;
+        ctx.strokeRect(15, canvas.height - 55, canvas.width - 30, 40);
+
+        const nombreTxt = document.getElementById('gen-carta-nombre')?.value || "CARTA";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "10px 'Press Start 2P', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(nombreTxt.substring(0, 14), canvas.width / 2, canvas.height - 30);
+
+        animFrameId = requestAnimationFrame(renderFrame);
     }
 
-    if (previewImg) previewImg.classList.add('pixelated');
-    if (previewListaImg) previewListaImg.classList.add('pixelated');
-
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const targetWidth = parseInt(resSel ? resSel.value : 64) || 64;
-        const ratio = img.height / img.width;
-
-        canvas.width = targetWidth;
-        canvas.height = Math.round(targetWidth * ratio);
-
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        const dataPixel = canvas.toDataURL();
-        if (previewImg) previewImg.src = dataPixel;
-        if (previewListaImg) previewListaImg.src = dataPixel;
-    };
-    img.src = rawImageSrc;
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    renderFrame();
 }
 
-// SUBIDA Y GUARDADO EN DATABASE
-function configurarFormularioCargaCartas() {
-    const formCarga = document.getElementById('form-subir-carta');
-    if (!formCarga) return;
+// GUARDADO DE LA RECETA EN SUPABASE
+function configurarFormularioGenerador() {
+    const form = document.getElementById('form-generador-algoritmico');
+    if (!form) return;
 
-    formCarga.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const previewImg = document.getElementById('preview-imagen');
-        const modoCargaElem = document.getElementById('modo-diseno-carta');
-        const modoCarga = modoCargaElem ? modoCargaElem.value : "NORMAL";
+        const temporada = document.getElementById('gen-temporada-nombre')?.value.trim();
+        const nombre = document.getElementById('gen-carta-nombre')?.value.trim();
+
+        if (!temporada || !nombre) return alert("❌ Completa los campos requeridos.");
+
+        const datosReceta = {
+            nombre: nombre,
+            rareza: combinacionActual.etapa,
+            tipo: "Algorítmica Canvas",
+            lore: `Carta de la ${temporada}. Generada algorítmicamente.`,
+            imagen_url: JSON.stringify({
+                etapa: combinacionActual.etapa,
+                fondoColor: combinacionActual.fondoColor,
+                marcoColor: combinacionActual.marcoColor,
+                simbolo: combinacionActual.simbolo,
+                temporada: temporada
+            })
+        };
 
         try {
-            alert("🛰️ Guardando colección...");
+            const { data: res, error } = await supabaseClient
+                .from('Cartas')
+                .insert([datosReceta])
+                .select();
 
-            let blobFinal;
-            const togglePixel = document.getElementById('togglePixel');
-            if (togglePixel && togglePixel.checked && previewImg) {
-                const resp = await fetch(previewImg.src);
-                blobFinal = await resp.blob();
-            } else {
-                const inputArchivo = document.getElementById('carta-archivo-jpg');
-                if (!inputArchivo || !inputArchivo.files[0]) return alert("❌ Selecciona un archivo de imagen.");
-                blobFinal = inputArchivo.files[0];
-            }
+            if (error) throw error;
 
-            const nombreArchivo = `${Date.now()}_carta.png`;
-            const { data: uploadData, error: errUpload } = await supabaseClient
-                .storage
-                .from('imagenes_cartas')
-                .upload(nombreArchivo, blobFinal, { cacheControl: '3600', upsert: false });
-
-            if (errUpload) throw errUpload;
-
-            const { data: urlPublica } = supabaseClient.storage.from('imagenes_cartas').getPublicUrl(nombreArchivo);
-
-            let datosCarta = {
-                nombre: (document.getElementById('carta-nombre')?.value || '').trim(),
-                rareza: document.getElementById('carta-rareza')?.value || 'Común',
-                imagen_url: urlPublica.publicUrl
-            };
-
-            if (modoCarga === "NORMAL") {
-                datosCarta.tipo = (document.getElementById('carta-tipo-etiqueta')?.value || '').trim();
-                datosCarta.poder = parseInt(document.getElementById('carta-poder')?.value) || 0;
-                datosCarta.salud = parseInt(document.getElementById('carta-salud')?.value) || 0;
-                datosCarta.lore = (document.getElementById('carta-lore')?.value || '').trim();
-                datosCarta.ataque = "Golpe Directo";
-                datosCarta.habitat = "Desconocido";
-            } else {
-                datosCarta.tipo = "Diseño Externo";
-                datosCarta.poder = 0;
-                datosCarta.salud = 0;
-                datosCarta.lore = "Diseño externo importado.";
-            }
-
-            const { data: res, error: errInsert } = await supabaseClient.from('Cartas').insert([datosCarta]).select();
-            if (errInsert) throw errInsert;
-
-            alert(`✅ CARTA PUBLICADA!\nID Asignado: #${res[0].id}`);
+            alert(`✅ RECETA PUBLICADA CON ÉXITO!\nID Asignado: #${res[0].id}`);
             await cargarAlbumGlobalAdmin();
 
-        } catch (error) {
-            console.error("Error al publicar:", error);
-            alert("❌ ERROR: " + error.message);
+        } catch (err) {
+            console.error("Error guardando receta:", err);
+            alert("❌ ERROR: " + err.message);
         }
     });
 }
 
-// ÁLBUM DEL ADMIN
+// CARGA DEL ÁLBUM DE RECETAS EN EL PANEL ADMIN
 async function cargarAlbumGlobalAdmin() {
     const grid = document.getElementById('grid-coleccion-admin');
+    const selectDrop = document.getElementById('regalo-carta-id-select');
     if (!grid) return;
 
-    grid.innerHTML = `<p style="font-size:7px; color:#00ff66;">CARGANDO...</p>`;
+    grid.innerHTML = `<p style="font-size:7px; color:#00ff66;">CARGANDO RECETAS...</p>`;
+    if (selectDrop) selectDrop.innerHTML = `<option value="">-- Selecciona una Carta --</option>`;
 
     try {
         const { data: cartas, error } = await supabaseClient
@@ -257,27 +231,37 @@ async function cargarAlbumGlobalAdmin() {
             .select('*')
             .order('id', { ascending: false });
 
-        if (error) {
-            console.error("Error al cargar el álbum:", error);
-            grid.innerHTML = `<p style="font-size:7px; color:#ff3333;">ERROR AL OBTENER DATOS (${error.message || '400'})</p>`;
-            return;
-        }
+        if (error) throw error;
 
         grid.innerHTML = "";
 
         if (!cartas || cartas.length === 0) {
-            grid.innerHTML = `<p style="font-size:7px; color:#888;">COLECCIÓN VACÍA.</p>`;
+            grid.innerHTML = `<p style="font-size:7px; color:#888;">SIN CARTAS REGISTRADAS.</p>`;
             return;
         }
 
         cartas.forEach(carta => {
+            // Llenar selector de drops
+            if (selectDrop) {
+                const opt = document.createElement('option');
+                opt.value = carta.id;
+                opt.textContent = `#${carta.id} - ${carta.nombre} (${carta.rareza})`;
+                selectDrop.appendChild(opt);
+            }
+
+            // Renderizar minicard en grid
+            let receta = {};
+            try { receta = JSON.parse(carta.imagen_url); } catch(e){}
+
             const cardItem = document.createElement('div');
             cardItem.className = 'tarjeta-admin-item';
             cardItem.innerHTML = `
-                <img src="${carta.imagen_url || 'https://via.placeholder.com/150'}" alt="Carta">
+                <div style="width:100px; height:130px; background:${receta.fondoColor || '#000'}; border:2px solid ${receta.marcoColor || '#333'}; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:35px;">
+                    ${receta.simbolo || '👾'}
+                </div>
                 <div class="info-admin-card">
                     <strong>#${carta.id} ${carta.nombre || 'Sin Nombre'}</strong>
-                    <span>${carta.rareza || 'Común'}</span>
+                    <span>${carta.rareza || 'COTIDIANO'}</span>
                 </div>
                 <div class="acciones-card-admin">
                     <button class="btn-mini-admin btn-mini-drop" onclick="prepararRegaloDirecto(${carta.id})">🎁</button>
@@ -288,16 +272,17 @@ async function cargarAlbumGlobalAdmin() {
         });
 
     } catch (err) {
-        console.error("Error inesperado en álbum admin:", err);
+        console.error("Error cargando recetas:", err);
+        grid.innerHTML = `<p style="font-size:7px; color:#ef4444;">ERROR: ${err.message}</p>`;
     }
 }
 
 function prepararRegaloDirecto(idCarta) {
     cambiarPestana('seccion-regalos');
     const regaloTipo = document.getElementById('regalo-tipo-seleccion');
-    const regaloId = document.getElementById('regalo-carta-id');
+    const regaloIdSelect = document.getElementById('regalo-carta-id-select');
     if (regaloTipo) regaloTipo.value = "ESPECIFICA";
-    if (regaloId) regaloId.value = idCarta;
+    if (regaloIdSelect) regaloIdSelect.value = idCarta;
 }
 
 async function destruirCartaPorIdDirecto(idCarta) {
@@ -305,10 +290,9 @@ async function destruirCartaPorIdDirecto(idCarta) {
     const inputBorrar = document.getElementById('id-carta-borrar');
     if (inputBorrar) inputBorrar.value = idCarta;
     await window.destruirCartaYMultimediaGlobal();
-    await cargarAlbumGlobalAdmin();
 }
 
-// REGALOS / DROPS
+// INYECCIÓN DE DROPS / REGALOS AL INVENTARIO
 function configurarBotonRegalosManuales() {
     const btnRegalo = document.getElementById('btn-enviar-regalo');
     if (!btnRegalo) return;
@@ -316,20 +300,20 @@ function configurarBotonRegalosManuales() {
     btnRegalo.addEventListener('click', async () => {
         const idUsuario = (document.getElementById('regalo-usuario-id')?.value || '').trim();
         const tipoRegalo = document.getElementById('regalo-tipo-seleccion')?.value;
-        const idCarta = parseInt(document.getElementById('regalo-carta-id')?.value);
+        const idCarta = parseInt(document.getElementById('regalo-carta-id-select')?.value);
         const cantidad = parseInt(document.getElementById('regalo-cantidad')?.value) || 1;
 
         if (!idUsuario) return alert("❌ Ingresa el ID del usuario.");
 
         try {
             if (tipoRegalo === "ESPECIFICA") {
-                if (isNaN(idCarta)) return alert("❌ Ingresa un ID válido.");
+                if (isNaN(idCarta)) return alert("❌ Selecciona una carta de la lista.");
                 await procesarAsignacionEnInventario(idUsuario, idCarta, cantidad);
                 alert(`🎁 Drop enviado: ${cantidad} copia(s) a [${idUsuario}].`);
             } else {
                 const { data: pool, error: errPool } = await supabaseClient.from('Cartas').select('id');
                 if (errPool) throw errPool;
-                if (!pool || pool.length === 0) return alert("❌ No hay cartas.");
+                if (!pool || pool.length === 0) return alert("❌ No hay cartas en la base.");
 
                 for (let i = 0; i < cantidad; i++) {
                     const rIdx = Math.floor(Math.random() * pool.length);
@@ -338,7 +322,7 @@ function configurarBotonRegalosManuales() {
                 alert(`🎁 Drop al azar de ${cantidad} carta(s) enviado.`);
             }
         } catch (error) {
-            console.error("Error drop:", error);
+            console.error("Error en drop:", error);
             alert("❌ ERROR: " + error.message);
         }
     });
@@ -364,7 +348,7 @@ async function procesarAsignacionEnInventario(idUser, idCard, cant) {
     }
 }
 
-// ESCROW
+// TABLA DE TRANSACCIONES ESCROW
 async function cargarTransaccionesPendientesEscrow() {
     const tablaCuerpo = document.getElementById('tabla-escrow-cuerpo');
     if (!tablaCuerpo) return;
@@ -372,7 +356,7 @@ async function cargarTransaccionesPendientesEscrow() {
     tablaCuerpo.innerHTML = `<tr><td colspan="5" style="color:#888;text-align:center;">SIN PAGOS PENDIENTES</td></tr>`;
 }
 
-// DESTRUCTOR GLOBAL DE CARTAS
+// DESTRUCTOR GLOBAL
 window.destruirCartaYMultimediaGlobal = async function() {
     const inputId = document.getElementById('id-carta-borrar');
     if (!inputId) return;
@@ -381,26 +365,10 @@ window.destruirCartaYMultimediaGlobal = async function() {
     if (isNaN(idCarta)) return alert("❌ Ingresa un ID numérico.");
 
     try {
-        const { data: carta, error: errGet } = await supabaseClient
-            .from('Cartas')
-            .select('imagen_url')
-            .eq('id', idCarta)
-            .maybeSingle();
-
-        if (errGet) throw errGet;
-        if (!carta) return alert("❌ La carta no existe.");
-
-        if (carta.imagen_url) {
-            const partesUrl = carta.imagen_url.split('/imagenes_cartas/');
-            if (partesUrl.length > 1) {
-                await supabaseClient.storage.from('imagenes_cartas').remove([partesUrl[1]]);
-            }
-        }
-
         const { error: errDelete } = await supabaseClient.from('Cartas').delete().eq('id', idCarta);
         if (errDelete) throw errDelete;
 
-        alert(`🗑️ Carta #${idCarta} eliminada.`);
+        alert(`🗑️ Receta #${idCarta} eliminada.`);
         inputId.value = "";
         await cargarAlbumGlobalAdmin();
 

@@ -71,12 +71,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Carga inicial inmutable del inventario del usuario
 async function cargarInventarioInicial() {
     try {
-        const { data, error } = await supabaseClient.from('Coleccion_Usuario')
-            .select('id_carta, cantidad')
-            .eq('id_usuario', idUsuarioTelegram);
-        
-        if (error) throw error;
-        inventarioUsuarioCache = new Map(data.map(i => [i.id_carta, i.cantidad]));
+        // CORREGIDO: Cambiado 'Coleccion_Usuario' por 'album_usuario'
+const { data, error } = await supabaseClient.from('album_usuario')
+    .select('id_carta, cantidad')
+    .eq('id_usuario', idUsuarioTelegram);
     } catch (err) {
         console.error("Error al sincronizar inventario inicial:", err);
     }
@@ -179,14 +177,16 @@ function desplegarCarta3D(carta) {
 
 // Escucha en tiempo real para actualizaciones automáticas al procesarse el pago
 function activarEscuchaColeccionEnVivo() {
-    supabaseClient
-        .channel('cambios-album-en-vivo')
-        .on('postgres_changes', { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'Coleccion_Usuario',
-            filter: `id_usuario=eq.${idUsuarioTelegram}` 
-        }, (payload) => {
+    // CORREGIDO: Cambiado 'Coleccion_Usuario' por 'album_usuario'
+supabaseClient
+    .channel('cambios-album-en-vivo')
+    .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'album_usuario', // Nombre real de tu tabla en Supabase
+        filter: `id_usuario=eq.${idUsuarioTelegram}` 
+    }, (payload) => {
+
             const nuevaCarta = payload.new;
             inventarioUsuarioCache.set(nuevaCarta.id_carta, nuevaCarta.cantidad);
 

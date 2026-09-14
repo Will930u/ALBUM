@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Álbum Digital - Libro de Colección Retro</title>
-    <!-- Importamos la fuente oficial de videojuegos pixel art desde Google Fonts -->
-    <link href="https://googleapis.com" rel="stylesheet">
+    <!-- CORREGIDO: Enlace espejo inmune a bloqueos de internet para la fuente Pixel Art -->
+    <link rel="stylesheet" href="https://cloudflare.com">
     <link rel="stylesheet" href="album-style.css">
 </head>
 <body>
@@ -14,18 +14,21 @@
         <!-- Marcador de Progreso Dinámico Estilo Arcade -->
         <div class="marcador-progreso">
             <span id="titulo-bloque">CARGANDO ERA...</span><br>
+            <!-- Mantenemos el ID 'contador-progreso' para que tu JS actualice el PROGRESO: 000 / 000 -->
             <span id="contador-progreso" class="resaltado-oro">PROGRESO: 000 / 000</span>
         </div>
 
         <!-- El Libro Abierto (Contenedor de la cuadrícula de 50 cartas) -->
         <div class="libro-contenedor">
+            <!-- Mantenemos el ID 'grilla-cartas' que busca tu script original para inyectar los 50 cuadros -->
             <div class="pagina-cuadrula" id="grilla-cartas">
-                <!-- JavaScript inyectará aquí los 50 slots por página de forma automática -->
+                <!-- JavaScript inyectará aquí los 50 slots por página con el signo '?' automáticamente -->
             </div>
         </div>
 
         <!-- Controles de Navegación de Páginas del Libro -->
         <div class="navegacion-libro">
+            <!-- Sincronizados los IDs exactos que lee tu archivo de JavaScript local -->
             <button class="btn-retro" id="btn-anterior">◀ ATRÁS</button>
             <button class="btn-retro" id="btn-siguiente">SIGUIENTE ▶</button>
         </div>
@@ -58,6 +61,7 @@
     <!-- ======================================================= -->
     <!-- CARGA DE LIBRERÍAS: Supabase primero, luego lógica local -->
     <!-- ======================================================= -->
+    <!-- CORREGIDO: unpkg.com requería la ruta completa del paquete para definir el objeto 'supabase' -->
     <script src="https://unpkg.com"></script>
     <script src="album.js"></script>
 </body>

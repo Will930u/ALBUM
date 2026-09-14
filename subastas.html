@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subasta de la Corte - Mercado Negro</title>
-    <!-- Importación oficial de la tipografía retro pixel art -->
+    <!-- Importación de la fuente pixel art -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -15,8 +15,8 @@
 <body>
 
     <div class="consola-subasta">
-        <!-- Encabezado de la Consola P2P -->
-        <h1 class="titulo-subasta">⚙️ [ SUBASTA DE LA CORTE ] ⚙️</h1>
+        <!-- Encabezado de la Consola -->
+        <h1 class="titulo-subasta">[ SUBASTA DE LA CORTE ]</h1>
         <p class="alerta-escrow">* FONDO RETENIDO POR EL ADMINISTRADOR (10% COMISIÓN) *</p>
 
         <!-- CONTENEDOR DINÁMICO DE LOTES -->
@@ -41,7 +41,7 @@
                         <label class="lbl-tu-oferta">TU PUJA (USDT):</label>
                         <div class="input-grupo-retro">
                             <input type="number" id="monto-pujar-1" value="6.00" min="5.60" step="0.10">
-                            <button type="button" class="btn-pujar" onclick="ejecutarPujaInteractiva(1)">¡PUJAR!</button>
+                            <button type="button" class="btn-pujar" onclick="ejecutarPujaInteractiva(1)">[[ PUJAR ]]</button>
                         </div>
                     </div>
                 </div>
@@ -50,7 +50,7 @@
         </div>
 
         <div class="info-pie-subasta">
-            <p>SISTEMA ESCROW BLINDADO: El comprador deposita los fondos a las cuentas de la plataforma. Al confirmarse el intercambio del activo digital, el vendedor recibe su saldo neto menos el 10% de comisión de mediación retenido automáticamente.</p>
+            <p>* SISTEMA ESCROW BLINDADO: El comprador deposita los fondos a las cuentas de la plataforma. Al confirmarse el intercambio del activo digital, el vendedor recibe su saldo neto menos el 10% de comisión de mediación retenido automáticamente.</p>
         </div>
     </div>
 
@@ -61,7 +61,7 @@
         <button class="btn-nav activo" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
     </div>
 
-    <!-- CONEXIÓN SUPABASE Y CONTROLADOR -->
+    <!-- SCRIPT DE SUPABASE Y CONTROLADOR -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="subastas-control.js"></script>
 </body>

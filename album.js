@@ -9,7 +9,7 @@ let supabaseClient = null;
 let ID_USUARIO_ACTUAL = "utrera930";
 let paginaActual = 1;
 const CARTAS_POR_PAGINA = 25; // 25 cuadros visibles por página
-const TOTAL_PAGINAS = 40;
+const TOTAL_PAGINAS = 80;
 let inventarioUsuario = [];
 
 document.addEventListener("DOMContentLoaded", async () => {

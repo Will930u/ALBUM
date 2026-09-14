@@ -72,16 +72,16 @@ body {
     flex-shrink: 0; /* Evita que el cuadro se deforme en pantallas pequeñas */
 }
 
-/* Tus plantillas cargadas como fondo */
-.marco-azul        { background-image: url('imagenes/marcos/marco_azul.png'); }
-.marco-verde       { background-image: url('imagenes/marcos/marco_verde.png'); }
-.marco-marron      { background-image: url('imagenes/marcos/marco_marron.png'); }
-.marco-naranja     { background-image: url('imagenes/marcos/marco_naranja.png'); }
-.marco-morado      { background-image: url('imagenes/marcos/marco_morado.png'); }
+/* REEMPLAZA ESTAS LÍNEAS EN TU ARCHIVO CSS PARA CORREGIR LAS RUTAS */
+.marco-azul        { background-image: url('imagenes/marcos/Marco_Azul.png'); }
+.marco-verde       { background-image: url('imagenes/marcos/Marco_Verde.png'); }
+.marco-marron      { background-image: url('imagenes/marcos/Marco_Marron.png'); }
+.marco-naranja     { background-image: url('imagenes/marcos/Marco_Naranja.png'); }
+.marco-morado      { background-image: url('imagenes/marcos/Marco_Morado.png'); }
 
-/* 🌈 Animación arcoíris holográfica para los lotes mitológicos */
+/* Corregido para la animación arcoíris del Fénix Dorado */
 .marco-mitologica {
-    background-image: url('imagenes/marcos/marco_arcoiris.png');
+    background-image: url('imagenes/marcos/Marco_Arcoiris.png');
     animation: holoBrilloSubasta 2.5s infinite alternate ease-in-out;
 }
 

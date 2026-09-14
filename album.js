@@ -1,5 +1,5 @@
 // =============================================================================
-// 📱 ALBUM.JS - INTEGRACIÓN DIRECTA CON CASILLEROS HTML Y PAGINACIÓN
+// 📱 ALBUM.JS - SISTEMA ROBUSTO CON NAVEGACIÓN LOCAL Y CACHÉ ANTI-DESCONEXIÓN
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -8,29 +8,33 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let supabaseClient = null;
 let ID_USUARIO_ACTUAL = "utrera930";
 let paginaActual = 1;
-const CARTAS_POR_PAGINA = 25; // 25 cuadros visibles por página
-const TOTAL_PAGINAS = 80;
-let inventarioUsuario = [];
+const CARTAS_POR_PAGINA = 25;
+const TOTAL_PAGINAS = 40;
+
+// Caché local para evitar consultas repetidas que cierren la conexión HTTP
+let inventarioMemoria = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         if (typeof supabase !== 'undefined') {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else {
-            console.error("❌ SDK de Supabase no encontrado.");
+            console.error("❌ SDK de Supabase no disponible en HTML.");
+            actualizarEstadoUI("ERROR SDK");
             return;
         }
 
         obtenerUsuarioActual();
-        configurarNavegacion();
-        await cargarDatosAlbum();
+        configurarBotonesNavegacion();
+        await cargarColeccionInicial();
 
     } catch (err) {
-        console.error("❌ Error de inicio:", err);
+        console.error("❌ Error de inicialización:", err);
+        actualizarEstadoUI("ERROR DE INICIO");
     }
 });
 
-// 1. Identificación y sanitización del usuario
+// 1. Identificación y sanitización del ID
 function obtenerUsuarioActual() {
     const params = new URLSearchParams(window.location.search);
     let userParam = params.get("user") || localStorage.getItem("usuario_id") || "utrera930";
@@ -42,13 +46,21 @@ function obtenerUsuarioActual() {
     ID_USUARIO_ACTUAL = userParam;
     localStorage.setItem("usuario_id", ID_USUARIO_ACTUAL);
 
-    // Actualizar nombre y tag en la barra inferior
-    const elemTag = document.getElementById("tag-usuario");
-    if (elemTag) elemTag.textContent = `@${ID_USUARIO_ACTUAL}`;
+    // Ajuste de interfaz con el ID del usuario
+    document.querySelectorAll("*").forEach(el => {
+        if (el.children.length === 0 && el.textContent.includes("@usuario")) {
+            el.textContent = `@${ID_USUARIO_ACTUAL}`;
+        }
+        if (el.children.length === 0 && el.textContent.includes("NOMBRE COMPLETO")) {
+            el.textContent = ID_USUARIO_ACTUAL.toLowerCase();
+        }
+    });
 }
 
-// 2. Consulta de inventario en Supabase
-async function cargarDatosAlbum() {
+// 2. ÚNICA petición de red con manejo de errores anti-desconexión
+async function cargarColeccionInicial() {
+    actualizarEstadoUI("CARGANDO ERA...");
+
     try {
         const { data: inventario, error } = await supabaseClient
             .from("Coleccion_Usuario")
@@ -67,45 +79,52 @@ async function cargarDatosAlbum() {
 
         if (error) throw error;
 
-        inventarioUsuario = inventario || [];
+        // Guardar en caché local
+        inventarioMemoria = inventario || [];
         
-        // Actualizar contador global (ej: 007 / 2000)
-        const unicas = inventarioUsuario.filter(i => i.Cartas).length;
+        // Actualizar contador global
+        const unicas = inventarioMemoria.filter(i => i.Cartas).length;
         actualizarProgreso(unicas);
 
-        // Renderizar sobre los cuadros HTML existentes
-        renderizarPagina(paginaActual);
+        // Dibujar primera página localmente
+        renderizarPaginaLocal(paginaActual);
 
     } catch (err) {
-        console.error("❌ Error consultando Supabase:", err.message);
+        console.warn("⚠️ Fallo en red (ERR_CONNECTION_CLOSED). Reintentando desde memoria...", err.message);
+        // Si hay un error de red, intenta renderizar con los datos en caché si existían
+        renderizarPaginaLocal(paginaActual);
+        actualizarEstadoUI(`ERA: ${determinarEra(paginaActual)}`);
     }
 }
 
-// 3. Inyección visual dentro de los casilleros HTML existentes
-function renderizarPagina(pagina) {
+// 3. Renderizado 100% local (Sin peticiones HTTP extra al cambiar de página)
+function renderizarPaginaLocal(pagina) {
     const idInicio = ((pagina - 1) * CARTAS_POR_PAGINA) + 1;
-    const idFin = pagina * CARTAS_POR_PAGINA;
 
-    // Mapa de cartas poseídas por carta_id
+    // Mapa rápido desde la memoria local
     const mapaCartas = {};
-    inventarioUsuario.forEach(item => {
+    inventarioMemoria.forEach(item => {
         if (item.Cartas) mapaCartas[item.Cartas.id] = item;
     });
 
-    // Obtener los 25 cuadros creados en el HTML
-    const slotsHTML = document.querySelectorAll(".grid-album > div, .cuadricula > div, [data-slot], .slot");
+    // Búsqueda flexible de casilleros HTML
+    let casilleros = document.querySelectorAll(".grid-album > div, .cuadricula > div, [data-slot]");
     
-    // Si se utilizan divs genéricos dentro del marco contenedor
-    const casilleros = Array.from(slotsHTML).filter(el => {
-        const num = parseInt(el.textContent.trim());
-        return !isNaN(num) || el.querySelector("canvas") || el.classList.contains("slot");
-    }).slice(0, 25);
+    if (casilleros.length === 0) {
+        // Selector secundario de respaldo si los contenedores no tienen clases específicas
+        casilleros = Array.from(document.querySelectorAll("div")).filter(el => {
+            const txt = el.textContent.trim();
+            return !isNaN(parseInt(txt)) && parseInt(txt) >= 1 && parseInt(txt) <= 25;
+        });
+    }
 
-    casilleros.forEach((slot, index) => {
+    const slotsVisibles = Array.from(casilleros).slice(0, 25);
+
+    slotsVisibles.forEach((slot, index) => {
         const idCartaEsperada = idInicio + index;
         const itemPoseido = mapaCartas[idCartaEsperada];
 
-        slot.innerHTML = ""; // Limpiar contenido previo (número o canvas)
+        slot.innerHTML = "";
         slot.style.position = "relative";
         slot.style.display = "flex";
         slot.style.flexDirection = "column";
@@ -113,23 +132,19 @@ function renderizarPagina(pagina) {
         slot.style.justifyContent = "center";
 
         if (itemPoseido) {
-            slot.classList.add("desbloqueada");
             slot.style.background = "#0f172a";
             slot.style.border = "1px solid #38bdf8";
 
             let receta = {};
-            try { receta = JSON.parse(itemPoseido.Cartas.imagen_url); } catch (e) {}
+            try { receta = JSON.parse(itemPoseido.Cartas.imagen_url); } catch (e) { receta = {}; }
 
-            // Crear el Canvas para el gráfico
             const canvas = document.createElement("canvas");
             canvas.width = 100;
             canvas.height = 130;
             canvas.style.width = "100%";
             canvas.style.height = "100%";
-            canvas.style.objectFit = "contain";
             slot.appendChild(canvas);
 
-            // Indicar duplicados (x2, x3...)
             if (itemPoseido.cantidad > 1) {
                 const badge = document.createElement("span");
                 badge.textContent = `x${itemPoseido.cantidad}`;
@@ -149,10 +164,9 @@ function renderizarPagina(pagina) {
             dibujarCartaMini(canvas, receta, itemPoseido.Cartas.nombre);
 
         } else {
-            slot.classList.remove("desbloqueada");
-            slot.style.background = ""; // Mantiene el estilo oscuro por defecto
-            
-            // Reinsertar el número de slot (1 al 25)
+            slot.style.background = ""; // Mantiene color de plantilla
+            slot.style.border = "";
+
             const numSpan = document.createElement("span");
             numSpan.textContent = idCartaEsperada;
             numSpan.style.color = "#334155";
@@ -162,31 +176,52 @@ function renderizarPagina(pagina) {
         }
     });
 
+    // Actualización de texto de Era y Número de Página sin peticiones
+    actualizarEstadoUI(`ERA: ${determinarEra(pagina)}`);
     actualizarTextoPagina(pagina);
 }
 
-// 4. Navegación entre páginas
-function configurarNavegacion() {
-    const botones = document.querySelectorAll("button, div, a");
-    
-    botones.forEach(btn => {
-        if (btn.textContent.includes("ATRAS")) {
-            btn.onclick = (e) => {
+// 4. Listeners de Navegación Locales y Seguros
+function configurarBotonesNavegacion() {
+    document.querySelectorAll("button, div, a").forEach(el => {
+        const texto = el.textContent.trim().toUpperCase();
+
+        if (texto.includes("ATRAS") || texto.includes("ATRÁS")) {
+            el.onclick = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 if (paginaActual > 1) {
                     paginaActual--;
-                    renderizarPagina(paginaActual);
+                    renderizarPaginaLocal(paginaActual);
                 }
             };
         }
-        if (btn.textContent.includes("SIGUIENTE")) {
-            btn.onclick = (e) => {
+
+        if (texto.includes("SIGUIENTE")) {
+            el.onclick = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 if (paginaActual < TOTAL_PAGINAS) {
                     paginaActual++;
-                    renderizarPagina(paginaActual);
+                    renderizarPaginaLocal(paginaActual);
                 }
             };
+        }
+    });
+}
+
+function determinarEra(pagina) {
+    if (pagina <= 10) return "COTIDIANOS";
+    if (pagina <= 20) return "ANCESTRAL";
+    if (pagina <= 30) return "CYBERPUNK";
+    return "FUTURISTA";
+}
+
+function actualizarEstadoUI(texto) {
+    document.querySelectorAll("*").forEach(el => {
+        if (el.children.length === 0 && (el.textContent.includes("CARGANDO ERA") || el.textContent.includes("ERA"))) {
+            el.textContent = texto;
+            el.style.color = "#00ff66";
         }
     });
 }
@@ -207,26 +242,21 @@ function actualizarTextoPagina(pagina) {
     });
 }
 
-// Renderizado gráfico Canvas Pixel Art
 function dibujarCartaMini(canvas, receta, nombre) {
     const ctx = canvas.getContext("2d");
     
-    // Fondo de la carta
     ctx.fillStyle = receta.fondoColor || "#1e293b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Ícono / Símbolo central
     ctx.font = "28px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(receta.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 8);
 
-    // Borde de rareza
     ctx.strokeStyle = receta.marcoColor || "#38bdf8";
     ctx.lineWidth = 3;
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
 
-    // Nombre inferior
     ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
     ctx.fillRect(3, canvas.height - 22, canvas.width - 6, 19);
 

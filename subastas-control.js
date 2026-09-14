@@ -80,16 +80,12 @@ async function ejecutarCierreLoteEscrow() {
     if (inputPuja) inputPuja.disabled = true;
     if (btnPujar) {
         btnPujar.disabled = true;
-        btnPujar.style.backgroundColor = '#334155';
-        btnPujar.style.color = '#94a3b8';
-        btnPujar.style.boxShadow = 'none';
+        btnPujar.classList.remove('activo-para-pujar');
     }
 
     const montoBrutoFinal = loteActivo.oferta_actual_usd;
     const comisionPlataforma = montoBrutoFinal * loteActivo.comision_porcentaje;
     const netoParaElVendedor = montoBrutoFinal - comisionPlataforma;
-
-    console.log(`💰 LIQUIDACIÓN: Bruto $${montoBrutoFinal} | Comisión 10%: $${comisionPlataforma.toFixed(2)} | Neto Vendedor: $${netoParaElVendedor.toFixed(2)}`);
 
     try {
         const { error: errInsert } = await supabaseClient

@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda de Sobres Retro y Retiros</title>
-    <!-- Importación correcta de la fuente pixelated de Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="tienda-style.css?v=3">
+    <link rel="stylesheet" href="tienda-style.css?v=4">
 </head>
 <body>
 
@@ -64,7 +63,7 @@
                 <!-- Billetera TON -->
                 <div id="bloque-datos-usdt" class="bloque-metodo">
                     <div class="input-pm-grupo">
-                        <label class="label-retro">DIRECCIÓN DE TU WALLET DE TELEGRAM (RED TON):</label>
+                        <label class="label-retro">DIRECCIÓN WALLET TELEGRAM (RED TON):</label>
                         <input type="text" id="user-wallet-address" class="input-retro txt-verde-input" placeholder="Ej: UQAsd9...">
                         <p class="nota-verde">* Los premios cobrados por aquí se pagan de forma automática a tu billetera *</p>
                     </div>
@@ -121,13 +120,12 @@
                         class="input-retro" 
                         placeholder="Ej: Mínimo 6 números"
                         autocomplete="off"
-                        >
-
+                    >
                 </div>
                 
                 <div class="input-pm-grupo">
                     <label class="label-retro">TU TELÉFONO DESDE EL QUE PAGASTE:</label>
-                    <input type="text" id="ref-bancaria" required maxlength="8" class="input-retro" placeholder="Ej: 874521">
+                    <input type="text" id="telf-origen" required maxlength="11" class="input-retro" placeholder="Ej: 04121234567">
                 </div>
                 <button type="submit" class="btn-confirmar-pm">[[ 🛰️ ENVIAR REPORTE ]]</button>
             </form>

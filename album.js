@@ -1,5 +1,5 @@
 // =============================================================================
-// 📱 ALBUM.JS - SISTEMA COMPLETO CON PAGINACIÓN Y DETECCIÓN DE ERAS
+// 📱 ALBUM.JS - INTEGRACIÓN DIRECTA CON CASILLEROS HTML Y PAGINACIÓN
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -8,18 +8,16 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let supabaseClient = null;
 let ID_USUARIO_ACTUAL = "utrera930";
 let paginaActual = 1;
-const CARTAS_POR_PAGINA = 50;
+const CARTAS_POR_PAGINA = 25; // 25 cuadros visibles por página
 const TOTAL_PAGINAS = 40;
 let inventarioUsuario = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
-        // Inicializar SDK de Supabase
         if (typeof supabase !== 'undefined') {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else {
-            console.error("❌ SDK de Supabase no encontrado en el HTML.");
-            actualizarEstadoCarga("ERROR SDK SUPABASE");
+            console.error("❌ SDK de Supabase no encontrado.");
             return;
         }
 
@@ -29,11 +27,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     } catch (err) {
         console.error("❌ Error de inicio:", err);
-        actualizarEstadoCarga("ERROR DE CÓDIGO");
     }
 });
 
-// 1. Detección del usuario y actualización de la barra inferior
+// 1. Identificación y sanitización del usuario
 function obtenerUsuarioActual() {
     const params = new URLSearchParams(window.location.search);
     let userParam = params.get("user") || localStorage.getItem("usuario_id") || "utrera930";
@@ -45,25 +42,13 @@ function obtenerUsuarioActual() {
     ID_USUARIO_ACTUAL = userParam;
     localStorage.setItem("usuario_id", ID_USUARIO_ACTUAL);
 
-    // Actualiza la barra inferior (@usuario)
-    const elemTag = document.getElementById("tag-usuario") || document.querySelector(".usuario-tag") || document.querySelectorAll("span")[2];
-    const elemNombre = document.getElementById("nombre-usuario") || document.querySelector(".usuario-nombre");
-
-    // Buscar por texto si no hay IDs
-    document.querySelectorAll("*").forEach(el => {
-        if (el.children.length === 0 && el.textContent.includes("@usuario")) {
-            el.textContent = `@${ID_USUARIO_ACTUAL}`;
-        }
-        if (el.children.length === 0 && el.textContent.includes("NOMBRE COMPLETO")) {
-            el.textContent = ID_USUARIO_ACTUAL.toUpperCase();
-        }
-    });
+    // Actualizar nombre y tag en la barra inferior
+    const elemTag = document.getElementById("tag-usuario");
+    if (elemTag) elemTag.textContent = `@${ID_USUARIO_ACTUAL}`;
 }
 
-// 2. Carga datos de Supabase
+// 2. Consulta de inventario en Supabase
 async function cargarDatosAlbum() {
-    actualizarEstadoCarga("CARGANDO ERA...");
-
     try {
         const { data: inventario, error } = await supabaseClient
             .from("Coleccion_Usuario")
@@ -84,86 +69,67 @@ async function cargarDatosAlbum() {
 
         inventarioUsuario = inventario || [];
         
-        // Actualizar progreso total
+        // Actualizar contador global (ej: 007 / 2000)
         const unicas = inventarioUsuario.filter(i => i.Cartas).length;
         actualizarProgreso(unicas);
 
-        // Renderizar la página actual
+        // Renderizar sobre los cuadros HTML existentes
         renderizarPagina(paginaActual);
 
     } catch (err) {
         console.error("❌ Error consultando Supabase:", err.message);
-        actualizarEstadoCarga("ERROR CONEXION");
     }
 }
 
-// 3. Renderizado dinamico de la cuadrícula por páginas
+// 3. Inyección visual dentro de los casilleros HTML existentes
 function renderizarPagina(pagina) {
-    let contenedor = document.getElementById("grid-album") || document.querySelector(".grid-album") || document.querySelector(".cuadricula");
-    
-    // Si no existe el contenedor de cartas dentro del marco, lo crea automáticamente
-    if (!contenedor) {
-        const marcoVacio = document.querySelectorAll(".grid-album, div")[3]; 
-        contenedor = document.createElement("div");
-        contenedor.id = "grid-album";
-        contenedor.style.display = "grid";
-        contenedor.style.gridTemplateColumns = "repeat(auto-fill, minmax(70px, 1fr))";
-        contenedor.style.gap = "8px";
-        contenedor.style.padding = "10px";
-        contenedor.style.maxHeight = "350px";
-        contenedor.style.overflowY = "auto";
-
-        // Insertar antes del footer (donde dice PÁGINA 1/40)
-        const footer = document.querySelector("div:has(> .usuario-tag)") || document.querySelectorAll("div")[document.querySelectorAll("div").length - 2];
-        if (footer && footer.parentNode) {
-            footer.parentNode.insertBefore(contenedor, footer);
-        } else {
-            document.body.appendChild(contenedor);
-        }
-    }
-
-    contenedor.innerHTML = ""; // Limpiar vista
-
-    // Cálculo del rango numérico de cartas de la página
     const idInicio = ((pagina - 1) * CARTAS_POR_PAGINA) + 1;
     const idFin = pagina * CARTAS_POR_PAGINA;
 
-    // Nombre de la Era dinámica
-    const eraNombre = determinarEra(pagina);
-    actualizarEstadoCarga(`ERA: ${eraNombre}`);
-
-    // Mapa de inventario para búsqueda rápida
+    // Mapa de cartas poseídas por carta_id
     const mapaCartas = {};
     inventarioUsuario.forEach(item => {
         if (item.Cartas) mapaCartas[item.Cartas.id] = item;
     });
 
-    // Generar casilleros
-    for (let id = idInicio; id <= idFin; id++) {
-        const itemPoseido = mapaCartas[id];
-        const slot = document.createElement("div");
-        slot.className = "slot-carta";
-        slot.style.aspectRatio = "3/4";
-        slot.style.border = "1px solid #1e293b";
-        slot.style.borderRadius = "4px";
+    // Obtener los 25 cuadros creados en el HTML
+    const slotsHTML = document.querySelectorAll(".grid-album > div, .cuadricula > div, [data-slot], .slot");
+    
+    // Si se utilizan divs genéricos dentro del marco contenedor
+    const casilleros = Array.from(slotsHTML).filter(el => {
+        const num = parseInt(el.textContent.trim());
+        return !isNaN(num) || el.querySelector("canvas") || el.classList.contains("slot");
+    }).slice(0, 25);
+
+    casilleros.forEach((slot, index) => {
+        const idCartaEsperada = idInicio + index;
+        const itemPoseido = mapaCartas[idCartaEsperada];
+
+        slot.innerHTML = ""; // Limpiar contenido previo (número o canvas)
+        slot.style.position = "relative";
         slot.style.display = "flex";
         slot.style.flexDirection = "column";
         slot.style.alignItems = "center";
         slot.style.justifyContent = "center";
-        slot.style.background = itemPoseido ? "#0f172a" : "#020617";
-        slot.style.position = "relative";
 
         if (itemPoseido) {
+            slot.classList.add("desbloqueada");
+            slot.style.background = "#0f172a";
+            slot.style.border = "1px solid #38bdf8";
+
             let receta = {};
             try { receta = JSON.parse(itemPoseido.Cartas.imagen_url); } catch (e) {}
 
+            // Crear el Canvas para el gráfico
             const canvas = document.createElement("canvas");
-            canvas.width = 80;
-            canvas.height = 100;
+            canvas.width = 100;
+            canvas.height = 130;
             canvas.style.width = "100%";
             canvas.style.height = "100%";
+            canvas.style.objectFit = "contain";
             slot.appendChild(canvas);
 
+            // Indicar duplicados (x2, x3...)
             if (itemPoseido.cantidad > 1) {
                 const badge = document.createElement("span");
                 badge.textContent = `x${itemPoseido.cantidad}`;
@@ -172,32 +138,41 @@ function renderizarPagina(pagina) {
                 badge.style.right = "2px";
                 badge.style.background = "#eab308";
                 badge.style.color = "#000";
-                badge.style.fontSize = "9px";
+                badge.style.fontSize = "10px";
                 badge.style.fontWeight = "bold";
                 badge.style.padding = "1px 4px";
                 badge.style.borderRadius = "3px";
+                badge.style.zIndex = "10";
                 slot.appendChild(badge);
             }
 
             dibujarCartaMini(canvas, receta, itemPoseido.Cartas.nombre);
+
         } else {
-            slot.innerHTML = `<span style="color:#334155; font-size:10px; font-family:monospace;">#${id}</span>`;
+            slot.classList.remove("desbloqueada");
+            slot.style.background = ""; // Mantiene el estilo oscuro por defecto
+            
+            // Reinsertar el número de slot (1 al 25)
+            const numSpan = document.createElement("span");
+            numSpan.textContent = idCartaEsperada;
+            numSpan.style.color = "#334155";
+            numSpan.style.fontFamily = "monospace";
+            numSpan.style.fontWeight = "bold";
+            slot.appendChild(numSpan);
         }
+    });
 
-        contenedor.appendChild(slot);
-    }
-
-    // Actualizar indicador inferior de página
     actualizarTextoPagina(pagina);
 }
 
-// 4. Utilidades visuales y eventos de botones
+// 4. Navegación entre páginas
 function configurarNavegacion() {
-    const botones = document.querySelectorAll("button, div");
+    const botones = document.querySelectorAll("button, div, a");
     
     botones.forEach(btn => {
         if (btn.textContent.includes("ATRAS")) {
-            btn.onclick = () => {
+            btn.onclick = (e) => {
+                e.preventDefault();
                 if (paginaActual > 1) {
                     paginaActual--;
                     renderizarPagina(paginaActual);
@@ -205,28 +180,13 @@ function configurarNavegacion() {
             };
         }
         if (btn.textContent.includes("SIGUIENTE")) {
-            btn.onclick = () => {
+            btn.onclick = (e) => {
+                e.preventDefault();
                 if (paginaActual < TOTAL_PAGINAS) {
                     paginaActual++;
                     renderizarPagina(paginaActual);
                 }
             };
-        }
-    });
-}
-
-function determinarEra(pagina) {
-    if (pagina <= 10) return "ANCESTRAL";
-    if (pagina <= 20) return "MEDIEVAL";
-    if (pagina <= 30) return "CYBERPUNK";
-    return "FUTURISTA";
-}
-
-function actualizarEstadoCarga(texto) {
-    document.querySelectorAll("*").forEach(el => {
-        if (el.children.length === 0 && (el.textContent.includes("CARGANDO ERA") || el.textContent.includes("ERA:"))) {
-            el.textContent = texto;
-            el.style.color = "#00ff66";
         }
     });
 }
@@ -247,17 +207,31 @@ function actualizarTextoPagina(pagina) {
     });
 }
 
+// Renderizado gráfico Canvas Pixel Art
 function dibujarCartaMini(canvas, receta, nombre) {
     const ctx = canvas.getContext("2d");
+    
+    // Fondo de la carta
     ctx.fillStyle = receta.fondoColor || "#1e293b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.font = "20px sans-serif";
+    // Ícono / Símbolo central
+    ctx.font = "28px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(receta.simbolo || "👾", canvas.width / 2, canvas.height / 2 - 5);
+    ctx.fillText(receta.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 8);
 
+    // Borde de rareza
     ctx.strokeStyle = receta.marcoColor || "#38bdf8";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+    // Nombre inferior
+    ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
+    ctx.fillRect(3, canvas.height - 22, canvas.width - 6, 19);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "9px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText((nombre || "CARTA").substring(0, 10), canvas.width / 2, canvas.height - 9);
 }

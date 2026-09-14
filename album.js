@@ -1,239 +1,158 @@
-// CONFIGURACIÓN DE CONEXIÓN CON TU SERVIDOR DE SUPABASE
+// =============================================================================
+// 📱 CONTROLADOR DEL ÁLBUM DEL JUGADOR - LECTURA Y RENDERIZADO EN VIVO
+// =============================================================================
+
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Inicializar cliente Supabase de manera segura
-let supabaseClient = null;
-if (window.supabase) {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-}
-
-// Inicialización de Telegram WebApp
-const tg = window.Telegram?.WebApp;
-if (tg) {
-    tg.expand();
-}
-
-// Variables globales
-let idUsuarioTelegram = "usuario_test_venezuela";
-let paginaActual = 1;
-const cartasPorPagina = 25;
-const totalPaginas = 40;
-
-// Caché global en memoria
-let inventarioUsuarioCache = new Map();
-
-// Elementos del DOM
-const grillaCartas = document.getElementById('grilla-cartas');
-const contadorProgreso = document.getElementById('contador-progreso');
-const tituloBloque = document.getElementById('titulo-bloque');
-const indicadorPagina = document.getElementById('indicador-pagina');
-const modalVisor = document.getElementById('modal-visor');
-const cartaAnimada = document.getElementById('carta-animada');
-const contenidoFrontal = document.getElementById('contenido-carta-frontal');
+// ID del usuario autenticado (Normalizado sin '@')
+let ID_USUARIO_ACTUAL = "utrera930"; 
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // 1. Cargar datos del usuario de Telegram
-    inicializarUsuarioTelegram();
-
-    // 2. Actualizar año en el DOM si existe el contenedor
-    const elAno = document.getElementById('ano-actual');
-    if (elAno) elAno.innerText = new Date().getFullYear();
-
-    // 3. Cargar inventario inicial apuntando a 'album_usuario'
-    await cargarInventarioInicial();
-    
-    // 4. Renderizar libro (25 slots garantizados por página)
-    await renderizarLibro(paginaActual);
-
-    // 5. Escuchar cambios en vivo
-    if (supabaseClient) {
-        activarEscuchaColeccionEnVivo();
-    }
-
-    // Controles de navegación
-    const btnAnterior = document.getElementById('btn-anterior');
-    if (btnAnterior) {
-        btnAnterior.addEventListener('click', () => {
-            if (paginaActual > 1) { 
-                paginaActual--; 
-                renderizarLibro(paginaActual); 
-            }
-        });
-    }
-
-    const btnSiguiente = document.getElementById('btn-siguiente');
-    if (btnSiguiente) {
-        btnSiguiente.addEventListener('click', () => {
-            if (paginaActual < totalPaginas) { 
-                paginaActual++; 
-                renderizarLibro(paginaActual); 
-            }
-        });
-    }
-
-    // Cerrar visor modal
-    if (modalVisor) {
-        modalVisor.addEventListener('click', () => {
-            if (cartaAnimada) cartaAnimada.classList.remove('girar-y-ampliar');
-            setTimeout(() => { modalVisor.style.display = 'none'; }, 250);
-        });
-    }
+    obtenerUsuarioActual();
+    await cargarColeccionUsuario();
 });
 
-function inicializarUsuarioTelegram() {
-    const avatarImg = document.getElementById('user-avatar');
+// Detecta o establece el identificador del usuario
+function obtenerUsuarioActual() {
+    const params = new URLSearchParams(window.location.search);
+    let userParam = params.get("user") || localStorage.getItem("usuario_id") || "utrera930";
     
-    if (avatarImg) {
-        avatarImg.onerror = function() {
-            this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='%2300ff66'><circle cx='12' cy='8' r='4'/><path d='M12 14c-6.1 0-8 4-8 4v2h16v-2s-1.9-4-8-4z'/></svg>";
-        };
+    // Sanitización
+    if (userParam.startsWith("@")) {
+        userParam = userParam.substring(1).trim();
     }
+    
+    ID_USUARIO_ACTUAL = userParam;
+    localStorage.setItem("usuario_id", ID_USUARIO_ACTUAL);
 
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
-        idUsuarioTelegram = user.id.toString();
-        
-        const elUsername = document.getElementById('user-username');
-        const elFullname = document.getElementById('user-fullname');
-        
-        if (elUsername) elUsername.innerText = user.username ? `@${user.username}` : `@id_${user.id}`;
-        if (elFullname) elFullname.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-        
-        if (avatarImg && user.photo_url) {
-            avatarImg.src = user.photo_url;
-        } else if (avatarImg) {
-            avatarImg.onerror();
-        }
-    } else if (avatarImg) {
-        avatarImg.onerror();
-    }
+    const elemTag = document.getElementById("tag-usuario");
+    if (elemTag) elemTag.textContent = `@${ID_USUARIO_ACTUAL}`;
 }
 
-async function cargarInventarioInicial() {
-    if (!supabaseClient) return;
+// Carga e integra los Drops guardados en la base de datos
+async function cargarColeccionUsuario() {
+    const contenedorGrid = document.getElementById("grid-album") || document.querySelector(".grid-album");
+    if (!contenedorGrid) return;
+
     try {
-        const { data, error } = await supabaseClient
-            .from('album_usuario')
-            .select('id_carta, cantidad')
-            .eq('id_usuario', idUsuarioTelegram);
-        
-        if (!error && data) {
-            inventarioUsuarioCache = new Map(data.map(i => [Number(i.id_carta), i.cantidad]));
-        } else if (error) {
-            console.warn("Error consultando album_usuario:", error.message);
-        }
+        // Consulta uniendo la colección del usuario con los datos de las cartas
+        const { data: inventario, error } = await supabaseClient
+            .from("Coleccion_Usuario")
+            .select(`
+                id,
+                cantidad,
+                carta_id,
+                Cartas (
+                    id,
+                    nombre,
+                    rareza,
+                    imagen_url
+                )
+            `)
+            .eq("usuario_id", ID_USUARIO_ACTUAL);
+
+        if (error) throw error;
+
+        // Limpia el visor y refresca la cuadrícula
+        renderizarGridAlbum(inventario || []);
+
     } catch (err) {
-        console.warn("Excepción al cargar inventario:", err);
+        console.error("Error al cargar la colección:", err.message);
     }
 }
 
-async function renderizarLibro(pagina) {
-    const inicioRango = (pagina - 1) * cartasPorPagina + 1;
-    const finRango = pagina * cartasPorPagina;
+// Renderiza los slots e inyecta los gráficos Canvas
+function renderizarGridAlbum(inventario) {
+    // Mapa rápido de cartas poseídas usando carta_id como clave
+    const coleccionMap = {};
+    let totalUnicas = 0;
 
-    if (indicadorPagina) indicadorPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
-
-    let eraTexto = "ERA 1: COTIDIANOS 🐾";
-    if (inicioRango > 500)  eraTexto = "ERA 2: SILVESTRES 🦅";
-    if (inicioRango > 1000) eraTexto = "ERA 3: EXTINTOS 🦖";
-    if (inicioRango > 1500) eraTexto = "ERA 4: MITOLÓGICOS 🔮";
-    if (tituloBloque) tituloBloque.innerText = eraTexto;
-
-    let mapaCatalogo = new Map();
-
-    if (supabaseClient) {
-        try {
-            const { data: catalogoCartas, error: errCartas } = await supabaseClient
-                .from('cartas')
-                .select('*')
-                .gte('id_carta', inicioRango)
-                .lte('id_carta', finRango);
-
-            if (!errCartas && catalogoCartas) {
-                mapaCatalogo = new Map(catalogoCartas.map(c => [Number(c.id_carta), c]));
-            }
-        } catch (err) {
-            console.warn("Error leyendo la tabla cartas:", err);
+    inventario.forEach(item => {
+        if (item.Cartas) {
+            coleccionMap[item.Cartas.id] = {
+                cantidad: item.cantidad,
+                datos: item.Cartas
+            };
+            totalUnicas++;
         }
-    }
+    });
 
-    // Actualizar contador de progreso
-    const poseidasTotales = inventarioUsuarioCache.size;
-    if (contadorProgreso) {
-        contadorProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
-    }
+    // Actualiza el indicador de progreso global
+    const txtProgreso = document.getElementById("txt-progreso");
+    if (txtProgreso) txtProgreso.textContent = `${String(totalUnicas).padStart(3, '0')} / 2000`;
 
-    // Dibujar las 25 celdas de la página
-    if (grillaCartas) {
-        grillaCartas.innerHTML = "";
+    // Renderiza la lista de espacios en el Álbum
+    const slots = document.querySelectorAll(".slot-carta, .grid-item");
+    
+    slots.forEach((slot, index) => {
+        const idSlot = index + 1; // Asume IDs secuenciales de slots (1, 2, 3...)
+        const poseeCarta = coleccionMap[idSlot];
 
-        for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
-            const slot = document.createElement('div');
-            slot.classList.add('miniatura-slot');
+        slot.innerHTML = ""; // Limpieza del contenedor
 
-            const datosCarta = mapaCatalogo.get(idCarta);
-            const jugadorLaPosee = inventarioUsuarioCache.has(idCarta);
+        if (poseeCarta) {
+            slot.classList.remove("bloqueada");
+            slot.classList.add("desbloqueada");
 
-            if (datosCarta && jugadorLaPosee) {
-                slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Barajita ${idCarta}">`;
-                slot.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    desplegarCarta3D(datosCarta);
-                });
-            } else {
-                slot.classList.add('bloqueada');
-                slot.innerText = idCarta;
+            let receta = {};
+            try {
+                receta = JSON.parse(poseeCarta.datos.imagen_url);
+            } catch (e) {
+                receta = {};
             }
 
-            grillaCartas.appendChild(slot);
+            // Inyección del elemento Canvas para dibujar la carta algorítmica
+            const canvas = document.createElement("canvas");
+            canvas.width = 120;
+            canvas.height = 160;
+            canvas.className = "canvas-carta-mini";
+            slot.appendChild(canvas);
+
+            // Badge con la cantidad de ejemplares duplicados
+            if (poseeCarta.cantidad > 1) {
+                const badge = document.createElement("span");
+                badge.className = "badge-cantidad";
+                badge.textContent = `x${poseeCarta.cantidad}`;
+                slot.appendChild(badge);
+            }
+
+            dibujarCartaEnCanvas(canvas, receta, poseeCarta.datos.nombre);
+
+        } else {
+            slot.classList.add("bloqueada");
+            slot.classList.remove("desbloqueada");
+            slot.innerHTML = `<span class="numero-slot">${idSlot}</span>`;
         }
-    }
+    });
 }
 
-function desplegarCarta3D(carta) {
-    if (!contenidoFrontal || !modalVisor || !cartaAnimada) return;
+// Renderizador visual algorítmico ligero para la interfaz del usuario
+function dibujarCartaEnCanvas(canvas, receta, nombre) {
+    const ctx = canvas.getContext("2d");
+    
+    // Color de fondo
+    ctx.fillStyle = receta.fondoColor || "#0f172a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const numeroEstrellas = Math.min(Math.max(Math.floor((carta.poder || 100) / 100), 1), 5);
-    let estrellasHtml = "★".repeat(numeroEstrellas);
+    // Personaje / Símbolo
+    ctx.font = "35px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(receta.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 10);
 
-    contenidoFrontal.innerHTML = `
-        <div style="text-align:center; padding: 10px;">
-            <h3 style="font-size:10px; color:#ffcc00; margin-bottom:5px;">${(carta.nombre || 'BARAJITA').toUpperCase()}</h3>
-            <p style="font-size:8px; color:#00ff66; margin-bottom:10px;">${estrellasHtml}</p>
-            <img src="${carta.url_imagen}" style="width:100%; height:180px; object-fit:cover; border-radius:4px; border:2px solid #3a6ea5;">
-            <p style="font-size:7px; color:#aaa; margin-top:10px;">#${String(carta.id_carta).padStart(4, '0')}</p>
-        </div>
-    `;
+    // Borde / Marco de la rareza
+    ctx.strokeStyle = receta.marcoColor || "#64748b";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
 
-    modalVisor.style.display = 'flex';
-    setTimeout(() => {
-        cartaAnimada.classList.add('girar-y-ampliar');
-    }, 30);
-}
+    // Etiqueta de nombre
+    ctx.fillStyle = "rgba(2, 6, 23, 0.9)";
+    ctx.fillRect(4, canvas.height - 25, canvas.width - 8, 20);
 
-function activarEscuchaColeccionEnVivo() {
-    supabaseClient
-        .channel('cambios-album-en-vivo')
-        .on(
-            'postgres_changes', 
-            { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'album_usuario',
-                filter: `id_usuario=eq.${idUsuarioTelegram}`
-            }, 
-            (payload) => {
-                const nuevaCarta = payload.new;
-                inventarioUsuarioCache.set(Number(nuevaCarta.id_carta), nuevaCarta.cantidad);
-
-                const inicioRango = (paginaActual - 1) * cartasPorPagina + 1;
-                const finRango = paginaActual * cartasPorPagina;
-
-                if (nuevaCarta.id_carta >= inicioRango && nuevaCarta.id_carta <= finRango) {
-                    renderizarLibro(paginaActual);
-                }
-            }
-        )
-        .subscribe();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "7px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText((nombre || "CARTA").substring(0, 12), canvas.width / 2, canvas.height - 12);
 }

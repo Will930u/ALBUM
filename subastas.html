@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subasta de la Corte - Mercado Negro</title>
-    <!-- Importación de la fuente pixel art -->
+    <!-- Fuente Pixel Art Oficial -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -15,43 +15,44 @@
 <body>
 
     <div class="consola-subasta">
-        <!-- Encabezado de la Consola -->
-        <h1 class="titulo-subasta">[ SUBASTA DE LA CORTE ]</h1>
-        <p class="alerta-escrow">* FONDO RETENIDO POR EL ADMINISTRADOR (10% COMISIÓN) *</p>
+        
+        <!-- BLOQUE 1: ESCAPARATE Y CARTA EN DISPUTA -->
+        <div class="caja-escaparate">
+            <h1 class="titulo-subasta">[ SUBASTA DE LA CORTE ]</h1>
+            <p class="alerta-escrow">* FONDO RETENIDO POR EL ADMINISTRADOR (10% COMISIÓN) *</p>
 
-        <!-- CONTENEDOR DINÁMICO DE LOTES -->
+            <div class="preview-carta-subasta marco-mitologica">
+                <div class="id-tag">#1501</div>
+            </div>
+
+            <p class="info-pie-subasta">
+                * SISTEMA ESCROW BLINDADO: El comprador deposita los fondos a las cuentas de la plataforma. Al confirmarse el intercambio del activo digital, el vendedor recibe su saldo neto menos el 10% de comisión.
+            </p>
+        </div>
+
+        <!-- BLOQUE 2: DETALLES DE LA PUJA Y CONTROLES -->
         <div id="contenedor-lotes-subasta">
             
-            <!-- LOTE EJEMPLO -->
             <div class="lote-card">
-                <div class="preview-carta-subasta marco-mitologica">
-                    <div class="id-tag">#1501</div>
+                <h2 class="nombre-carta-subasta">FÉNIX DORADO</h2>
+                <div class="reloj-retro">TIEMPO: <span class="tiempo-parpadeo" id="timer-1">00h : 00m : 25s</span></div>
+                
+                <div class="marcador-precios">
+                    <p>OFERTA ACTUAL:<br><span class="precio-usd-puja" id="oferta-usd-1">$5.50 USDT</span></p>
+                    <p class="precio-bs-puja" id="oferta-bs-1">~ 0.00 Bs.</p>
                 </div>
 
-                <div class="detalles-puja">
-                    <h2 class="nombre-carta-subasta">FÉNIX DORADO</h2>
-                    <div class="reloj-retro">TIEMPO: <span class="tiempo-parpadeo" id="timer-1">00h : 00m : 25s</span></div>
-                    
-                    <div class="marcador-precios">
-                        <p>OFERTA ACTUAL:<br><span class="precio-usd-puja" id="oferta-usd-1">$5.50 USDT</span></p>
-                        <p class="precio-bs-puja" id="oferta-bs-1">~ 0.00 Bs.</p>
-                    </div>
-
-                    <div class="control-puja-formulario">
-                        <label class="lbl-tu-oferta">TU PUJA (USDT):</label>
-                        <div class="input-grupo-retro">
-                            <input type="number" id="monto-pujar-1" value="6.00" min="5.60" step="0.10">
-                            <button type="button" class="btn-pujar" onclick="ejecutarPujaInteractiva(1)">[[ PUJAR ]]</button>
-                        </div>
+                <div class="control-puja-formulario">
+                    <label class="lbl-tu-oferta">TU PUJA (USDT):</label>
+                    <div class="input-grupo-retro">
+                        <input type="number" id="monto-pujar-1" value="6.00" min="5.60" step="0.10">
+                        <button type="button" class="btn-pujar" onclick="ejecutarPujaInteractiva(1)">[[ PUJAR ]]</button>
                     </div>
                 </div>
             </div>
 
         </div>
 
-        <div class="info-pie-subasta">
-            <p>* SISTEMA ESCROW BLINDADO: El comprador deposita los fondos a las cuentas de la plataforma. Al confirmarse el intercambio del activo digital, el vendedor recibe su saldo neto menos el 10% de comisión de mediación retenido automáticamente.</p>
-        </div>
     </div>
 
     <!-- BARRA DE NAVEGACIÓN FIJA INFERIOR -->
@@ -61,7 +62,7 @@
         <button class="btn-nav activo" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
     </div>
 
-    <!-- SCRIPT DE SUPABASE Y CONTROLADOR -->
+    <!-- SDK DE SUPABASE Y LÓGICA -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="subastas-control.js"></script>
 </body>

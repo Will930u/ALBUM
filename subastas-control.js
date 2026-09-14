@@ -72,7 +72,7 @@ async function ejecutarCierreLoteEscrow() {
     const txtTimer = document.getElementById('timer-1');
     if (txtTimer) {
         txtTimer.innerText = "¡PUJA CERRADA EN AUDITORÍA!";
-        txtTimer.style.color = "#ffcc00";
+        txtTimer.style.color = "#eab308";
     }
 
     const inputPuja = document.getElementById('monto-pujar-1');
@@ -80,7 +80,9 @@ async function ejecutarCierreLoteEscrow() {
     if (inputPuja) inputPuja.disabled = true;
     if (btnPujar) {
         btnPujar.disabled = true;
-        btnPujar.style.backgroundColor = '#555';
+        btnPujar.style.backgroundColor = '#334155';
+        btnPujar.style.color = '#94a3b8';
+        btnPujar.style.boxShadow = 'none';
     }
 
     const montoBrutoFinal = loteActivo.oferta_actual_usd;

@@ -1,10 +1,18 @@
 // =============================================================================
-// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA)
+// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA & SUPABASE)
 // =============================================================================
+
+// Instanciación del cliente de base de datos para la conexión con el juego
+const SUPABASE_URL = "https://supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ID de control del jugador de pruebas (Se acopla al Telegram ID del usuario de forma nativa)
+const USUARIO_ID_MOCK = "usuario_test_venezuela";
 
 // Constantes de configuración
 const PRECIO_SOBRE_USD = 0.62;
-const API_TASA_URL = 'https://ve.dolarapi.com/v1/dolares/oficial';
+const API_TASA_URL = 'https://dolarapi.com';
 let TASA_BCV = 833.00; // Valor de respaldo por si falla la conexión a la API
 
 // Esperar a que el DOM esté completamente cargado
@@ -116,17 +124,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- REGISTRO REPORTE PAGO MÓVIL ---
+    // --- 🚀 REGISTRO REPORTE PAGO MÓVIL (CONEXIÓN EN VIVO A SUPABASE) ---
     if (formReportePm) {
-        formReportePm.addEventListener('submit', (e) => {
+        formReportePm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const ref = document.getElementById('ref-bancaria')?.value.trim();
             const telf = document.getElementById('telf-origen')?.value.trim();
+            const cantidadSobres = parseInt(inputCantidad.value) || 1;
+            
+            // Calculamos el valor exacto en bolívares en base a la cantidad de la pantalla
+            const totalBsCalculado = parseFloat((cantidadSobres * PRECIO_SOBRE_USD * TASA_BCV).toFixed(2));
 
             if (ref && telf) {
-                alert(`Reporte enviado con éxito.\nReferencia: ${ref}\nTeléfono: ${telf}`);
-                if (modalPm) modalPm.style.display = 'none';
-                formReportePm.reset();
+                try {
+                    console.log(`📡 Registrando reporte de ${cantidadSobres} sobre(s) en Supabase...`);
+                    
+                    // Inyectamos el récord en la tabla que lee tu cuenta de Gmail
+                    const { error } = await supabaseClient
+                        .from('pagos_pendientes')
+                        .insert([{
+                            usuario_id: USUARIO_ID_MOCK,
+                            referencia: ref,             // Admite formatos elásticos de 6 a 14 números
+                            monto_bs: totalBsCalculado,  // Envía el monto exacto escalado
+                            telefono_origen: telf,
+                            banco_origen: "0134",        // Marcado por defecto como Banesco
+                            estado: "pendiente",
+                            cantidad_sobres: cantidadSobres,
+                            created_at: new Date().toISOString()
+                        }]);
+
+                    if (error) throw error;
+
+                    alert(`🛰️ ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu saldo se actualizará automáticamente apenas el banco procese la transacción.`);
+                    
+                    if (modalPm) modalPm.style.display = 'none';
+                    formReportePm.reset();
+
+                } catch (errSupabase) {
+                    console.error("Error al asentar pago en Supabase:", errSupabase);
+                    alert("❌ ERROR AL ENVIAR REPORTE: Revisa la conexión de tu Mini App.");
+                }
             }
         });
     }
@@ -151,7 +189,7 @@ function conmutarFormularioRetiro(metodo) {
         if (btnPm) btnPm.classList.remove('activo');
     } else if (metodo === 'PM') {
         if (bloqueUsdt) bloqueUsdt.style.display = 'none';
-        if (bloquePm) bloquePm.style.display = 'block';
+        if (bloquePm) blockePm.style.display = 'block';
         if (btnPm) btnPm.classList.add('activo');
         if (btnUsdt) btnUsdt.classList.remove('activo');
     }

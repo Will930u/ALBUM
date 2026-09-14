@@ -3,68 +3,104 @@ const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ID del jugador de pruebas (En la Fase 4 lo tomaremos automáticamente desde el Telegram ID)
-const USUARIO_ID_MOCK = "usuario_test_venezuela";
+// Inicialización de Telegram WebApp
+const tg = window.Telegram?.WebApp;
+if (tg) {
+    tg.expand(); // Expande la app a pantalla completa
+}
 
+// Variables de usuario
+let idUsuarioTelegram = "usuario_test_venezuela";
 let paginaActual = 1;
-const cartasPorPagina = 50;
+const cartasPorPagina = 25; // Exactamente 25 espacios por página (5x5)
+const totalPaginas = 40;     // 40 páginas × 25 = 2000 barajitas en total
 
-// Caché global en memoria para optimizar la red de Venezuela (Evita lag de carga)
+// Caché global en memoria
 let inventarioUsuarioCache = new Map();
 
-// Vinculación con los objetos de la interfaz
+// Elementos del DOM
 const grillaCartas = document.getElementById('grilla-cartas');
 const contadorProgreso = document.getElementById('contador-progreso');
 const tituloBloque = document.getElementById('titulo-bloque');
+const indicadorPagina = document.getElementById('indicador-pagina');
 const modalVisor = document.getElementById('modal-visor');
 const cartaAnimada = document.getElementById('carta-animada');
 const contenidoFrontal = document.getElementById('contenido-carta-frontal');
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // 🚀 MEJORA: Descargamos el inventario del usuario UNA SOLA VEZ al abrir la app
+    // 1. Cargar datos del usuario de Telegram
+    inicializarUsuarioTelegram();
+
+    // 2. Actualizar año en cabecera automáticamente
+    document.getElementById('ano-actual').innerText = new Date().getFullYear();
+
+    // 3. Cargar inventario del usuario desde Supabase
     await cargarInventarioInicial();
     
-    // Renderizar la primera página con los slots fijos
+    // 4. Renderizar la primera página (1 al 25)
     renderizarLibro(paginaActual);
 
-    // Navegación interactiva de las páginas del libro
+    // 5. Motor en tiempo real para compras/recompensas
+    activarEscuchaColeccionEnVivo();
+
+    // Eventos de Navegación
     document.getElementById('btn-anterior').addEventListener('click', () => {
-        if (paginaActual > 1) { paginaActual--; renderizarLibro(paginaActual); }
-    });
-    document.getElementById('btn-siguiente').addEventListener('click', () => {
-        if (paginaActual < 40) { paginaActual++; renderizarLibro(paginaActual); } // 40 páginas × 50 = 2000 cartas
+        if (paginaActual > 1) { 
+            paginaActual--; 
+            renderizarLibro(paginaActual); 
+        }
     });
 
-    // Cerrar el visor 3D al tocar cualquier parte de la pantalla oscura
+    document.getElementById('btn-siguiente').addEventListener('click', () => {
+        if (paginaActual < totalPaginas) { 
+            paginaActual++; 
+            renderizarLibro(paginaActual); 
+        }
+    });
+
+    // Cerrar visor 3D
     modalVisor.addEventListener('click', () => {
         cartaAnimada.classList.remove('girar-y-ampliar');
         setTimeout(() => { modalVisor.style.display = 'none'; }, 250);
     });
 });
 
-// Función para descargar las posesiones del jugador al iniciar
+function inicializarUsuarioTelegram() {
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        idUsuarioTelegram = user.id.toString();
+        
+        document.getElementById('user-username').innerText = user.username ? `@${user.username}` : `@id_${user.id}`;
+        document.getElementById('user-fullname').innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        
+        if (user.photo_url) {
+            document.getElementById('user-avatar').src = user.photo_url;
+        }
+    }
+}
+
 async function cargarInventarioInicial() {
     try {
         const { data, error } = await supabaseClient.from('Coleccion_Usuario')
             .select('id_carta, cantidad')
-            .eq('id_usuario', USUARIO_ID_MOCK);
+            .eq('id_usuario', idUsuarioTelegram);
         
         if (error) throw error;
-        // Guardamos el mapa en memoria de forma global
         inventarioUsuarioCache = new Map(data.map(i => [i.id_carta, i.cantidad]));
     } catch (err) {
-        console.error("Error al cargar inventario del jugador:", err);
+        console.error("Error al cargar inventario:", err);
     }
 }
 
-// Función central dinámica optimizada para grillas de 50 fijas
 async function renderizarLibro(pagina) {
-    grillaCartas.innerHTML = "<p style='color:#00ff66;font-size:8px;grid-column:span 5;text-align:center;'>ABRIENDO LIBRO...</p>";
+    grillaCartas.innerHTML = "<p style='color:#00ff66;font-size:8px;grid-column:span 5;text-align:center;'>ABRIENDO PÁGINA...</p>";
     
     const inicioRango = (pagina - 1) * cartasPorPagina + 1;
     const finRango = pagina * cartasPorPagina;
 
-    // Calcular el bloque/era correspondiente para el letrero arcade
+    // Actualizar indicador de página y eras
+    indicadorPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
+
     let eraTexto = "ERA 1: COTIDIANOS 🐾";
     if (inicioRango > 500)  eraTexto = "ERA 2: SILVESTRES 🦅";
     if (inicioRango > 1000) eraTexto = "ERA 3: EXTINTOS 🦖";
@@ -72,7 +108,6 @@ async function renderizarLibro(pagina) {
     tituloBloque.innerText = eraTexto;
 
     try {
-        // Consultar a Supabase ÚNICAMENTE el catálogo de cartas de esta página
         const { data: catalogoCartas, error: errCartas } = await supabaseClient.from('Cartas')
             .select('*')
             .gte('id_carta', inicioRango)
@@ -80,86 +115,53 @@ async function renderizarLibro(pagina) {
 
         if (errCartas) throw errCartas;
 
-        // Convertimos el catálogo obtenido en un mapa de consulta rápida
         const mapaCatalogo = new Map(catalogoCartas.map(c => [c.id_carta, c]));
         
-        // Actualizar contadores de cabecera
-        contadorProgreso.innerText = `PÁG. ${pagina} | RESTRICCIÓN: #${inicioRango}-#${finRango}`;
+        // Total coleccionado global
+        const poseidasTotales = inventarioUsuarioCache.size;
+        contadorProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
+        
         grillaCartas.innerHTML = "";
 
-        // 🚀 EL PASO MAESTRO: Forzamos un ciclo rígido de 50 repeticiones exactas por página
+        // Generar exactamente 25 cuadros secuenciales por página
         for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
             const slot = document.createElement('div');
             slot.classList.add('miniatura-slot');
 
-            // 1. Buscamos si el catálogo de Supabase tiene cargada esta carta
             const datosCarta = mapaCatalogo.get(idCarta);
-
-            // 2. Buscamos si el usuario posee esta carta en su inventario en caché
             const jugadorLaPosee = inventarioUsuarioCache.has(idCarta);
 
             if (datosCarta && jugadorLaPosee) {
-                // CASO A: La carta existe en el juego Y el jugador ya la compró
-                slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Card">`;
-                
+                slot.innerHTML = `<img src="${datosCarta.url_imagen}" alt="Barajita ${idCarta}">`;
                 slot.addEventListener('click', (e) => {
                     e.stopPropagation();
                     desplegarCarta3D(datosCarta);
                 });
             } else {
-                // CASO B: El jugador no la tiene (o la carta aún no se ha creado en la Base de Datos)
-                // Se dibuja el slot vacío con el signo "?" respetando la grilla arcade
+                // Si no se posee, muestra el número ordinal correspondiente
                 slot.classList.add('bloqueada');
-                slot.innerHTML = `<span>?</span>`;
+                slot.innerText = idCarta;
             }
 
             grillaCartas.appendChild(slot);
         }
 
     } catch (error) {
-        console.error("Error crítico de renderizado:", error);
+        console.error("Error al renderizar página:", error);
         grillaCartas.innerHTML = "<p style='color:#ff3333;font-size:8px;grid-column:span 5;text-align:center;'>ERROR DE CONEXIÓN</p>";
     }
 }
 
-// Mecánica visual adictiva: Fusión de Capas, Marcos y Estrellas Doradas
 function desplegarCarta3D(carta) {
-    const numeroEstrellas = Math.min(Math.max(Math.floor(carta.poder / 100), 1), 5);
-    let estrellasHtml = "";
-    for (let i = 0; i < numeroEstrellas; i++) {
-        estrellasHtml += "<span class='estrella-oro'>★</span>";
-    }
-
-    let claseMarco = `marco-${carta.tipo.trim().toLowerCase()}`;
-    if (carta.rareza.toLowerCase() === 'mitológica') {
-        claseMarco = 'marco-mitologica'; // Activa el filtro arcoíris animado
-    }
+    const numeroEstrellas = Math.min(Math.max(Math.floor((carta.poder || 100) / 100), 1), 5);
+    let estrellasHtml = "★".repeat(numeroEstrellas);
 
     contenidoFrontal.innerHTML = `
-        <div class="carta-tcg ${claseMarco}">
-            <div class="carta-encabezado">
-                <span class="nombre-texto">${carta.nombre.toUpperCase()}</span>
-                <div class="estrellas-contenedor">${estrellasHtml}</div>
-            </div>
-            
-            <div class="arte-cuadro">
-                <img src="${carta.url_imagen}" alt="Criatura">
-            </div>
-
-            <div class="bloque-stats">
-                <p>HÁBITAT: ${carta.habitat.toUpperCase()}</p>
-                <p>ATAQUE: ⚔️ ${carta.ataque_nombre.toUpperCase()}</p>
-                <div class="fila-valores">
-                    <span>HP: ${carta.salud}</span>
-                    <span>ATK: ${carta.poder}</span>
-                </div>
-                <p class="texto-lore">"${carta.lore}"</p>
-            </div>
-            
-            <div class="pie-carta">
-                <span>#${String(carta.id_carta).padStart(4, '0')}</span>
-                <span>${carta.rareza.toUpperCase()}</span>
-            </div>
+        <div style="text-align:center; padding: 10px;">
+            <h3 style="font-size:10px; color:#ffcc00; margin-bottom:5px;">${(carta.nombre || 'BARAJITA').toUpperCase()}</h3>
+            <p style="font-size:8px; color:#00ff66; margin-bottom:10px;">${estrellasHtml}</p>
+            <img src="${carta.url_imagen}" style="width:100%; height:180px; object-fit:cover; border-radius:4px; border:2px solid #3a6ea5;">
+            <p style="font-size:7px; color:#aaa; margin-top:10px;">#${String(carta.id_carta).padStart(4, '0')}</p>
         </div>
     `;
 
@@ -168,56 +170,29 @@ function desplegarCarta3D(carta) {
         cartaAnimada.classList.add('girar-y-ampliar');
     }, 30);
 }
-// =============================================================================
-// 🛰️ MOTOR EN TIEMPO REAL: ACTUALIZACIÓN AUTOMÁTICA AL APROBARSE EL PAGO
-// =============================================================================
 
 function activarEscuchaColeccionEnVivo() {
-    console.log("📡 Sincronizando canal de escucha en tiempo real con Supabase...");
-
-    // Nos suscribimos a los cambios de la tabla 'Coleccion_Usuario' para este jugador
     supabaseClient
         .channel('cambios-album-en-vivo')
         .on(
             'postgres_changes', 
             { 
-                event: 'INSERT', // Escucha solo cuando se añade una nueva barajita comprada
+                event: 'INSERT', 
                 schema: 'public', 
                 table: 'Coleccion_Usuario',
-                filter: `id_usuario=eq.${USUARIO_ID_MOCK}` // Filtra para que solo afecte a este jugador
+                filter: `id_usuario=eq.${idUsuarioTelegram}`
             }, 
             (payload) => {
-                // 1. Extraemos los datos de la barajita recién aprobada
                 const nuevaCarta = payload.new;
-                console.log(`🎁 ¡Nueva barajita detectada en tu cuenta! ID: ${nuevaCarta.id_carta}`);
-
-                // 2. Inyectamos la carta en nuestra lista en memoria para que el sistema sepa que ya la posee
                 inventarioUsuarioCache.set(nuevaCarta.id_carta, nuevaCarta.cantidad);
 
-                // 3. Verificamos si la barajita pertenece a la página que el usuario está viendo actualmente
                 const inicioRango = (paginaActual - 1) * cartasPorPagina + 1;
                 const finRango = paginaActual * cartasPorPagina;
 
                 if (nuevaCarta.id_carta >= inicioRango && nuevaCarta.id_carta <= finRango) {
-                    // 🚀 ¡La carta está en esta página! Forzamos el rediseño instantáneo de la grilla
-                    console.log("✨ Actualizando ranura visual en la cuadrícula...");
                     renderizarLibro(paginaActual);
                 }
-                
-                // Opcional: Actualizar el marcador de progreso global aquí si lo deseas
             }
         )
         .subscribe();
 }
-
-// 🎯 ACTIVACIÓN AUTOMÁTICA AL INICIAR EL JUEGO
-// Modifica tu bloque 'DOMContentLoaded' existente para que llame a esta función al final:
-document.addEventListener("DOMContentLoaded", async () => {
-    await cargarInventarioInicial();
-    renderizarLibro(paginaActual);
-    
-    // ENCENDEMOS EL MOTOR EN VIVO:
-    activarEscuchaColeccionEnVivo();
-
-    // (Tus códigos de escucha de botones btn-anterior y btn-siguiente se mantienen igual)
-});

@@ -66,14 +66,21 @@ function inicializarUsuarioTelegram() {
 async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
+        
+        // Buscamos coincidencia tanto por username como por ID numérico
         const { data, error } = await supabaseClient
             .from('Coleccion_Usuario')
-            .select('carta_id, cantidad, Cartas(id, nombre, rareza, imagen_url)')
-            .eq('usuario_id', idUsuarioTelegram);
+            .select('*')
+            .or(`usuario_id.eq.${idUsuarioTelegram},id_usuario.eq.${idUsuarioTelegram}`);
         
         if (!error && data) {
+            inventarioUsuarioCache.clear();
             data.forEach(item => {
-                inventarioUsuarioCache.set(item.carta_id || (item.Cartas ? item.Cartas.id : null), item);
+                // Soporta si la columna se llama carta_id o id_carta
+                const idCarta = item.carta_id || item.id_carta;
+                if (idCarta) {
+                    inventarioUsuarioCache.set(Number(idCarta), item);
+                }
             });
         }
     } catch (err) {

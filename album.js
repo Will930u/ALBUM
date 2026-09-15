@@ -67,18 +67,29 @@ async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
 
-        // Leemos exactamente las columnas usuario_id y carta_id que guarda el admin
+        // Limpiamos el ID por si tiene o no tiene '@'
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '');
+        const idConArroba = `@${idLimpio}`;
+
+        // Buscamos coincidencia tanto con @ como sin @
         const { data, error } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('carta_id, cantidad')
-            .eq('usuario_id', idUsuarioTelegram);
+            .or(`usuario_id.eq.${idLimpio},usuario_id.eq.${idConArroba}`);
         
         if (!error && data) {
             inventarioUsuarioCache.clear();
             data.forEach(item => {
                 if (item.carta_id) {
-                    // Mapeamos la carta al id correspondiente para renderizar el canvas
-                    inventarioUsuarioCache.set(Number(item.carta_id), item);
+                    const idCartaNum = Number(item.carta_id);
+                    const existente = inventarioUsuarioCache.get(idCartaNum);
+                    
+                    // Si ya existe por duplicado de @, sumamos cantidades
+                    if (existente) {
+                        existente.cantidad += item.cantidad;
+                    } else {
+                        inventarioUsuarioCache.set(idCartaNum, { ...item });
+                    }
                 }
             });
         } else if (error) {

@@ -66,22 +66,23 @@ function inicializarUsuarioTelegram() {
 async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
-        
-        // Buscamos coincidencia tanto por username como por ID numérico
+
+        // Leemos exactamente las columnas usuario_id y carta_id que guarda el admin
         const { data, error } = await supabaseClient
             .from('Coleccion_Usuario')
-            .select('*')
-            .or(`usuario_id.eq.${idUsuarioTelegram},id_usuario.eq.${idUsuarioTelegram}`);
+            .select('carta_id, cantidad')
+            .eq('usuario_id', idUsuarioTelegram);
         
         if (!error && data) {
             inventarioUsuarioCache.clear();
             data.forEach(item => {
-                // Soporta si la columna se llama carta_id o id_carta
-                const idCarta = item.carta_id || item.id_carta;
-                if (idCarta) {
-                    inventarioUsuarioCache.set(Number(idCarta), item);
+                if (item.carta_id) {
+                    // Mapeamos la carta al id correspondiente para renderizar el canvas
+                    inventarioUsuarioCache.set(Number(item.carta_id), item);
                 }
             });
+        } else if (error) {
+            console.error("Error al consultar Coleccion_Usuario:", error);
         }
     } catch (err) {
         console.warn("Error cargando inventario inicial:", err);

@@ -2,6 +2,8 @@
    🎮 ÁLBUM DIGITAL DE BARRAQUITAS - HOJA DE ESTILOS DE LA INTERFAZ RETRO
    ============================================================================= */
 
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -10,264 +12,228 @@
 }
 
 body {
-    background-color: #0c1017;
+    background-color: #050811;
     color: #ffffff;
     font-family: 'Press Start 2P', monospace;
-    padding: 10px 10px 75px 10px;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     min-height: 100vh;
+    padding: 10px;
 }
 
-.interfaz-juego {
-    max-width: 440px;
+.app-container {
     width: 100%;
+    max-width: 420px;
+    background-color: #0a0f1d;
+    border: 2px solid #1a2942;
+    border-radius: 8px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
 }
 
-/* Cabecera */
-.cabecera-album {
-    background: linear-gradient(180deg, #1f3a60 0%, #0d1b2a 100%);
-    border: 3px solid #3a6ea5;
+/* Header */
+.header-banner {
+    border: 2px solid #2d456b;
+    background: linear-gradient(180deg, #101c33 0%, #0a1224 100%);
     border-radius: 6px;
-    padding: 12px 8px;
+    padding: 10px;
     text-align: center;
-    box-shadow: 0px 4px 0px #000000;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
 }
 
-.titulo-album {
+.header-banner h1 {
     font-size: 11px;
     color: #ffffff;
-    text-shadow: 2px 2px #000000;
-    margin-bottom: 6px;
-    line-height: 1.3;
-}
-
-.temporada-tag {
-    font-size: 8px;
-    color: #ffcc00;
     text-shadow: 1px 1px #000;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
 }
 
-/* Marcador de Progreso Dinámico */
-.marcador-progreso {
-    background-color: #000000;
-    border: 3px solid #1f2833;
+.sub-header {
+    font-size: 8px;
+    color: #facc15;
+}
+
+/* Era Section */
+.era-section {
+    border: 2px solid #1a2942;
+    background-color: #070c18;
+    border-radius: 6px;
     padding: 10px;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
     text-align: center;
 }
 
-.linea-era {
-    font-size: 8px;
-    color: #00ff66;
+.era-title {
+    color: #22c55e;
+    font-size: 10px;
+    margin-bottom: 6px;
 }
 
-.linea-conteo {
+.progreso-text {
+    color: #facc15;
     font-size: 9px;
-    color: #ffffff;
+    margin-bottom: 10px;
 }
 
-.resaltado-oro {
-    color: #ffcc00;
-}
-
-.controles-navegacion {
+.nav-era-buttons {
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    margin-top: 2px;
+    gap: 8px;
 }
 
-.btn-retro {
+.pixel-btn {
     flex: 1;
-    background-color: #1a2332;
+    background: linear-gradient(180deg, #182844 0%, #0f1a2e 100%);
+    border: 2px solid #2e4975;
     color: #ffffff;
-    border: 2px solid #3a6ea5;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
     padding: 8px 0;
     cursor: pointer;
-    border-radius: 3px;
-    box-shadow: 2px 2px 0px #000000;
+    border-radius: 4px;
 }
 
-.btn-retro:active {
-    transform: translate(1px, 1px);
-    box-shadow: 0px 0px 0px #000;
+.pixel-btn:active {
+    background: #0b1322;
+    transform: translateY(1px);
 }
 
-/* Libro y Grilla de 25 espacios (5x5) */
-.libro-contenedor {
-    background-color: #111622;
-    border: 3px solid #2c3e50;
+/* Grid Álbum */
+.grid-album-container {
+    border: 2px solid #1e304d;
+    background-color: #060a14;
     border-radius: 6px;
     padding: 8px;
-    box-shadow: inset 0 0 10px #000000;
 }
 
-.pagina-cuadrula {
+.grid-album {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 6px;
 }
 
-.miniatura-slot {
-    aspect-ratio: 1 / 1;
-    background-color: #1c2738;
-    border: 2px solid #3a6ea5;
+.slot {
+    aspect-ratio: 4 / 5;
+    background-color: #16233b;
+    border: 2px solid #2a4166;
     border-radius: 4px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 10px;
-    color: #ffffff;
-    font-weight: bold;
-    cursor: pointer;
     position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.6);
 }
 
-.miniatura-slot.bloqueada {
-    background-color: #243044;
-    border-color: #415a77;
-    color: #111622;
-    font-size: 12px;
+.slot-number {
+    color: #3b5278;
+    font-size: 11px;
+    font-weight: bold;
 }
 
-.miniatura-slot img {
+.slot.occupied {
+    background-color: #0f172a;
+    border-color: #38bdf8;
+}
+
+.slot canvas {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    border-radius: 2px;
 }
 
-/* Panel de Usuario de Telegram */
-.panel-usuario-telegram {
-    background-color: #111622;
-    border: 2px solid #1f2833;
-    padding: 8px 12px;
-    border-radius: 4px;
+.badge-qty {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: #eab308;
+    color: #000000;
+    font-size: 7px;
+    font-weight: bold;
+    padding: 1px 3px;
+    border-radius: 2px;
+}
+
+/* Footer Info */
+.album-footer-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 4px 2px;
 }
 
-.indicador-pagina {
-    font-size: 8px;
-    color: #4a90e2;
+.pagina-text {
+    color: #38bdf8;
+    font-size: 9px;
 }
 
-.perfil-telegram {
+.user-badge {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.avatar-tg {
+.avatar-frame {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    border: 2px solid #00ff66;
+    border: 2px solid #22c55e;
+    overflow: hidden;
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-frame img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
 }
 
-.datos-tg {
+.user-details {
     display: flex;
     flex-direction: column;
     text-align: right;
 }
 
-.tg-username {
-    font-size: 7px;
-    color: #00ff66;
+.username {
+    color: #22c55e;
+    font-size: 8px;
 }
 
-.tg-fullname {
-    font-size: 6px;
-    color: #aaaaaa;
+.displayname {
+    color: #94a3b8;
+    font-size: 7px;
     margin-top: 2px;
 }
 
-/* Visor Modal 3D */
-.modal-visor {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background-color: rgba(0, 0, 0, 0.85);
-    z-index: 200;
+/* Bottom Nav */
+.bottom-nav {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(4px);
-}
-
-.carta-box-animacion {
-    width: 260px;
-    height: 360px;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.5s ease;
-}
-
-.carta-box-animacion.girar-y-ampliar {
-    transform: scale(1.05);
-}
-
-.carta-cara {
-    position: absolute;
-    width: 100%; height: 100%;
-    backface-visibility: hidden;
-    border-radius: 8px;
-    border: 3px solid #ffcc00;
-    background-color: #1a1a1f;
-    padding: 10px;
-}
-
-.simbolo-incognita {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    color: #ffcc00;
-    font-size: 40px;
-}
-
-/* Menú Fijo Inferior */
-.menu-navegacion-fijo {
-    position: fixed;
-    bottom: 0; left: 0;
-    width: 100%;
-    background-color: #08080a;
-    border-top: 3px solid #1f2833;
-    display: flex;
-    justify-content: center;
     gap: 6px;
-    padding: 8px 5px;
-    z-index: 100;
 }
 
-.btn-nav {
-    background-color: #1a1a1f;
-    color: #ffffff;
-    border: 2px solid #333;
+.nav-tab {
+    flex: 1;
+    background-color: #0e1726;
+    border: 2px solid #1e2d42;
+    color: #94a3b8;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    padding: 10px 5px;
+    padding: 10px 0;
     cursor: pointer;
-    flex: 1;
-    max-width: 130px;
-    text-align: center;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
 }
 
-.btn-nav.activo {
-    background-color: #3a6ea5;
-    border-color: #00ff66;
+.nav-tab.active {
+    border-color: #22c55e;
     color: #ffffff;
+    background-color: #132238;
 }

@@ -1,4 +1,7 @@
-// CONFIGURACIÓN DE CONEXIÓN CON TU SERVIDOR DE SUPABASE
+// =============================================================================
+// 💻 CONTROLADOR DEL ÁLBUM CON SOPORTE SUPABASE Y TELEGRAM
+// =============================================================================
+
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 
@@ -11,7 +14,7 @@ if (tg) {
 let idUsuarioTelegram = "utrera930";
 let paginaActual = 1;
 const cartasPorPagina = 25;
-const totalPaginas = 40;
+const totalPaginas = 80; // 2000 cartas / 25 por página = 80
 
 let inventarioUsuarioCache = new Map();
 
@@ -21,30 +24,31 @@ document.addEventListener("DOMContentLoaded", async () => {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     } catch (e) {
-        console.warn("Supabase no cargado en modo offline.");
+        console.warn("⚠️ Supabase no cargado en modo offline.");
     }
 
     inicializarUsuarioTelegram();
-    document.getElementById('ano-actual').innerText = new Date().getFullYear();
+    
+    const elAno = document.getElementById('ano-actual');
+    if (elAno) elAno.innerText = new Date().getFullYear();
 
     await cargarInventarioInicial();
-    renderizarLibro(paginaActual);
 
-    document.getElementById('btn-anterior').addEventListener('click', () => {
+    document.getElementById('btn-anterior')?.addEventListener('click', () => {
         if (paginaActual > 1) { 
             paginaActual--; 
             renderizarLibro(paginaActual); 
         }
     });
 
-    document.getElementById('btn-siguiente').addEventListener('click', () => {
+    document.getElementById('btn-siguiente')?.addEventListener('click', () => {
         if (paginaActual < totalPaginas) { 
             paginaActual++; 
             renderizarLibro(paginaActual); 
         }
     });
 
-    document.getElementById('modal-visor').addEventListener('click', () => {
+    document.getElementById('modal-visor')?.addEventListener('click', () => {
         document.getElementById('modal-visor').style.display = 'none';
     });
 });
@@ -54,28 +58,32 @@ function inicializarUsuarioTelegram() {
         const user = tg.initDataUnsafe.user;
         idUsuarioTelegram = user.username || user.id.toString();
         
-        document.getElementById('user-username').innerText = `@${idUsuarioTelegram}`;
-        document.getElementById('user-fullname').innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-        
-        if (user.photo_url) {
-            document.getElementById('user-avatar').src = user.photo_url;
-        }
+        const uName = document.getElementById('user-username');
+        const fName = document.getElementById('user-fullname');
+        const avatar = document.getElementById('user-avatar');
+
+        if (uName) uName.innerText = `@${idUsuarioTelegram}`;
+        if (fName) fName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        if (avatar && user.photo_url) avatar.src = user.photo_url;
     }
 }
 
-// Carga del inventario combinando ambas tablas
+// Carga del inventario combinando ambas tablas mediante JOIN
 async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
 
-        // Limpiamos la variable por si incluye @
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim();
         const idConArroba = `@${idLimpio}`;
 
-        // 1. Obtener la colección del usuario desde Coleccion_Usuario
+        // Consultar la tabla Coleccion_Usuario cruzando la información con Cartas
         const { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
-            .select('carta_id, cantidad')
+            .select(`
+                carta_id, 
+                cantidad,
+                Cartas ( id, nombre, rareza, imagen_url, lore )
+            `)
             .or(`usuario_id.eq.${idLimpio},usuario_id.eq.${idConArroba}`);
 
         if (errColeccion) {
@@ -96,27 +104,15 @@ async function cargarInventarioInicial() {
                     } else {
                         inventarioUsuarioCache.set(idCartaNum, { 
                             carta_id: idCartaNum, 
-                            cantidad: item.cantidad 
+                            cantidad: item.cantidad,
+                            datosCarta: item.Cartas
                         });
                     }
                 }
             });
         }
 
-        // 2. Refrescar la interfaz del álbum
-        if (typeof renderizarLibro === 'function') {
-            renderizarLibro();
-        }
-
-    } catch (err) {
-        console.warn("Excepción en cargarInventarioInicial:", err);
-    }
-}
-
-        // 2. Refrescar la interfaz del álbum
-        if (typeof renderizarLibro === 'function') {
-            renderizarLibro();
-        }
+        renderizarLibro(paginaActual);
 
     } catch (err) {
         console.warn("Excepción en cargarInventarioInicial:", err);
@@ -125,21 +121,26 @@ async function cargarInventarioInicial() {
 
 function renderizarLibro(pagina) {
     const grillaCartas = document.getElementById('grilla-cartas');
+    if (!grillaCartas) return;
+
     const inicioRango = (pagina - 1) * cartasPorPagina + 1;
     const finRango = pagina * cartasPorPagina;
 
-    document.getElementById('indicador-pagina').innerText = `PÁGINA ${pagina}/${totalPaginas}`;
+    const elPagina = document.getElementById('indicador-pagina');
+    if (elPagina) elPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
 
     let eraTexto = "ERA 1: COTIDIANOS 🐾";
     if (inicioRango > 250) eraTexto = "ERA 2: ANCESTRAL 📜";
     if (inicioRango > 500) eraTexto = "ERA 3: CYBERPUNK 🦾";
     if (inicioRango > 750) eraTexto = "ERA 4: FUTURISTA 🚀";
-    document.getElementById('titulo-bloque').innerText = eraTexto;
+    
+    const elTitulo = document.getElementById('titulo-bloque');
+    if (elTitulo) elTitulo.innerText = eraTexto;
 
     const poseidasTotales = inventarioUsuarioCache.size;
-    document.getElementById('contador-progreso').innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
+    const elProgreso = document.getElementById('contador-progreso');
+    if (elProgreso) elProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
 
-    // Reconstruir slots 5x5 estables
     grillaCartas.innerHTML = "";
 
     for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
@@ -151,10 +152,12 @@ function renderizarLibro(pagina) {
         if (itemPoseido) {
             slot.classList.add('poseida');
 
-            const canvas = document.createElement('canvas');
-            canvas.width = 100;
-            canvas.height = 125;
-            slot.appendChild(canvas);
+            const imgUrl = itemPoseido.datosCarta?.imagen_url || 'https://via.placeholder.com/100';
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = `Carta #${idCarta}`;
+            img.className = 'img-slot-carta';
+            slot.appendChild(img);
 
             if (itemPoseido.cantidad > 1) {
                 const badge = document.createElement('span');
@@ -163,19 +166,9 @@ function renderizarLibro(pagina) {
                 slot.appendChild(badge);
             }
 
-            let receta = {};
-            try { 
-                receta = JSON.parse(itemPoseido.Cartas?.imagen_url || itemPoseido.imagen_url); 
-            } catch (e) {
-                receta = { fondoColor: "#1e293b", simbolo: "👾", marcoColor: "#38bdf8" };
-            }
-
-            const nombreCarta = itemPoseido.Cartas?.nombre || `CARTA #${idCarta}`;
-            dibujarCartaMini(canvas, receta, nombreCarta);
-
             slot.addEventListener('click', (e) => {
                 e.stopPropagation();
-                desplegarVisor(receta, nombreCarta, idCarta);
+                desplegarVisor(itemPoseido.datosCarta, idCarta, itemPoseido.cantidad);
             });
         } else {
             slot.innerText = idCarta;
@@ -185,50 +178,25 @@ function renderizarLibro(pagina) {
     }
 }
 
-// MOTOR ALGORÍTMICO DE DIBUJO EN CANVAS
-function dibujarCartaMini(canvas, receta, nombre) {
-    const ctx = canvas.getContext("2d");
-    
-    // Fondo Algorítmico
-    ctx.fillStyle = receta.fondoColor || "#1e293b";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Ícono Pixel Art en el Centro
-    ctx.font = "26px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(receta.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 8);
-
-    // Marco / Borde
-    ctx.strokeStyle = receta.marcoColor || "#38bdf8";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
-
-    // Franja de Nombre
-    ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
-    ctx.fillRect(3, canvas.height - 20, canvas.width - 6, 17);
-
-    // Texto
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "8px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText((nombre || "BARAJITA").substring(0, 10), canvas.width / 2, canvas.height - 8);
-}
-
-function desplegarVisor(receta, nombre, idCarta) {
+function desplegarVisor(datosCarta, idCarta, cantidad) {
     const modalVisor = document.getElementById('modal-visor');
     const contenidoFrontal = document.getElementById('contenido-carta-frontal');
+    if (!modalVisor || !contenidoFrontal) return;
+
+    const nombre = datosCarta?.nombre || `CARTA #${idCarta}`;
+    const imgUrl = datosCarta?.imagen_url || 'https://via.placeholder.com/200';
+    const rareza = datosCarta?.rareza || 'Común';
+    const lore = datosCarta?.lore || 'Sin descripción disponible.';
 
     contenidoFrontal.innerHTML = `
         <div style="text-align:center;">
-            <h3 style="font-size:10px; color:#ffcc00; margin-bottom:10px;">${nombre.toUpperCase()}</h3>
-            <canvas id="canvas-visor" width="220" height="270" style="border-radius:4px; border:2px solid #38bdf8; width:100%;"></canvas>
-            <p style="font-size:8px; color:#aaa; margin-top:10px;">#${String(idCarta).padStart(4, '0')}</p>
+            <h3 style="font-size:10px; color:#ffcc00; margin-bottom:8px;">${nombre.toUpperCase()}</h3>
+            <img src="${imgUrl}" style="width:100%; max-height:180px; object-fit:contain; border-radius:4px; border:1px solid #00ff66; margin-bottom:8px;">
+            <p style="font-size:7px; color:#38bdf8; margin-bottom:4px;">Rareza: ${rareza} | Copias: ${cantidad}</p>
+            <p style="font-size:6px; color:#aaa; margin-bottom:8px;">${lore}</p>
+            <p style="font-size:7px; color:#555;">#${String(idCarta).padStart(4, '0')}</p>
         </div>
     `;
-
-    const canvasVisor = document.getElementById('canvas-visor');
-    dibujarCartaMini(canvasVisor, receta, nombre);
 
     modalVisor.style.display = 'flex';
 }

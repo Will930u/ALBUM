@@ -1,5 +1,7 @@
 // =============================================================================
 // 💻 CONTROLADOR ADMINISTRATIVO ALGORÍTMICO Y RENDERIZADOR CANVAS ANIMADO
+// =============================================================================// =============================================================================
+// 💻 CONTROLADOR ADMINISTRATIVO ALGORÍTMICO Y RENDERIZADOR CANVAS ANIMADO
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";

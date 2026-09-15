@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Álbum Digital - Libro de Colección Retro</title>
+    <title>Álbum Digital de Barajitas</title>
     <!-- SDK Oficial de Telegram Mini Apps -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Fuente Pixel Art Retro -->
@@ -17,50 +17,47 @@
     <div class="interfaz-juego">
         <!-- Cabecera del Álbum -->
         <div class="cabecera-album">
-            <h1 class="titulo-album">ÁLBUM DIGITAL DE BARRAQUITAS</h1>
+            <h1 class="titulo-album">ÁLBUM DIGITAL DE BARAJITAS</h1>
             <div class="temporada-tag">★ TEMPORADA <span id="ano-actual">2026</span> ★</div>
         </div>
 
         <!-- Marcador de Progreso Dinámico Estilo Arcade -->
         <div class="marcador-progreso">
-            <div class="linea-era"><span id="titulo-bloque">CARGANDO ERA...</span></div>
+            <div class="linea-era"><span id="titulo-bloque">ERA 1: COTIDIANOS</span></div>
             <div class="linea-conteo">
                 <span id="contador-progreso" class="resaltado-oro">PROGRESO: 000 / 2000</span>
             </div>
             <div class="controles-navegacion">
-                <button class="btn-retro" id="btn-anterior">◀ ATRÁS</button>
-                <button class="btn-retro" id="btn-siguiente">SIGUIENTE ▶</button>
+                <button class="btn-retro" id="btn-anterior">◄ ATRÁS</button>
+                <button class="btn-retro" id="btn-siguiente">SIGUIENTE ►</button>
             </div>
         </div>
 
-        <!-- El Libro Abierto (Contenedor de la cuadrícula de 25 cartas) -->
+        <!-- Libro y Cuadrícula de 25 casilleros (5x5) -->
         <div class="libro-contenedor">
             <div class="pagina-cuadrula" id="grilla-cartas">
-                <!-- JavaScript inyectará aquí los 25 slots por página (del 1 al 25, 26 al 50, etc.) -->
+                <!-- Inyectado dinámicamente por album.js -->
             </div>
         </div>
 
-        <!-- Información de Paginación y Usuario de Telegram -->
+        <!-- Información de Paginación y Usuario -->
         <div class="panel-usuario-telegram">
             <span class="indicador-pagina" id="indicador-pagina">PÁGINA 1/40</span>
             <div class="perfil-telegram">
-                <img id="user-avatar" src="https://via.placeholder.com/40" alt="Avatar" class="avatar-tg">
+                <img id="user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='%2300ff66'><circle cx='12' cy='8' r='4'/><path d='M12 14c-6.1 0-8 4-8 4v2h16v-2s-1.9-4-8-4z'/></svg>" alt="Avatar" class="avatar-tg">
                 <div class="datos-tg">
-                    <span id="user-username" class="tg-username">@usuario</span>
-                    <span id="user-fullname" class="tg-fullname">NOMBRE COMPLETO</span>
+                    <span id="user-username" class="tg-username">@utrera930</span>
+                    <span id="user-fullname" class="tg-fullname">william utrera</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- VENTANA MODAL VISOR: Efecto 3D y Expansión -->
+    <!-- VENTANA MODAL VISOR: Efecto 3D -->
     <div class="modal-visor" id="modal-visor" style="display: none;">
         <div class="carta-box-animacion" id="carta-animada">
-            <div class="carta-cara cara-reverso">
-                <div class="simbolo-incognita">?</div>
-            </div>
             <div class="carta-cara cara-frontal" id="contenido-carta-frontal">
-                <!-- Inyectado dinámicamente desde Supabase por album.js -->
+                <!-- Detalle expandido de la carta en canvas -->
             </div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM CON SOPORTE SUPABASE Y TELEGRAM
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN CORREGIDA HÍBRIDA)
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -8,23 +8,23 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let supabaseClient = null;
 const tg = window.Telegram?.WebApp;
 if (tg) {
-    tg.expand();
+    try { tg.expand(); } catch (e) {}
 }
 
-let idUsuarioTelegram = "utrera930";
+// Usuario por defecto si entra desde el navegador web fuera de Telegram
+let idUsuarioTelegram = "utrera930"; 
 let paginaActual = 1;
 const cartasPorPagina = 25;
-const totalPaginas = 80; // 2000 cartas / 25 por página = 80
+const totalPaginas = 80;
 
 let inventarioUsuarioCache = new Map();
 
 document.addEventListener("DOMContentLoaded", async () => {
-    try {
-        if (typeof supabase !== 'undefined') {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        }
-    } catch (e) {
-        console.warn("⚠️ Supabase no cargado en modo offline.");
+    // Inicializar Supabase con fallback de verificación
+    if (typeof supabase !== 'undefined') {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error("❌ La librería @supabase/supabase-js no está cargada.");
     }
 
     inicializarUsuarioTelegram();
@@ -49,7 +49,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     document.getElementById('modal-visor')?.addEventListener('click', () => {
-        document.getElementById('modal-visor').style.display = 'none';
+        const visor = document.getElementById('modal-visor');
+        if (visor) visor.style.display = 'none';
     });
 });
 
@@ -65,10 +66,13 @@ function inicializarUsuarioTelegram() {
         if (uName) uName.innerText = `@${idUsuarioTelegram}`;
         if (fName) fName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
         if (avatar && user.photo_url) avatar.src = user.photo_url;
+    } else {
+        // Asignación explícita para pruebas en Navegador Web fuera de Telegram
+        const uName = document.getElementById('user-username');
+        if (uName) uName.innerText = `@${idUsuarioTelegram} (Web)`;
     }
 }
 
-// Carga del inventario combinando ambas tablas mediante JOIN
 async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
@@ -76,7 +80,7 @@ async function cargarInventarioInicial() {
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim();
         const idConArroba = `@${idLimpio}`;
 
-        // Consultar la tabla Coleccion_Usuario cruzando la información con Cartas
+        // Consulta unificada
         const { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select(`
@@ -105,7 +109,7 @@ async function cargarInventarioInicial() {
                         inventarioUsuarioCache.set(idCartaNum, { 
                             carta_id: idCartaNum, 
                             cantidad: item.cantidad,
-                            datosCarta: item.Cartas
+                            datosCarta: Array.isArray(item.Cartas) ? item.Cartas[0] : item.Cartas
                         });
                     }
                 }
@@ -129,14 +133,6 @@ function renderizarLibro(pagina) {
     const elPagina = document.getElementById('indicador-pagina');
     if (elPagina) elPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
 
-    let eraTexto = "ERA 1: COTIDIANOS 🐾";
-    if (inicioRango > 250) eraTexto = "ERA 2: ANCESTRAL 📜";
-    if (inicioRango > 500) eraTexto = "ERA 3: CYBERPUNK 🦾";
-    if (inicioRango > 750) eraTexto = "ERA 4: FUTURISTA 🚀";
-    
-    const elTitulo = document.getElementById('titulo-bloque');
-    if (elTitulo) elTitulo.innerText = eraTexto;
-
     const poseidasTotales = inventarioUsuarioCache.size;
     const elProgreso = document.getElementById('contador-progreso');
     if (elProgreso) elProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
@@ -152,9 +148,23 @@ function renderizarLibro(pagina) {
         if (itemPoseido) {
             slot.classList.add('poseida');
 
-            const imgUrl = itemPoseido.datosCarta?.imagen_url || 'https://via.placeholder.com/100';
+            // Control de imagen rota o vacía con fallback visual
+            const imgUrl = itemPoseido.datosCarta?.imagen_url || '';
             const img = document.createElement('img');
-            img.src = imgUrl;
+            
+            if (imgUrl && imgUrl.trim() !== '') {
+                img.src = imgUrl;
+            } else {
+                // SVG de respaldo si no hay URL configurada
+                img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="130" viewBox="0 0 100 130"><rect width="100%" height="100%" fill="%231a1a24"/><text x="50%" y="50%" fill="%2300ff66" font-size="10" text-anchor="middle" font-family="sans-serif">CARTA %23' + idCarta + '</text></svg>';
+            }
+
+            img.onerror = function() {
+                // Fallback si la URL remota da 404 o falla la carga
+                this.onerror = null;
+                this.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="130" viewBox="0 0 100 130"><rect width="100%" height="100%" fill="%232a0000"/><text x="50%" y="50%" fill="%23ff0055" font-size="8" text-anchor="middle" font-family="sans-serif">ERR: IMG 404</text></svg>';
+            };
+
             img.alt = `Carta #${idCarta}`;
             img.className = 'img-slot-carta';
             slot.appendChild(img);
@@ -184,14 +194,16 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     if (!modalVisor || !contenidoFrontal) return;
 
     const nombre = datosCarta?.nombre || `CARTA #${idCarta}`;
-    const imgUrl = datosCarta?.imagen_url || 'https://via.placeholder.com/200';
+    const imgUrl = datosCarta?.imagen_url || '';
     const rareza = datosCarta?.rareza || 'Común';
     const lore = datosCarta?.lore || 'Sin descripción disponible.';
+
+    const imgSrcFinal = (imgUrl && imgUrl.trim() !== '') ? imgUrl : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="100%" height="100%" fill="%231a1a24"/><text x="50%" y="50%" fill="%2300ff66" font-size="12" text-anchor="middle">SIN IMAGEN</text></svg>';
 
     contenidoFrontal.innerHTML = `
         <div style="text-align:center;">
             <h3 style="font-size:10px; color:#ffcc00; margin-bottom:8px;">${nombre.toUpperCase()}</h3>
-            <img src="${imgUrl}" style="width:100%; max-height:180px; object-fit:contain; border-radius:4px; border:1px solid #00ff66; margin-bottom:8px;">
+            <img src="${imgSrcFinal}" style="width:100%; max-height:180px; object-fit:contain; border-radius:4px; border:1px solid #00ff66; margin-bottom:8px;" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'><rect width=\'100%\' height=\'100%\' fill=\'%232a0000\'/><text x=\'50%\' y=\'50%\' fill=\'%23ff0055\' font-size=\'10\' text-anchor=\'middle\'>IMAGEN NO DISPONIBLE</text></svg>'">
             <p style="font-size:7px; color:#38bdf8; margin-bottom:4px;">Rareza: ${rareza} | Copias: ${cantidad}</p>
             <p style="font-size:6px; color:#aaa; margin-bottom:8px;">${lore}</p>
             <p style="font-size:7px; color:#555;">#${String(idCarta).padStart(4, '0')}</p>

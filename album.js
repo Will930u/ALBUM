@@ -1,5 +1,5 @@
 // =============================================================================
-// 📱 ALBUM.JS - RENDERING GARANTIZADO DE 25 CASILLEROS (FIX RECONSTRUCCIÓN)
+// 📱 ALBUM.JS - RENDERING GARANTIZADO DE 25 CASILLEROS CON FORMATO RETRO
 // =============================================================================
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
@@ -12,12 +12,19 @@ const TOTAL_PAGINAS = 40;
 let inventarioMemoria = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Inicialización del cliente Supabase si está disponible
     if (typeof supabase !== 'undefined') {
         supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     }
 
     obtenerUsuarioActual();
     configurarEventos();
+
+    // Esperar a que la fuente personalizada se cargue para renderizar correctamente el Canvas
+    if (document.fonts) {
+        await document.fonts.ready;
+    }
+
     await cargarColeccionInicial();
 });
 
@@ -82,7 +89,13 @@ function renderizarPagina(pagina) {
             slot.classList.add("occupied");
 
             let receta = {};
-            try { receta = JSON.parse(itemPoseido.Cartas.imagen_url); } catch (e) {}
+            try { 
+                receta = typeof itemPoseido.Cartas.imagen_url === 'string' 
+                    ? JSON.parse(itemPoseido.Cartas.imagen_url) 
+                    : itemPoseido.Cartas.imagen_url; 
+            } catch (e) {
+                receta = {};
+            }
 
             const canvas = document.createElement("canvas");
             canvas.width = 100;
@@ -108,24 +121,37 @@ function renderizarPagina(pagina) {
     }
 
     // Actualización de textos de interfaz
-    document.getElementById("era-label").textContent = `ERA ${determinarEraNumero(pagina)}: ${determinarEra(pagina)}`;
-    document.getElementById("pagina-label").textContent = `PÁGINA ${pagina}/${TOTAL_PAGINAS}`;
+    const eraLabel = document.getElementById("era-label");
+    if (eraLabel) {
+        eraLabel.textContent = `ERA ${determinarEraNumero(pagina)}: ${determinarEra(pagina)}`;
+    }
+    
+    const paginaLabel = document.getElementById("pagina-label");
+    if (paginaLabel) {
+        paginaLabel.textContent = `PÁGINA ${pagina}/${TOTAL_PAGINAS}`;
+    }
 }
 
 function configurarEventos() {
-    document.getElementById("btn-atras").onclick = () => {
-        if (paginaActual > 1) {
-            paginaActual--;
-            renderizarPagina(paginaActual);
-        }
-    };
+    const btnAtras = document.getElementById("btn-atras");
+    if (btnAtras) {
+        btnAtras.onclick = () => {
+            if (paginaActual > 1) {
+                paginaActual--;
+                renderizarPagina(paginaActual);
+            }
+        };
+    }
 
-    document.getElementById("btn-siguiente").onclick = () => {
-        if (paginaActual < TOTAL_PAGINAS) {
-            paginaActual++;
-            renderizarPagina(paginaActual);
-        }
-    };
+    const btnSiguiente = document.getElementById("btn-siguiente");
+    if (btnSiguiente) {
+        btnSiguiente.onclick = () => {
+            if (paginaActual < TOTAL_PAGINAS) {
+                paginaActual++;
+                renderizarPagina(paginaActual);
+            }
+        };
+    }
 }
 
 function determinarEraNumero(pagina) {
@@ -152,23 +178,31 @@ function actualizarProgreso(unicas) {
 function dibujarCartaMini(canvas, receta, nombre) {
     const ctx = canvas.getContext("2d");
     
-    ctx.fillStyle = receta.fondoColor || "#1e293b";
+    // Fondo base del casillero poseído
+    ctx.fillStyle = receta.fondoColor || "#101929";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.font = "24px sans-serif";
+    // Render del ícono o avatar pixel art
+    ctx.font = "32px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(receta.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 8);
+    ctx.fillText(receta.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 10);
 
-    ctx.strokeStyle = receta.marcoColor || "#38bdf8";
-    ctx.lineWidth = 3;
+    // Borde interno tipo barajita
+    ctx.strokeStyle = receta.marcoColor || "#1e3a5f";
+    ctx.lineWidth = 2;
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
 
-    ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
-    ctx.fillRect(3, canvas.height - 20, canvas.width - 6, 17);
+    // Franja inferior con fondo oscuro para el nombre de la carta
+    ctx.fillStyle = "rgba(4, 8, 16, 0.95)";
+    ctx.fillRect(2, canvas.height - 22, canvas.width - 4, 20);
 
+    // Texto del nombre de la carta
     ctx.fillStyle = "#ffffff";
-    ctx.font = "8px sans-serif";
+    ctx.font = "6px 'Press Start 2P', monospace";
     ctx.textAlign = "center";
-    ctx.fillText((nombre || "CARTA").substring(0, 10), canvas.width / 2, canvas.height - 8);
+    ctx.textBaseline = "middle";
+    
+    const textoNombre = (nombre || "CARTA").toUpperCase();
+    ctx.fillText(textoNombre.length > 9 ? textoNombre.substring(0, 8) + "." : textoNombre, canvas.width / 2, canvas.height - 11);
 }

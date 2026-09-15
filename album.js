@@ -67,11 +67,11 @@ async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
 
-        // Limpiamos el ID por si tiene o no tiene '@'
+        // Formateamos el usuario para buscar ambas versiones (con y sin @)
         const idLimpio = idUsuarioTelegram.replace(/^@/, '');
         const idConArroba = `@${idLimpio}`;
 
-        // Buscamos coincidencia tanto con @ como sin @
+        // Leemos de la tabla NUEVA: 'Coleccion_Usuario'
         const { data, error } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('carta_id, cantidad')
@@ -84,7 +84,6 @@ async function cargarInventarioInicial() {
                     const idCartaNum = Number(item.carta_id);
                     const existente = inventarioUsuarioCache.get(idCartaNum);
                     
-                    // Si ya existe por duplicado de @, sumamos cantidades
                     if (existente) {
                         existente.cantidad += item.cantidad;
                     } else {

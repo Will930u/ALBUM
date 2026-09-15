@@ -63,39 +63,63 @@ function inicializarUsuarioTelegram() {
     }
 }
 
+// Carga del inventario combinando ambas tablas
 async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
 
-        // Formateamos el usuario para buscar ambas versiones (con y sin @)
-        const idLimpio = idUsuarioTelegram.replace(/^@/, '');
+        // Limpiamos la variable por si incluye @
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim();
         const idConArroba = `@${idLimpio}`;
 
-        // Leemos de la tabla NUEVA: 'Coleccion_Usuario'
-        const { data, error } = await supabaseClient
+        // 1. Obtener la colección del usuario desde Coleccion_Usuario
+        const { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('carta_id, cantidad')
             .or(`usuario_id.eq.${idLimpio},usuario_id.eq.${idConArroba}`);
-        
-        if (!error && data) {
-            inventarioUsuarioCache.clear();
-            data.forEach(item => {
+
+        if (errColeccion) {
+            console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
+            return;
+        }
+
+        inventarioUsuarioCache.clear();
+
+        if (coleccion && coleccion.length > 0) {
+            coleccion.forEach(item => {
                 if (item.carta_id) {
                     const idCartaNum = Number(item.carta_id);
-                    const existente = inventarioUsuarioCache.get(idCartaNum);
+                    const previo = inventarioUsuarioCache.get(idCartaNum);
                     
-                    if (existente) {
-                        existente.cantidad += item.cantidad;
+                    if (previo) {
+                        previo.cantidad += item.cantidad;
                     } else {
-                        inventarioUsuarioCache.set(idCartaNum, { ...item });
+                        inventarioUsuarioCache.set(idCartaNum, { 
+                            carta_id: idCartaNum, 
+                            cantidad: item.cantidad 
+                        });
                     }
                 }
             });
-        } else if (error) {
-            console.error("Error al consultar Coleccion_Usuario:", error);
         }
+
+        // 2. Refrescar la interfaz del álbum
+        if (typeof renderizarLibro === 'function') {
+            renderizarLibro();
+        }
+
     } catch (err) {
-        console.warn("Error cargando inventario inicial:", err);
+        console.warn("Excepción en cargarInventarioInicial:", err);
+    }
+}
+
+        // 2. Refrescar la interfaz del álbum
+        if (typeof renderizarLibro === 'function') {
+            renderizarLibro();
+        }
+
+    } catch (err) {
+        console.warn("Excepción en cargarInventarioInicial:", err);
     }
 }
 

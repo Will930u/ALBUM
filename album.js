@@ -119,7 +119,15 @@ function renderizarCartasEnSlots() {
 
         // NO BORRAMOS EL SLOT COMPLETO para no perder el diseño base
         if (itemPoseido) {
-            slot.innerHTML = ""; // Limpia el número si la carta existe
+            // En lugar de borrar todo el contenedor, selecciona el casillero actual por su índice:
+            const slotActual = slots[index];
+            if (cartaPoseida) {
+        // Si tienes la carta, pones la imagen dentro del casillero existente
+            slotActual.innerHTML = `<img src="${cartaPoseida.imagen_url}" style="width:100%; height:100%;">`;
+            } else {
+    // Si NO la tienes, aseguras que se vea el número de la casilla
+    slotActual.innerHTML = `<span class="numero-slot">${numeroDeCarta}</span>`;
+} // Limpia el número si la carta existe
             let receta = {};
             try { receta = JSON.parse(itemPoseido.Cartas.imagen_url); } catch (e) {}
 

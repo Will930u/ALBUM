@@ -137,26 +137,124 @@ function iniciarBucleRenderizado() {
 }
 
 // Algoritmo matemático para renderizar la barajita
+// =============================================================================
+// 👾 MOTOR DE PIXEL ART PROCEDURAL (MATRICES Y GENERADOR SIMÉTRICO 8-BIT)
+// =============================================================================
+
+// Plantilla de Ejemplo: Slime Retro (12x12 píxeles)
+// 0 = Transparente, 1 = Borde Negro, 2 = Relleno Principal, 3 = Brillo, 4 = Ojos
+const SPRITE_SLIME_12x12 = [
+    [0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,1,1,2,2,2,2,1,1,0,0],
+    [0,1,2,2,3,3,2,2,2,2,1,0],
+    [1,2,3,3,2,2,2,2,2,2,2,1],
+    [1,2,3,2,4,1,2,4,1,2,2,1],
+    [1,2,2,2,4,1,2,4,1,2,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,2,1,1,1,1,1,1,2,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,1],
+    [0,1,2,2,2,2,2,2,2,2,1,0],
+    [0,0,1,1,2,2,2,2,1,1,0,0],
+    [0,0,0,0,1,1,1,1,0,0,0,0]
+];
+
+// Dibuja una matriz numérica como Pixel Art en una posición dada
+function dibujarSpriteMatriz(ctx, matriz, posX, posY, tamPixel, paleta) {
+    ctx.save();
+    for (let r = 0; r < matriz.length; r++) {
+        for (let c = 0; c < matriz[r].length; c++) {
+            const valor = matriz[r][c];
+            if (valor !== 0 && paleta[valor]) {
+                ctx.fillStyle = paleta[valor];
+                // Math.floor para evitar bordes borrosos (anti-aliasing)
+                ctx.fillRect(
+                    Math.floor(posX + c * tamPixel), 
+                    Math.floor(posY + r * tamPixel), 
+                    Math.ceil(tamPixel), 
+                    Math.ceil(tamPixel)
+                );
+            }
+        }
+    }
+    ctx.restore();
+}
+
+// Genera un monstruo aleatorio 8-bit usando simetría en espejo a partir de la semilla
+function generarMatrizMonstruoProcedural(semilla, filas = 12, columnas = 12) {
+    let matriz = Array.from({ length: filas }, () => Array(columnas).fill(0));
+    let mitad = Math.ceil(columnas / 2);
+    
+    // Pseudo-aleatorio basado en la semilla
+    let rng = function(s) {
+        let x = Math.sin(s++) * 10000;
+        return x - Math.floor(x);
+    };
+
+    let semActual = semilla;
+
+    for (let r = 1; r < filas - 1; r++) {
+        for (let c = 1; c < mitad; c++) {
+            let val = rng(semActual++);
+            // Decidir presencia de píxel según probabilidad
+            let relleno = val > 0.45 ? 2 : 0;
+            matriz[r][c] = relleno;
+            matriz[r][columnas - 1 - c] = relleno; // Espejo horizontal
+        }
+    }
+
+    // Agregar bordes automáticos (color 1) alrededor de los bloques rellenos (color 2)
+    let matrizConBorde = JSON.parse(JSON.stringify(matriz));
+    for (let r = 0; r < filas; r++) {
+        for (let c = 0; c < columnas; c++) {
+            if (matriz[r][c] === 2) {
+                // Verificar vecinos para dibujar el borde exterior
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        let nr = r + dr;
+                        let nc = c + dc;
+                        if (nr >= 0 && nr < filas && nc >= 0 && nc < columnas) {
+                            if (matrizConBorde[nr][nc] === 0) {
+                                matrizConBorde[nr][nc] = 1; // Borde
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Dibujar ojos fijos en el centro
+    const centroY = Math.floor(filas / 2) - 1;
+    const ojoIzquierdo = Math.floor(columnas / 2) - 2;
+    const ojoDerecho = Math.floor(columnas / 2) + 1;
+    
+    matrizConBorde[centroY][ojoIzquierdo] = 4;
+    matrizConBorde[centroY][ojoDerecho] = 4;
+
+    return matrizConBorde;
+}
+
+// Función Principal de Renderizado Integrada con Canvas
 function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Fondo degradado
+    // 1. Fondo Degradado
     const gradiente = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w);
     gradiente.addColorStop(0, config.colorSecundario || "#1e293b");
     gradiente.addColorStop(1, config.colorFondo || "#000000");
     ctx.fillStyle = gradiente;
     ctx.fillRect(0, 0, w, h);
 
-    // 2. Ondulaciones matemáticas en el fondo
+    // 2. Patrón de Fondo Matemático Animado
     ctx.save();
     ctx.strokeStyle = config.colorPrimario || "#00ff66";
     ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.3;
+    ctx.globalAlpha = 0.25;
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
         ctx.beginPath();
-        for (let x = 0; x < w; x += 5) {
-            const y = (h / 2) + Math.sin(x * 0.03 + tiempo + i + ((config.semilla || 1) % 10)) * (15 + i * 5);
+        for (let x = 0; x < w; x += 6) {
+            const y = (h / 2) + Math.sin(x * 0.04 + tiempo + i + ((config.semilla || 1) % 10)) * (12 + i * 4);
             if (x === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
@@ -164,7 +262,7 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
     }
     ctx.restore();
 
-    // 3. Marco decorativo interno
+    // 3. Marco Externo Estilo Arcade
     ctx.strokeStyle = config.colorPrimario || "#00ff66";
     ctx.lineWidth = 3;
     ctx.strokeRect(8, 8, w - 16, h - 16);
@@ -173,23 +271,36 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
     ctx.lineWidth = 1;
     ctx.strokeRect(12, 12, w - 24, h - 24);
 
-    // 4. Símbolo central animado / renderizado
-    ctx.save();
-    ctx.font = `${Math.floor(w * 0.2)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    // 4. Renderizado del Pixel Art (Monster / Slime / Procedural)
+    const tamPixel = Math.floor(w * 0.045); // Escala táctil de píxeles
+    const tamSpritePixel = 12 * tamPixel;
+    const posX = (w - tamSpritePixel) / 2;
+    const posY = (h - tamSpritePixel) / 2 + Math.sin(tiempo * 3) * 4; // Flotación sutil
 
-    const desvY = Math.sin(tiempo * 2) * 5;
-    ctx.shadowColor = config.colorPrimario || "#00ff66";
-    ctx.shadowBlur = 12;
-    ctx.fillText(config.simbolo || "🃏", w / 2, (h / 2) + desvY);
-    ctx.restore();
+    // Paleta de Colores asignada al Sprite
+    const paletaSprite = {
+        1: "#000000",                   // Borde
+        2: config.colorPrimario,        // Cuerpo
+        3: "#ffffff",                   // Brillo
+        4: "#ff0055"                    // Ojos
+    };
 
-    // 5. Etiqueta de Rareza
+    // Selección de modo: Matriz Fija o Generador Simétrico de Monstruos
+    let matrizPersonaje;
+    if (config.simbolo === "SLIME") {
+        matrizPersonaje = SPRITE_SLIME_12x12;
+    } else {
+        // Genera un monstruo pixel art único según la semilla guardada
+        matrizPersonaje = generarMatrizMonstruoProcedural(config.semilla || 12345, 12, 12);
+    }
+
+    dibujarSpriteMatriz(ctx, matrizPersonaje, posX, posY, tamPixel, paletaSprite);
+
+    // 5. Rareza y Texto
     ctx.fillStyle = "#ffffff";
     ctx.font = `${Math.max(6, Math.floor(w * 0.035))}px 'Press Start 2P', monospace`;
     ctx.textAlign = "center";
-    ctx.fillText((config.rareza || "COMÚN").toUpperCase(), w / 2, h - 15);
+    ctx.fillText((config.rareza || "COMÚN").toUpperCase(), w / 2, h - 18);
 }
 
 // Guardar la carta publicando la RECETA JSON en 'imagen_url'

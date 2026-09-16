@@ -153,8 +153,9 @@ async function parsearYGuardarPlantillas() {
 
     logStatus(`Procesadas ${registrosAInsertar.length} plantillas. Guardando en Supabase...`);
 
+    // Inserción con tabla en minúsculas
     const { error } = await supabaseClient
-        .from('Plantillas_Criaturas')
+        .from('plantillas_criaturas')
         .insert(registrosAInsertar);
 
     if (error) {
@@ -170,7 +171,7 @@ async function contarPlantillasRegistradas() {
     if (!supabaseClient) return;
 
     const { count, error } = await supabaseClient
-        .from('Plantillas_Criaturas')
+        .from('plantillas_criaturas')
         .select('*', { count: 'exact', head: true });
 
     if (!error) {
@@ -184,7 +185,7 @@ async function vaciarTablaPlantillas() {
     if (!confirm("¿Seguro que deseas eliminar TODAS las plantillas registradas?")) return;
 
     const { error } = await supabaseClient
-        .from('Plantillas_Criaturas')
+        .from('plantillas_criaturas')
         .delete()
         .neq('id', 0); // Borra todo
 
@@ -205,9 +206,8 @@ async function randomizarDesdePlantillas() {
 
     logStatus("Consultando plantilla aleatoria...");
 
-    // Conteo total para offset aleatorio
     const { count, error: errCount } = await supabaseClient
-        .from('Plantillas_Criaturas')
+        .from('plantillas_criaturas')
         .select('*', { count: 'exact', head: true });
 
     if (errCount || !count || count === 0) {
@@ -217,7 +217,7 @@ async function randomizarDesdePlantillas() {
     const randomIndex = Math.floor(Math.random() * count);
 
     const { data, error } = await supabaseClient
-        .from('Plantillas_Criaturas')
+        .from('plantillas_criaturas')
         .select('*')
         .range(randomIndex, randomIndex)
         .single();

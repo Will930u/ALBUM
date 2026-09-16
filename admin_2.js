@@ -815,3 +815,75 @@ async function limpiarStorageHuerfano() {
         logServidor("Escaneo finalizado: Se liberaron 0 KB de archivos obsoletos.", "SUCCESS");
     }, 1000);
 }
+// =============================================================================
+// ⚡ ESCUCHADOR EN TIEMPO REAL PARA EL ÁLBUM DEL USUARIO
+// =============================================================================
+
+function suscribirACambiosDeColeccion(usuarioIdActual) {
+    if (!supabaseClient) return;
+
+    supabaseClient
+        .channel('cambios-coleccion-realtime')
+        .on(
+            'postgres_changes',
+            {
+                event: '*', // Escucha INSERT y UPDATE
+                schema: 'public',
+                table: 'Coleccion_Usuario',
+                filter: `usuario_id=eq.${usuarioIdActual}`
+            },
+            (payload) => {
+                console.log("⚡ Cambio detectado en tiempo real:", payload);
+                
+                // Recargar las cartas en pantalla sin refrescar la página
+                if (typeof cargarAlbumUsuario === 'function') {
+                    cargarAlbumUsuario(); 
+                } else if (typeof renderizarAlbum === 'function') {
+                    renderizarAlbum();
+                }
+                
+                // Mostrar notificación en pantalla
+                mostrarNotificacionCartaRecibida(payload.new);
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log("🟢 Conectado al canal en tiempo real de la colección.");
+            }
+        });
+}
+
+function mostrarNotificacionCartaRecibida(datosNuevos) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-notificacion';
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #00ff66;
+        color: #000;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(0,255,102,0.4);
+        z-index: 9999;
+    `;
+    toast.innerText = `🎉 ¡Has recibido una nueva carta! (ID: #${datosNuevos?.carta_id || ''})`;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 4000);
+}
+
+// =============================================================================
+// 🚀 INICIALIZACIÓN AUTOMÁTICA
+// =============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Reemplaza esto con cómo obtienes el usuario actual en tu sistema (ej: localStorage, Telegram WebApp, etc.)
+    const usuarioActual = localStorage.getItem('usuario_telegram') || 'utrera930';
+
+    // Iniciar escucha activa en tiempo real
+    if (usuarioActual) {
+        suscribirACambiosDeColeccion(usuarioActual.toLowerCase());
+    }
+});

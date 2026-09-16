@@ -152,11 +152,11 @@
                 <!-- Se puebla dinámicamente -->
             </div>
         </div>
-        <!-- PESTAÑA 5: MONITOREO DEL SERVIDOR -->
+       <!-- PESTAÑA 5: MONITOREO Y CONTROL DEL SERVIDOR -->
 <div id="tab-servidor" class="contenido-pestana" style="display: none;">
-  <div class="subtitulo-admin">MÓDULO DE CONTROL Y ESTADO DEL SERVIDOR</div>
+  <div class="subtitulo-admin">CENTRO DE MANDO & ESTADO DEL SERVIDOR</div>
   
-  <!-- KPI METRICS GRID -->
+  <!-- METRICAS TÉCNICAS (INFRAESTRUCTURA) -->
   <div style="display: flex; gap: 10px; margin-bottom: 15px;">
     <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
       <div style="font-size: 8px; color: #888;">ESTADO SUPABASE</div>
@@ -172,16 +172,54 @@
     </div>
   </div>
 
-  <!-- HERRAMIENTAS MANTENIMIENTO -->
+  <!-- MÉTRICAS OPERATIVAS (MINIAPP & JUEGO) -->
+  <div class="subtitulo-admin">MÉTRICAS EN TIEMPO REAL (MINIAPP)</div>
+  <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+    <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+      <div style="font-size: 8px; color: #888;">USUARIOS REGISTRADOS</div>
+      <div id="kpi-usuarios-totales" style="color: #00ff66; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+    </div>
+    <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+      <div style="font-size: 8px; color: #888;">PREMIOS PENDIENTES</div>
+      <div id="kpi-premios-pendientes" style="color: #eab308; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+    </div>
+    <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+      <div style="font-size: 8px; color: #888;">COLECCIONES ACTIVAS</div>
+      <div id="kpi-total-colecciones" style="color: #38bdf8; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+    </div>
+  </div>
+
+  <!-- ACCIONES RÁPIDAS Y SWITCH DE MANTENIMIENTO -->
   <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
     <button class="btn-admin-final" style="flex: 1; background-color: #22c55e;" onclick="testearConexionSupabase()">🔌 PROBAR CONEXIÓN</button>
     <button class="btn-admin-final" style="flex: 1; background-color: #ef4444;" onclick="limpiarStorageHuerfano()">🧹 LIMPIAR STORAGE</button>
-    <button class="btn-admin-final" style="flex: 1; background-color: #a855f7;" onclick="forzarSincronizacionServidor()">🔄 RE-SINCRONIZAR</button>
+    <button class="btn-admin-final" style="flex: 1; background-color: #a855f7;" onclick="cargarMetricasServidor()">🔄 REFRESCAR MÉTRICAS</button>
   </div>
 
-  <!-- CONSOLA DE EVENTOS LOCAL -->
-  <div id="servidor-log-output" style="font-size: 8px; color: #00ff66; padding: 10px; background: #000; border: 1px solid #1a3a2a; font-family: monospace; min-height: 50px;">
-    [SISTEMA] Módulo Servidor iniciado. Listo para procesar comandos.
+  <!-- SOLICITUDES DE PREMIOS DE JUGADORES -->
+  <div class="subtitulo-admin">SOLICITUDES DE PREMIOS Y HITOS (RECLAMACIONES)</div>
+  <div style="background: #000; border: 1px solid #222; padding: 10px; margin-bottom: 15px; max-height: 180px; overflow-y: auto;">
+    <table style="width: 100%; text-align: left; color: #fff; font-size: 8px; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid #333; color: #888;">
+          <th style="padding: 4px;">USUARIO</th>
+          <th style="padding: 4px;">HITO/PREMIO</th>
+          <th style="padding: 4px;">ESTADO</th>
+          <th style="padding: 4px; text-align: center;">ACCIÓN</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-servidor-premios">
+        <tr>
+          <td colspan="4" style="padding: 8px; text-align: center; color: #666;">Cargando solicitudes de premios...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CONSOLA DE EVENTOS LOCAL EN VIVO -->
+  <div class="subtitulo-admin">LOGS DE AUDITORÍA DEL SERVIDOR</div>
+  <div id="servidor-log-output" style="font-size: 8px; color: #00ff66; padding: 10px; background: #000; border: 1px solid #1a3a2a; font-family: monospace; min-height: 60px; max-height: 120px; overflow-y: auto;">
+    [SISTEMA] Módulo Servidor en línea. Listo para ejecutar diagnósticos.
   </div>
 </div>
 

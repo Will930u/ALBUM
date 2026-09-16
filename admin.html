@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración y Generador Procedural</title>
+    <title>Panel de Administración y Generador Procedural / IA</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 <body>
 
     <div class="contenedor-central">
-        <h1 class="titulo-central">[ CONSOLA DE MANDO Y GENERADOR PROCEDURAL ]</h1>
+        <h1 class="titulo-central">[ CONSOLA DE MANDO Y GENERADOR DE CARTA ]</h1>
 
         <!-- BARRA DE PESTAÑAS SPA -->
         <div class="barra-pestanas">
@@ -22,17 +22,31 @@
             <button class="tab-btn" onclick="cambiarPestana('tab-catalogo')">📖 CATÁLOGO</button>
         </div>
 
-        <!-- PESTAÑA 1: GENERADOR PROCEDURAL Y PUBLICADOR -->
+        <!-- PESTAÑA 1: GENERADOR PROCEDURAL Y POLLINATIONS IA -->
         <div id="tab-crear" class="contenido-pestana activa">
-            <div class="subtitulo-admin">GENERADOR MATEMÁTICO DE CARTA EN VIVO</div>
+            <div class="subtitulo-admin">GENERADOR MATEMÁTICO & MOTOR POLLINATIONS.AI</div>
+
+            <!-- SELECTOR DE MODO -->
+            <div class="selector-modo-render">
+                <button type="button" class="btn-modo-opt activo" id="btn-modo-canvas" onclick="seleccionarModoRender('canvas')">👾 CANVAS 2D PROCEDURAL</button>
+                <button type="button" class="btn-modo-opt" id="btn-modo-ia" onclick="seleccionarModoRender('ia')">🤖 POLLINATIONS IA</button>
+            </div>
 
             <div class="contenedor-vista-previa-canvas">
-                <div class="label-previa">EN VIVO: RENDERIZADO CANVAS MATEMÁTICO</div>
+                <div class="label-previa" id="label-modo-previa">EN VIVO: RENDERIZADO CANVAS MATEMÁTICO</div>
+                
                 <div class="canvas-wrapper">
                     <canvas id="canvasCartaGenerada" width="220" height="308"></canvas>
+                    <img id="imgPollinationsPreview" class="img-pollinations-preview" alt="Preview IA">
+                    <div id="spinnerIA" class="spinner-ia">GENERANDO IA...</div>
                 </div>
+
                 <div class="info-semilla-box" id="info-semilla">Semilla: - | Era: -</div>
-                <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="margin-top:10px; width:100%; padding:10px; font-weight:bold;">🎲 RANDOMIZAR DESDE PLANTILLAS</button>
+                
+                <div style="display:flex; gap:8px; width:100%; margin-top:10px;">
+                    <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="flex:1; padding:10px;">🎲 RANDOMIZAR DESDE PLANTILLAS</button>
+                    <button type="button" id="btn-generar-ia" class="btn-mini-admin" style="background:#38bdf8; color:#000; display:none; padding:10px;" onclick="generarImagenPollinationsDirecta()">⚡ GENERAR IA</button>
+                </div>
             </div>
 
             <div class="form-grupo">
@@ -43,6 +57,14 @@
             <div class="form-grupo">
                 <label for="carta-nombre">NOMBRE DE LA CARTA:</label>
                 <input type="text" id="carta-nombre" placeholder="Ej: Guardián Místico">
+            </div>
+
+            <!-- PANEL DE OPCIONES ESPECÍFICAS DE IA -->
+            <div id="panel-opciones-ia" style="display:none; background:#000; padding:10px; border:1px solid #333; margin-bottom:14px; border-radius:4px;">
+                <div class="form-grupo">
+                    <label for="prompt-ia-custom">PROMPT PERSONALIZADO (POLLINATIONS):</label>
+                    <input type="text" id="prompt-ia-custom" placeholder="Ej: emoji of mythological dragon, 3d style render, isolated white background">
+                </div>
             </div>
 
             <div class="form-grupo">
@@ -75,14 +97,14 @@
                 <input type="text" id="carta-lore" placeholder="Historia breve de la carta...">
             </div>
 
-            <button id="btn-guardar-carta" class="btn-admin-final">💾 PUBLICAR RECETA MATEMÁTICA EN BASE DE DATOS</button>
+            <button id="btn-guardar-carta" class="btn-admin-final">💾 PUBLICAR RECETA EN BASE DE DATOS</button>
         </div>
 
         <!-- PESTAÑA 2: CARGA Y PARSER DE PLANTILLAS -->
         <div id="tab-plantillas" class="contenido-pestana">
             <div class="subtitulo-admin">CARGA MASIVA DE PLANTILLAS Y CATEGORÍAS</div>
             <p style="font-size:7px; color:#aaa; margin-bottom:10px; line-height:1.4;">
-                Pega el texto estructurado con las Zonas (encabezados) y las listas de emojis con sus nombres y descripciones. El parser lo procesará e insertará en la tabla <code>Plantillas_Criaturas</code>.
+                Pega el texto estructurado con las Zonas (encabezados) y las listas de emojis con sus nombres y descripciones. El parser lo procesará e insertará en la tabla <code>plantillas_criaturas</code>.
             </p>
 
             <div class="form-grupo">
@@ -137,6 +159,6 @@
 
     <!-- SDK SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="admin.js"></script>
+    <script src="admin_2.js"></script>
 </body>
 </html>

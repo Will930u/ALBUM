@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN DINÁMICA SIN HARDCODING)
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN DINÁMICA CON TIEMPO REAL)
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -39,6 +39,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await registrarOActualizarUsuarioBD();
     await cargarInventarioInicial();
+
+    // ⚡ Activar escucha en vivo de nuevas barajitas recibidas
+    activarAlbumEnTiempoReal();
 
     document.getElementById('btn-anterior')?.addEventListener('click', () => {
         if (paginaActual > 1) { 
@@ -295,4 +298,36 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     `;
 
     modalVisor.style.display = 'flex';
+}
+
+// =============================================================================
+// ⚡ CONEXIÓN EN TIEMPO REAL CON SUPABASE
+// =============================================================================
+
+function activarAlbumEnTiempoReal() {
+    if (!supabaseClient || !idUsuarioTelegram) return;
+
+    const usuarioLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+    supabaseClient
+        .channel(`realtime-album-${usuarioLimpio}`)
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'Coleccion_Usuario',
+                filter: `usuario_id=eq.${usuarioLimpio}`
+            },
+            (payload) => {
+                console.log("⚡ Cambio en vivo detectado para este usuario:", payload);
+                // Vuelve a cargar y pintar las cartas al recibir el evento
+                cargarInventarioInicial();
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log(`🟢 Álbum sincronizado en tiempo real para @${usuarioLimpio}`);
+            }
+        });
 }

@@ -3,41 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Control Supremo - Admin</title>
+    <title>Panel de Administración y Generador Procedural</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0d0e15; color: #00ff66; font-family: 'Press Start 2P', monospace; padding: 20px; }
-        .admin-box { max-width: 600px; margin: 0 auto; border: 2px solid #00ff66; padding: 15px; background: #14151f; border-radius: 8px; }
-        h1 { font-size: 11px; text-align: center; margin-bottom: 15px; color: #ffcc00; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-size: 8px; margin-bottom: 4px; color: #38bdf8; }
-        input, select, textarea { width: 100%; background: #000; border: 1px solid #00ff66; color: #fff; padding: 8px; font-family: inherit; font-size: 8px; border-radius: 4px; }
-        button { width: 100%; background: #00ff66; color: #000; border: none; padding: 10px; font-family: inherit; font-size: 9px; cursor: pointer; border-radius: 4px; margin-top: 8px; font-weight: bold; }
-        button:active { transform: translateY(2px); }
-        .status-log { margin-top: 15px; font-size: 7px; color: #ff0055; padding: 8px; background: #000; border: 1px solid #333; min-height: 40px; word-break: break-all; }
-    </style>
+    <link rel="stylesheet" href="admin-style.css">
 </head>
 <body>
 
-    <div class="admin-box">
-        <h1>[ PANEL DE CONTROL SUPREMO ]</h1>
+    <div class="contenedor-central">
+        <h1 class="titulo-central">[ CONSOLA DE MANDO Y GENERADOR PROCEDURAL ]</h1>
 
-        <!-- SECCIÓN 1: CREAR/EDITAR CARTA EN TABLA 'Cartas' -->
-        <div style="border-bottom: 1px dashed #333; padding-bottom: 15px; margin-bottom: 15px;">
-            <p style="font-size: 9px; color: #ffcc00; margin-bottom: 10px;">1. GESTOR DE CARTAS (TABLA Cartas)</p>
-            <div class="form-group">
-                <label>ID DE CARTA (1 a 2000):</label>
+        <!-- BARRA DE PESTAÑAS SPA -->
+        <div class="barra-pestanas">
+            <button class="tab-btn activo" onclick="cambiarPestana('tab-crear')">🎨 CREAR CARTA</button>
+            <button class="tab-btn" onclick="cambiarPestana('tab-asignar')">🎁 REGALAR</button>
+            <button class="tab-btn" onclick="cambiarPestana('tab-catalogo')">📖 CATÁLOGO</button>
+        </div>
+
+        <!-- PESTAÑA 1: GENERADOR PROCEDURAL Y PUBLICADOR -->
+        <div id="tab-crear" class="contenido-pestana activa">
+            <div class="subtitulo-admin">GENERADOR MATEMÁTICO DE CARTA EN VIVO</div>
+
+            <div class="contenedor-vista-previa-canvas">
+                <div class="label-previa">EN VIVO: RENDERIZADO CANVAS MATEMÁTICO</div>
+                <div class="canvas-wrapper">
+                    <canvas id="canvasCartaGenerada" width="220" height="308"></canvas>
+                </div>
+                <div class="info-semilla-box" id="info-semilla">Semilla: - | Era: -</div>
+                <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="margin-top:10px; width:100%; padding:8px;">🎲 RANDOMIZAR VALORES Y SEMILLA</button>
+            </div>
+
+            <div class="form-grupo">
+                <label for="carta-id">ID DE CARTA (1 a 2000):</label>
                 <input type="number" id="carta-id" placeholder="Ej: 1" min="1" max="2000">
             </div>
-            <div class="form-group">
-                <label>NOMBRE DE LA CARTA:</label>
+
+            <div class="form-grupo">
+                <label for="carta-nombre">NOMBRE DE LA CARTA:</label>
                 <input type="text" id="carta-nombre" placeholder="Ej: Guardián Místico">
             </div>
-            <div class="form-group">
-                <label>RAREZA:</label>
+
+            <div class="form-grupo">
+                <label for="carta-era">ERA CONCEPTUAL (PALETA Y PATRÓN):</label>
+                <select id="carta-era">
+                    <option value="cyber">Cyberpunk / Neón</option>
+                    <option value="cotidianos">Cotidianos / Retro</option>
+                    <option value="espacial">Cosmos / Estelar</option>
+                    <option value="antiguo">Místico / Arcana</option>
+                </select>
+            </div>
+
+            <div class="form-grupo">
+                <label for="carta-rareza">RAREZA:</label>
                 <select id="carta-rareza">
                     <option value="Común">Común</option>
                     <option value="Rara">Rara</option>
@@ -45,128 +63,57 @@
                     <option value="Legendaria">Legendaria</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>URL DE LA IMAGEN (HTTPS PÚBLICA):</label>
-                <input type="url" id="carta-url" placeholder="https://i.imgur.com/tu_imagen.png">
+
+            <div class="form-grupo">
+                <label for="carta-simbolo">SÍMBOLO / EMOJI CENTRAL:</label>
+                <input type="text" id="carta-simbolo" value="👾" maxlength="2">
             </div>
-            <div class="form-group">
-                <label>HISTORIA / LORE:</label>
-                <textarea id="carta-lore" rows="2" placeholder="Descripción de la carta..."></textarea>
+
+            <div class="form-grupo">
+                <label for="carta-lore">HISTORIA / LORE:</label>
+                <input type="text" id="carta-lore" placeholder="Historia breve de la carta...">
             </div>
-            <button id="btn-guardar-carta">💾 GUARDAR/ACTUALIZAR CARTA</button>
+
+            <button id="btn-guardar-carta" class="btn-admin-final">💾 PUBLICAR RECETA MATEMÁTICA EN BASE DE DATOS</button>
         </div>
 
-        <!-- SECCIÓN 2: ASIGNAR CARTA A USUARIO -->
-        <div>
-            <p style="font-size: 9px; color: #ffcc00; margin-bottom: 10px;">2. ENTREGAR CARTA A USUARIO</p>
-            <div class="form-group">
-                <label>USUARIO TELEGRAM (SIN @ O CON @):</label>
+        <!-- PESTAÑA 2: ASIGNAR CARTA A USUARIO -->
+        <div id="tab-asignar" class="contenido-pestana">
+            <div class="subtitulo-admin">ENTREGAR CARTA DIRECTA A COLECCIÓN</div>
+            
+            <div class="form-grupo">
+                <label for="target-user">USUARIO TELEGRAM (CON O SIN @):</label>
                 <input type="text" id="target-user" value="utrera930">
             </div>
-            <div class="form-group">
-                <label>ID DE CARTA A REGALAR:</label>
+
+            <div class="form-grupo">
+                <label for="target-carta-id">ID DE CARTA A REGALAR:</label>
                 <input type="number" id="target-carta-id" placeholder="Ej: 1">
             </div>
-            <div class="form-group">
-                <label>CANTIDAD:</label>
+
+            <div class="form-grupo">
+                <label for="target-cantidad">CANTIDAD:</label>
                 <input type="number" id="target-cantidad" value="1" min="1">
             </div>
-            <button id="btn-regalar-carta" style="background: #38bdf8;">🎁 ASIGNAR A COLECCIÓN</button>
+
+            <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;">🎁 ASIGNAR CARTA A USUARIO</button>
         </div>
 
-        <div class="status-log" id="status-log">Esperando acción...</div>
+        <!-- PESTAÑA 3: CATÁLOGOCARTA REGISTRADAS -->
+        <div id="tab-catalogo" class="contenido-pestana">
+            <div class="subtitulo-admin">CATÁLOGO GLOBAL DE RECETAS PUBLICADAS</div>
+            <div class="grid-cartas-admin" id="grid-catalogo-admin">
+                <!-- Se puebla dinámicamente -->
+            </div>
+        </div>
+
+        <div class="status-log" id="status-log" style="margin-top:15px; font-size:7px; color:#00ff66; padding:8px; background:#000; border:1px solid #333; min-height:40px; word-break:break-all;">
+            Sistema inicializado. Listo para procesar algoritmos.
+        </div>
     </div>
 
-    <!-- CARGA OBLIGATORIA DEL SDK SUPABASE -->
+    <!-- SDK SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    
-    <script>
-        const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
-        
-        let client = null;
-
-        function log(msg, err = false) {
-            const el = document.getElementById('status-log');
-            el.style.color = err ? "#ff0055" : "#00ff66";
-            el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof supabase !== 'undefined') {
-                client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                log("Supabase inicializado correctamente.");
-            } else {
-                log("ERROR: SDK de Supabase no cargó.", true);
-            }
-
-            // GUARDAR CARTA
-            document.getElementById('btn-guardar-carta').addEventListener('click', async () => {
-                if (!client) return log("Cliente Supabase no disponible.", true);
-                
-                const id = parseInt(document.getElementById('carta-id').value);
-                const nombre = document.getElementById('carta-nombre').value.trim();
-                const rareza = document.getElementById('carta-rareza').value;
-                const url = document.getElementById('carta-url').value.trim();
-                const lore = document.getElementById('carta-lore').value.trim();
-
-                if (!id || !nombre) return log("ID y Nombre son obligatorios.", true);
-
-                log("Guardando carta en base de datos...");
-
-                const { data, error } = await client
-                    .from('Cartas')
-                    .upsert([{ id, nombre, rareza, imagen_url: url, lore }], { onConflict: 'id' });
-
-                if (error) {
-                    log(`Error guardando carta: ${error.message}`, true);
-                } else {
-                    log(`✅ Carta #${id} ("${nombre}") guardada con éxito.`);
-                }
-            });
-
-            // REGALAR CARTA
-            document.getElementById('btn-regalar-carta').addEventListener('click', async () => {
-                if (!client) return log("Cliente Supabase no disponible.", true);
-
-                let user = document.getElementById('target-user').value.trim().replace(/^@/, '');
-                const cartaId = parseInt(document.getElementById('target-carta-id').value);
-                const cantidad = parseInt(document.getElementById('target-cantidad').value) || 1;
-
-                if (!user || !cartaId) return log("Usuario e ID de carta son obligatorios.", true);
-
-                log(`Asignando carta #${cartaId} a usuario ${user}...`);
-
-                // Verificar si ya existe registro
-                const { data: existente } = await client
-                    .from('Coleccion_Usuario')
-                    .select('*')
-                    .eq('usuario_id', user)
-                    .eq('carta_id', cartaId)
-                    .maybeSingle();
-
-                let errorRes = null;
-
-                if (existente) {
-                    const { error } = await client
-                        .from('Coleccion_Usuario')
-                        .update({ cantidad: existente.cantidad + cantidad })
-                        .eq('id', existente.id);
-                    errorRes = error;
-                } else {
-                    const { error } = await client
-                        .from('Coleccion_Usuario')
-                        .insert([{ usuario_id: user, carta_id: cartaId, cantidad }]);
-                    errorRes = error;
-                }
-
-                if (errorRes) {
-                    log(`Error asignando carta: ${errorRes.message}`, true);
-                } else {
-                    log(`🎁 ¡Carta #${cartaId} (x${cantidad}) asignada correctamente a @${user}!`);
-                }
-            });
-        });
-    </script>
+    <script src="admin.js"></script>
 </body>
 </html>

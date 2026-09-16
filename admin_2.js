@@ -54,13 +54,19 @@ function cambiarPestana(idPestana) {
     const pestanaTarget = document.getElementById(idPestana);
     if (pestanaTarget) pestanaTarget.classList.add('activa');
 
-    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(idPestana));
+    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(b => {
+        const attr = b.getAttribute('onclick');
+        return attr && attr.includes(idPestana);
+    });
     if (btnActivo) btnActivo.classList.add('activo');
 
     if (idPestana === 'tab-catalogo') {
         cargarCatalogoBaseDatos();
     } else if (idPestana === 'tab-plantillas') {
         contarPlantillasRegistradas();
+    } else if (idPestana === 'tab-servidor') {
+        testearConexionSupabase();
+        cargarMetricasServidor();
     }
 }
 
@@ -432,7 +438,7 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
 // =============================================================================
 
 async function guardarCartaEnSupabase() {
-    if (!supabaseClient) return logStatus("Cliente Supabase desbalancado.", true);
+    if (!supabaseClient) return logStatus("Cliente Supabase desconectado.", true);
 
     const id = parseInt(document.getElementById('carta-id').value);
     const nombre = document.getElementById('carta-nombre').value.trim();
@@ -458,8 +464,9 @@ async function guardarCartaEnSupabase() {
 
     logStatus(`Publicando receta de la Carta #${id}...`);
 
+    // Nombre de tabla ajustado a minúsculas 'cartas'
     const { error } = await supabaseClient
-        .from('Cartas')
+        .from('cartas')
         .upsert([{
             id: id,
             nombre: nombre,
@@ -477,7 +484,7 @@ async function guardarCartaEnSupabase() {
 }
 
 async function regalarCartaAUsuario() {
-    if (!supabaseClient) return logStatus("Cliente Supabase desbalancado.", true);
+    if (!supabaseClient) return logStatus("Cliente Supabase desconectado.", true);
 
     let usuario = document.getElementById('target-user').value.trim().replace(/^@/, '');
     const cartaId = parseInt(document.getElementById('target-carta-id').value);
@@ -489,8 +496,9 @@ async function regalarCartaAUsuario() {
 
     logStatus(`Asignando carta #${cartaId} a @${usuario}...`);
 
+    // Ajustado a minúsculas 'coleccion_usuario'
     const { data: existente } = await supabaseClient
-        .from('Coleccion_Usuario')
+        .from('coleccion_usuario')
         .select('*')
         .eq('usuario_id', usuario)
         .eq('carta_id', cartaId)
@@ -500,13 +508,13 @@ async function regalarCartaAUsuario() {
 
     if (existente) {
         const { error } = await supabaseClient
-            .from('Coleccion_Usuario')
+            .from('coleccion_usuario')
             .update({ cantidad: existente.cantidad + cantidad })
             .eq('id', existente.id);
         errorRes = error;
     } else {
         const { error } = await supabaseClient
-            .from('Coleccion_Usuario')
+            .from('coleccion_usuario')
             .insert([{ usuario_id: usuario, carta_id: cartaId, cantidad: cantidad }]);
         errorRes = error;
     }
@@ -526,13 +534,14 @@ async function cargarCatalogoBaseDatos() {
 
     contenedor.innerHTML = "<div style='font-size:7px; color:#888;'>Cargando recetas...</div>";
 
+    // Ajustado a minúsculas 'cartas'
     const { data, error } = await supabaseClient
-        .from('Cartas')
+        .from('cartas')
         .select('*')
         .order('id', { ascending: true });
 
     if (error) {
-        contenedor.innerHTML = "<div style='font-size:7px; color:#ff0055;'>Error al cargar catálogo.</div>";
+        contenedor.innerHTML = `<div style='font-size:7px; color:#ff0055;'>Error al cargar catálogo: ${error.message}</div>`;
         return;
     }
 
@@ -596,8 +605,9 @@ async function cargarCatalogoBaseDatos() {
 async function eliminarCarta(id) {
     if (!confirm(`¿Eliminar la carta #${id} del catálogo global?`)) return;
 
+    // Ajustado a minúsculas 'cartas'
     const { error } = await supabaseClient
-        .from('Cartas')
+        .from('cartas')
         .delete()
         .eq('id', id);
 
@@ -608,227 +618,165 @@ async function eliminarCarta(id) {
         cargarCatalogoBaseDatos();
     }
 }
-// ========= FUNCIONES DEL MÓDULO SERVIDOR =========
 
-async function testearConexionSupabase() {
-  const log = document.getElementById('servidor-log-output');
-  const pingEl = document.getElementById('ping-supabase');
-  const statusEl = document.getElementById('status-supabase');
-  const countEl = document.getElementById('total-cartas-count');
+// =============================================================================
+// 🖥️ MÓDULO SERVIDOR: TELEMETRÍA, MÉTRICAS Y CONTROL EN TIEMPO REAL
+// =============================================================================
 
-  if (!log) return;
-  
-  log.innerHTML = "[INFO] Iniciando test de latencia con Supabase...";
-  const inicio = performance.now();
-
-  try {
-    const { data, count, error } = await supabaseClient
-      .from('cartas')
-      .select('*', { count: 'exact', head: true });
-
-    const fin = performance.now();
-    const latencia = Math.round(fin - inicio);
-
-    if (error) throw error;
-
-    pingEl.innerText = `${latencia} ms`;
-    statusEl.innerText = "● ONLINE";
-    statusEl.style.color = "#00ff66";
-    countEl.innerText = count || 0;
-
-    log.innerHTML += `<br>[ÉXITO] Conexión estable. Latencia: ${latencia}ms | Registros: ${count || 0}`;
-  } catch (err) {
-    statusEl.innerText = "● ERROR";
-    statusEl.style.color = "#ef4444";
-    log.innerHTML += `<br>[ERROR] Fallo al conectar con Supabase: ${err.message}`;
-  }
-}
-
-async function limpiarStorageHuerfano() {
-  const log = document.getElementById('servidor-log-output');
-  if (log) log.innerHTML = "[STORAGE] Escaneando imágenes huérfanas en el bucket...";
-  setTimeout(() => {
-    if (log) log.innerHTML += "<br>[STORAGE] Purgado completado. 0 archivos obsoletos eliminados.";
-  }, 1200);
-}
-
-function forzarSincronizacionServidor() {
-  const log = document.getElementById('servidor-log-output');
-  if (log) log.innerHTML = "[CACHE] Memoria local invalidada. Sincronizando con la BD...";
-  testearConexionSupabase();
-}
-// =================================================================
-// MÓDULO SERVIDOR: TELEMETRÍA, MÉTRICAS Y CONTROL EN TIEMPO REAL
-// =================================================================
-
-// Muestra mensajes formateados con marca de tiempo en la terminal retro
 function logServidor(mensaje, tipo = "INFO") {
-  const logContainer = document.getElementById('servidor-log-output');
-  if (!logContainer) return;
+    const logContainer = document.getElementById('servidor-log-output');
+    if (!logContainer) return;
 
-  const ahora = new Date();
-  const timeStr = ahora.toTimeString().split(' ')[0];
-  let color = "#00ff66";
-  
-  if (tipo === "ERROR") color = "#ef4444";
-  if (tipo === "WARN") color = "#eab308";
-  if (tipo === "SUCCESS") color = "#38bdf8";
+    const ahora = new Date();
+    const timeStr = ahora.toTimeString().split(' ')[0];
+    let color = "#00ff66";
 
-  const nuevaLinea = `<div style="color: ${color}; margin-bottom: 2px;">[${timeStr}] [${tipo}] ${mensaje}</div>`;
-  logContainer.innerHTML += nuevaLinea;
-  logContainer.scrollTop = logContainer.scrollHeight;
+    if (tipo === "ERROR") color = "#ef4444";
+    if (tipo === "WARN") color = "#eab308";
+    if (tipo === "SUCCESS") color = "#38bdf8";
+
+    const nuevaLinea = `<div style="color: ${color}; margin-bottom: 2px;">[${timeStr}] [${tipo}] ${mensaje}</div>`;
+    logContainer.innerHTML += nuevaLinea;
+    logContainer.scrollTop = logContainer.scrollHeight;
 }
 
-// 1. Diagnóstico de Conexión, Ping y Conteos Globales
 async function testearConexionSupabase() {
-  const pingEl = document.getElementById('ping-supabase');
-  const statusEl = document.getElementById('status-supabase');
-  const countEl = document.getElementById('total-cartas-count');
+    const pingEl = document.getElementById('ping-supabase');
+    const statusEl = document.getElementById('status-supabase');
+    const countEl = document.getElementById('total-cartas-count');
 
-  logServidor("Iniciando test de latencia y disponibilidad con Supabase...", "INFO");
-  const inicio = performance.now();
+    logServidor("Iniciando test de latencia y disponibilidad con Supabase...", "INFO");
+    const inicio = performance.now();
 
-  try {
-    const { data, count, error } = await supabaseClient
-      .from('cartas')
-      .select('*', { count: 'exact', head: true });
+    try {
+        const { count, error } = await supabaseClient
+            .from('cartas')
+            .select('*', { count: 'exact', head: true });
 
-    const fin = performance.now();
-    const latencia = Math.round(fin - inicio);
+        const fin = performance.now();
+        const latencia = Math.round(fin - inicio);
 
-    if (error) throw error;
+        if (error) throw error;
 
-    if (pingEl) pingEl.innerText = `${latencia} ms`;
-    if (statusEl) {
-      statusEl.innerText = "● ONLINE";
-      statusEl.style.color = "#00ff66";
+        if (pingEl) pingEl.innerText = `${latencia} ms`;
+        if (statusEl) {
+            statusEl.innerText = "● ONLINE";
+            statusEl.style.color = "#00ff66";
+        }
+        if (countEl) countEl.innerText = count || 0;
+
+        logServidor(`Conexión exitosa. Ping: ${latencia}ms | Cartas registradas: ${count || 0}`, "SUCCESS");
+    } catch (err) {
+        if (statusEl) {
+            statusEl.innerText = "● ERROR";
+            statusEl.style.color = "#ef4444";
+        }
+        logServidor(`Error de comunicación con Supabase: ${err.message}`, "ERROR");
     }
-    if (countEl) countEl.innerText = count || 0;
-
-    logServidor(`Conexión exitosa. Ping: ${latencia}ms | Cartas registradas: ${count || 0}`, "SUCCESS");
-  } catch (err) {
-    if (statusEl) {
-      statusEl.innerText = "● ERROR";
-      statusEl.style.color = "#ef4444";
-    }
-    logServidor(`Error de comunicación con Supabase: ${err.message}`, "ERROR");
-  }
 }
 
-// 2. Consulta de Métricas de MiniApp (Usuarios, Premios, Colecciones)
 async function cargarMetricasServidor() {
-  logServidor("Actualizando métricas de la MiniApp desde Supabase...", "INFO");
+    logServidor("Sincronizando métricas desde Supabase...", "INFO");
 
-  try {
-    // Consulta Usuarios Totales
-    const { count: usuariosCount, error: errUser } = await supabaseClient
-      .from('Usuarios')
-      .select('*', { count: 'exact', head: true });
+    // 1. Usuarios Totales
+    try {
+        const { count, error } = await supabaseClient
+            .from('usuarios')
+            .select('*', { count: 'exact', head: true });
 
-    if (!errUser && document.getElementById('kpi-usuarios-totales')) {
-      document.getElementById('kpi-usuarios-totales').innerText = usuariosCount || 0;
+        if (!error && document.getElementById('kpi-usuarios-totales')) {
+            document.getElementById('kpi-usuarios-totales').innerText = count || 0;
+        }
+    } catch (e) {
+        logServidor(`Tabla 'usuarios' no disponible.`, "WARN");
     }
 
-    // Consulta Total Colecciones
-    const { count: coleccionesCount, error: errCol } = await supabaseClient
-      .from('Coleccion_Usuario')
-      .select('*', { count: 'exact', head: true });
+    // 2. Colecciones Totales
+    try {
+        const { count, error } = await supabaseClient
+            .from('coleccion_usuario')
+            .select('*', { count: 'exact', head: true });
 
-    if (!errCol && document.getElementById('kpi-total-colecciones')) {
-      document.getElementById('kpi-total-colecciones').innerText = coleccionesCount || 0;
+        if (!error && document.getElementById('kpi-total-colecciones')) {
+            document.getElementById('kpi-total-colecciones').innerText = count || 0;
+        }
+    } catch (e) {
+        logServidor(`Tabla 'coleccion_usuario' no disponible.`, "WARN");
     }
 
-    // Consulta Premios Pendientes
-    const { data: premios, count: premiosCount, error: errPrem } = await supabaseClient
-      .from('reclamaciones_premios')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // 3. Reclamaciones de Premios
+    try {
+        const { data, error } = await supabaseClient
+            .from('reclamaciones_premios')
+            .select('*');
 
-    if (!errPrem) {
-      const pendientes = premios ? premios.filter(p => p.estado === 'pendiente').length : 0;
-      if (document.getElementById('kpi-premios-pendientes')) {
-        document.getElementById('kpi-premios-pendientes').innerText = pendientes;
-      }
-      renderizarTablaPremios(premios || []);
+        if (!error && data) {
+            const pendientes = data.filter(p => p.estado === 'pendiente').length;
+            if (document.getElementById('kpi-premios-pendientes')) {
+                document.getElementById('kpi-premios-pendientes').innerText = pendientes;
+            }
+            renderizarTablaPremios(data);
+        } else {
+            renderizarTablaPremios([]);
+        }
+    } catch (e) {
+        renderizarTablaPremios([]);
+        logServidor(`Tabla 'reclamaciones_premios' no disponible.`, "WARN");
     }
 
-    logServidor("Métricas de la MiniApp sincronizadas correctamente.", "SUCCESS");
-  } catch (err) {
-    logServidor(`Error al cargar métricas: ${err.message}`, "ERROR");
-  }
+    logServidor("Proceso de sincronización de métricas completado.", "SUCCESS");
 }
 
-// 3. Renderiza la tabla de Reclamaciones de Premios
 function renderizarTablaPremios(listaPremios) {
-  const tbody = document.getElementById('tabla-servidor-premios');
-  if (!tbody) return;
+    const tbody = document.getElementById('tabla-servidor-premios');
+    if (!tbody) return;
 
-  if (listaPremios.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #666;">No hay reclamaciones de premios registradas.</td></tr>`;
-    return;
-  }
+    if (!listaPremios || listaPremios.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #666;">No hay reclamaciones de premios registradas.</td></tr>`;
+        return;
+    }
 
-  tbody.innerHTML = listaPremios.map(item => {
-    const esPendiente = item.estado === 'pendiente';
-    const estadoColor = esPendiente ? '#eab308' : '#00ff66';
-    const fecha = item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A';
+    tbody.innerHTML = listaPremios.map(item => {
+        const esPendiente = item.estado === 'pendiente';
+        const estadoColor = esPendiente ? '#eab308' : '#00ff66';
 
-    return `
-      <tr style="border-bottom: 1px solid #222;">
-        <td style="padding: 4px; color: #38bdf8;">${item.usuario_id || 'Anon'}</td>
-        <td style="padding: 4px;">${item.hito_nombre || 'Premio Hito'}</td>
-        <td style="padding: 4px; color: ${estadoColor}; font-weight: bold;">${(item.estado || 'pendiente').toUpperCase()}</td>
-        <td style="padding: 4px; text-align: center;">
-          ${esPendiente ? 
-            `<button style="background: #22c55e; color: #000; border: none; padding: 2px 6px; font-size: 7px; cursor: pointer; font-weight: bold;" onclick="aprobarPremioServidor('${item.id}')">ENTREGAR</button>` : 
-            `<span style="color: #666;">✓ Entregado</span>`
-          }
-        </td>
-      </tr>
-    `;
-  }).join('');
+        return `
+            <tr style="border-bottom: 1px solid #222;">
+                <td style="padding: 4px; color: #38bdf8;">${item.usuario_id || 'Anon'}</td>
+                <td style="padding: 4px;">${item.hito_nombre || 'Premio Hito'}</td>
+                <td style="padding: 4px; color: ${estadoColor}; font-weight: bold;">${(item.estado || 'pendiente').toUpperCase()}</td>
+                <td style="padding: 4px; text-align: center;">
+                    ${esPendiente ? 
+                        `<button style="background: #22c55e; color: #000; border: none; padding: 2px 6px; font-size: 7px; cursor: pointer; font-weight: bold;" onclick="aprobarPremioServidor('${item.id}')">ENTREGAR</button>` : 
+                        `<span style="color: #666;">✓ Entregado</span>`
+                    }
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
-// 4. Cambiar estado de Premio a Entregado
 async function aprobarPremioServidor(premioId) {
-  logServidor(`Procesando aprobación para el premio ID: ${premioId}...`, "INFO");
+    logServidor(`Procesando aprobación para el premio ID: ${premioId}...`, "INFO");
 
-  try {
-    const { error } = await supabaseClient
-      .from('reclamaciones_premios')
-      .update({ estado: 'entregado' })
-      .eq('id', premioId);
+    try {
+        const { error } = await supabaseClient
+            .from('reclamaciones_premios')
+            .update({ estado: 'entregado' })
+            .eq('id', premioId);
 
-    if (error) throw error;
+        if (error) throw error;
 
-    logServidor(`Premio ID ${premioId} marcado como ENTREGADO.`, "SUCCESS");
-    cargarMetricasServidor();
-  } catch (err) {
-    logServidor(`Error al procesar entregas: ${err.message}`, "ERROR");
-  }
+        logServidor(`Premio ID ${premioId} marcado como ENTREGADO.`, "SUCCESS");
+        cargarMetricasServidor();
+    } catch (err) {
+        logServidor(`Error al procesar entrega: ${err.message}`, "ERROR");
+    }
 }
 
-// 5. Purga de Storage Huérfano
 async function limpiarStorageHuerfano() {
-  logServidor("Analizando archivos del Storage de Supabase en busca de huérfanos...", "WARN");
-  setTimeout(() => {
-    logServidor("Escaneo finalizado: Se liberaron 0 KB de archivos obsoletos.", "SUCCESS");
-  }, 1000);
+    logServidor("Analizando archivos del Storage de Supabase en busca de huérfanos...", "WARN");
+    setTimeout(() => {
+        logServidor("Escaneo finalizado: Se liberaron 0 KB de archivos obsoletos.", "SUCCESS");
+    }, 1000);
 }
-
-// 6. Enganche automático al cambiar a la pestaña Servidor
-const originalCambiarPestana = window.cambiarPestana;
-window.cambiarPestana = function(idPestana) {
-  if (typeof originalCambiarPestana === 'function') {
-    originalCambiarPestana(idPestana);
-  } else {
-    document.querySelectorAll('.contenido-pestana').forEach(el => el.style.display = 'none');
-    const target = document.getElementById(idPestana);
-    if (target) target.style.display = 'block';
-  }
-
-  if (idPestana === 'tab-servidor') {
-    testearConexionSupabase();
-    cargarMetricasServidor();
-  }
-};

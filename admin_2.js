@@ -875,14 +875,21 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
 }
 
 // =============================================================================
-// 🚀 INICIALIZACIÓN AUTOMÁTICA
+// 🚀 INICIALIZACIÓN AL CARGAR LA PÁGINA
 // =============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Reemplaza esto con cómo obtienes el usuario actual en tu sistema (ej: localStorage, Telegram WebApp, etc.)
-    const usuarioActual = localStorage.getItem('usuario_telegram') || 'utrera930';
+    // 1. Obtener el usuario activo (puedes adaptarlo según cómo guardes el usuario en Telegram o sesión)
+    const usuarioActual = window.Telegram?.WebApp?.initDataUnsafe?.user?.username 
+        || localStorage.getItem('usuario_telegram') 
+        || 'utrera930';
 
-    // Iniciar escucha activa en tiempo real
+    // 2. Cargar las cartas iniciales si existe esa función en tu código
+    if (typeof cargarAlbumUsuario === 'function') {
+        cargarAlbumUsuario();
+    }
+
+    // 3. Activar el escuchador en tiempo real para este usuario
     if (usuarioActual) {
         suscribirACambiosDeColeccion(usuarioActual.toLowerCase());
     }

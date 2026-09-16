@@ -1,5 +1,5 @@
 // =============================================================================
-// 🎴 PANEL DE ADMINISTRACIÓN Y PARSER PROCEDURAL DE PLANTILLAS (2026)
+// 🎴 PANEL DE ADMINISTRACIÓN Y PARSER PROCEDURAL DE PLANTILLAS
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -86,11 +86,11 @@ function inicializarControlesGUI() {
 function determinarEraPorZona(zonaNombre) {
     const txt = zonaNombre.toLowerCase();
     if (txt.includes("caos") || txt.includes("noche") || txt.includes("pantano") || txt.includes("prehistóricos")) {
-        return "antiguo"; // Místico / Arcana
+        return "antiguo";
     } else if (txt.includes("poblado") || txt.includes("granja") || txt.includes("selva") || txt.includes("bosques")) {
-        return "cotidianos"; // Retro / Cálido
+        return "cotidianos";
     } else if (txt.includes("cielos") || txt.includes("océano") || txt.includes("trono")) {
-        return "espacial"; // Cosmos / Estelar
+        return "espacial";
     }
     return "cyber";
 }
@@ -110,21 +110,18 @@ async function parsearYGuardarPlantillas() {
     let eraActual = "cotidianos";
     const registrosAInsertar = [];
 
-    // Expresión regular para aislar emojis (Soporta Emojis complejos/Unicode)
     const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
 
     for (let linea of lineas) {
         linea = linea.trim();
         if (!linea) continue;
 
-        // Detectar Encabezado de Zona
         if (!linea.includes(":") && !linea.includes("/")) {
             zonaActual = linea;
             eraActual = determinarEraPorZona(zonaActual);
             continue;
         }
 
-        // Parsear línea de criaturas (ej: 👾 Monstruo / 👽 Alien : Descripción)
         const partes = linea.split(':');
         const lore = partes.length > 1 ? partes[1].trim() : "Criatura misteriosa.";
         const items = partes[0].split('/');
@@ -153,7 +150,6 @@ async function parsearYGuardarPlantillas() {
 
     logStatus(`Procesadas ${registrosAInsertar.length} plantillas. Guardando en Supabase...`);
 
-    // Inserción con tabla en minúsculas
     const { error } = await supabaseClient
         .from('plantillas_criaturas')
         .insert(registrosAInsertar);
@@ -187,7 +183,7 @@ async function vaciarTablaPlantillas() {
     const { error } = await supabaseClient
         .from('plantillas_criaturas')
         .delete()
-        .neq('id', 0); // Borra todo
+        .neq('id', 0);
 
     if (error) {
         logStatus(`Error al vaciar tabla: ${error.message}`, true);
@@ -260,7 +256,7 @@ function actualizarPaletaPorEra() {
         estadoCartaActual.colorPrimario = `hsl(${(s % 80) + 180}, 100%, 60%)`;
         estadoCartaActual.colorSecundario = `hsl(${(s % 60) + 220}, 90%, 20%)`;
         estadoCartaActual.colorFondo = "#030712";
-    } else { // antiguo
+    } else {
         estadoCartaActual.colorPrimario = `hsl(${(s % 40) + 40}, 80%, 50%)`;
         estadoCartaActual.colorSecundario = `hsl(${(s % 30) + 0}, 70%, 20%)`;
         estadoCartaActual.colorFondo = "#1a0c0c";

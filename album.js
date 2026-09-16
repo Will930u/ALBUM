@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN COMPLETA RLS-COMPATIBLE)
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (INDIVIDUALIZADO POR USUARIO TELEGRAM)
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -15,7 +15,12 @@ if (tg) {
     } catch (e) {}
 }
 
-let idUsuarioTelegram = "utrera930"; 
+let usuarioActual = {
+    id: null,
+    username: "",
+    nombre: "Jugador Anónimo"
+};
+
 let paginaActual = 1;
 const cartasPorPagina = 25;
 const totalPaginas = 80;
@@ -34,6 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elAno = document.getElementById('ano-actual');
     if (elAno) elAno.innerText = new Date().getFullYear();
 
+    await registrarOActualizarUsuarioBD();
     await cargarInventarioInicial();
 
     document.getElementById('btn-anterior')?.addEventListener('click', () => {
@@ -57,46 +63,66 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function inicializarUsuarioTelegram() {
-    let idDetectado = null;
-
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
         const user = tg.initDataUnsafe.user;
         
-        if (user.username) {
-            idDetectado = user.username.replace(/^@/, '').trim();
-        } else if (user.id) {
-            idDetectado = user.id.toString().trim();
-        }
+        usuarioActual.id = user.id ? user.id.toString() : null;
+        usuarioActual.username = user.username ? user.username.replace(/^@/, '').trim() : `user_${user.id}`;
+        usuarioActual.nombre = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Jugador';
 
         const uName = document.getElementById('user-username');
         const fName = document.getElementById('user-fullname');
         const avatar = document.getElementById('user-avatar');
 
-        if (uName) uName.innerText = `@${idDetectado || 'utrera930'}`;
-        if (fName) fName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        if (uName) uName.innerText = `@${usuarioActual.username}`;
+        if (fName) fName.innerText = usuarioActual.nombre;
         if (avatar && user.photo_url) avatar.src = user.photo_url;
     } else {
-        const uName = document.getElementById('user-username');
-        if (uName) uName.innerText = `@${idUsuarioTelegram} (Web)`;
-    }
+        // Modo fallback para desarrollo fuera de Telegram (Navegador)
+        usuarioActual.id = "local_dev_user";
+        usuarioActual.username = "invitado_web";
+        usuarioActual.nombre = "Invitado Web";
 
-    idUsuarioTelegram = idDetectado || "utrera930";
+        const uName = document.getElementById('user-username');
+        const fName = document.getElementById('user-fullname');
+        if (uName) uName.innerText = `@${usuarioActual.username}`;
+        if (fName) fName.innerText = usuarioActual.nombre;
+    }
+}
+
+async function registrarOActualizarUsuarioBD() {
+    if (!supabaseClient || !usuarioActual.id) return;
+
+    try {
+        // Se registra o actualiza la sesión del usuario que abre la app
+        await supabaseClient
+            .from('usuarios')
+            .upsert([{
+                telegram_id: usuarioActual.id,
+                username: usuarioActual.username,
+                nombre: usuarioActual.nombre,
+                ultimo_ingreso: new Date().toISOString()
+            }], { onConflict: 'telegram_id' });
+    } catch (e) {
+        console.warn("Aviso: No se pudo actualizar el registro del usuario en la tabla 'usuarios'.", e);
+    }
 }
 
 async function cargarInventarioInicial() {
     try {
         if (!supabaseClient) return;
 
-        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim();
+        const idUsuario = usuarioActual.username;
+        const idTelegramNum = usuarioActual.id;
 
-        // ilike ignora diferencias entre mayúsculas y minúsculas (Utrera930 == utrera930)
+        // Búsqueda exclusiva para el usuario actual (por su username O por su ID numérico de Telegram)
         let { data: coleccion, error: errColeccion } = await supabaseClient
-            .from('Coleccion_Usuario')
+            .from('coleccion_usuario')
             .select('*')
-            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio},usuario_id.ilike.utrera930`);
+            .or(`usuario_id.ilike.${idUsuario},usuario_id.ilike.@${idUsuario},usuario_id.eq.${idTelegramNum}`);
 
         if (errColeccion) {
-            console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
+            console.error("❌ Error leyendo coleccion_usuario:", errColeccion.message);
             return;
         }
 
@@ -106,11 +132,11 @@ async function cargarInventarioInicial() {
             const idsCartas = coleccion.map(item => item.carta_id);
 
             const { data: datosCartas, error: errCartas } = await supabaseClient
-                .from('Cartas')
+                .from('cartas')
                 .select('*')
                 .in('id', idsCartas);
 
-            if (errCartas) console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
+            if (errCartas) console.error("❌ Error leyendo la tabla cartas:", errCartas.message);
 
             const mapaCartas = new Map();
             if (datosCartas) {
@@ -216,7 +242,7 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
 
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = config.fondoColor || "#1e293b";
+    ctx.fillStyle = config.fondoColor || config.colorFondo || "#1e293b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.font = "38px sans-serif";
@@ -224,7 +250,7 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     ctx.textBaseline = "middle";
     ctx.fillText(config.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 10);
 
-    ctx.strokeStyle = config.marcoColor || "#64748b";
+    ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#64748b";
     ctx.lineWidth = 6;
     ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
 
@@ -254,8 +280,8 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
         config = typeof datosCarta?.imagen_url === 'string' ? JSON.parse(datosCarta.imagen_url) : (datosCarta?.imagen_url || {});
     } catch(e){}
 
-    const colorFondo = config.fondoColor || '#0f172a';
-    const colorMarco = config.marcoColor || '#00ff66';
+    const colorFondo = config.fondoColor || config.colorFondo || '#0f172a';
+    const colorMarco = config.marcoColor || config.colorPrimario || '#00ff66';
     const simbolo = config.simbolo || '👾';
 
     contenidoFrontal.innerHTML = `

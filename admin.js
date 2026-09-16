@@ -49,11 +49,7 @@ function cambiarPestana(idPestana) {
     const pestanaTarget = document.getElementById(idPestana);
     if (pestanaTarget) pestanaTarget.classList.add('activa');
 
-    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(b => {
-        const onclickAttr = b.getAttribute('onclick');
-        return onclickAttr && onclickAttr.includes(idPestana);
-    });
-    
+    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(idPestana));
     if (btnActivo) btnActivo.classList.add('activo');
 
     if (idPestana === 'tab-catalogo') {
@@ -142,21 +138,21 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
 
     // 1. Fondo degradado
     const gradiente = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w);
-    gradiente.addColorStop(0, config.colorSecundario || "#1e293b");
-    gradiente.addColorStop(1, config.colorFondo || "#000000");
+    gradiente.addColorStop(0, config.colorSecundario);
+    gradiente.addColorStop(1, config.colorFondo);
     ctx.fillStyle = gradiente;
     ctx.fillRect(0, 0, w, h);
 
     // 2. Ondulaciones matemáticas en el fondo
     ctx.save();
-    ctx.strokeStyle = config.colorPrimario || "#00ff66";
+    ctx.strokeStyle = config.colorPrimario;
     ctx.lineWidth = 1.5;
     ctx.globalAlpha = 0.3;
 
     for (let i = 0; i < 6; i++) {
         ctx.beginPath();
         for (let x = 0; x < w; x += 5) {
-            const y = (h / 2) + Math.sin(x * 0.03 + tiempo + i + ((config.semilla || 1) % 10)) * (15 + i * 5);
+            const y = (h / 2) + Math.sin(x * 0.03 + tiempo + i + (config.semilla % 10)) * (15 + i * 5);
             if (x === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
@@ -165,7 +161,7 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
     ctx.restore();
 
     // 3. Marco decorativo interno
-    ctx.strokeStyle = config.colorPrimario || "#00ff66";
+    ctx.strokeStyle = config.colorPrimario;
     ctx.lineWidth = 3;
     ctx.strokeRect(8, 8, w - 16, h - 16);
 
@@ -173,23 +169,23 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
     ctx.lineWidth = 1;
     ctx.strokeRect(12, 12, w - 24, h - 24);
 
-    // 4. Símbolo central animado / renderizado
+    // 4. Símbolo central animado
     ctx.save();
-    ctx.font = `${Math.floor(w * 0.2)}px sans-serif`;
+    ctx.font = "42px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
     const desvY = Math.sin(tiempo * 2) * 5;
-    ctx.shadowColor = config.colorPrimario || "#00ff66";
+    ctx.shadowColor = config.colorPrimario;
     ctx.shadowBlur = 12;
     ctx.fillText(config.simbolo || "🃏", w / 2, (h / 2) + desvY);
     ctx.restore();
 
     // 5. Etiqueta de Rareza
     ctx.fillStyle = "#ffffff";
-    ctx.font = `${Math.max(6, Math.floor(w * 0.035))}px 'Press Start 2P', monospace`;
+    ctx.font = "8px 'Press Start 2P', monospace";
     ctx.textAlign = "center";
-    ctx.fillText((config.rareza || "COMÚN").toUpperCase(), w / 2, h - 15);
+    ctx.fillText(config.rareza.toUpperCase(), w / 2, h - 25);
 }
 
 // Guardar la carta publicando la RECETA JSON en 'imagen_url'
@@ -224,7 +220,7 @@ async function guardarCartaEnSupabase() {
             id: id,
             nombre: nombre,
             rareza: estadoCartaActual.rareza,
-            imagen_url: recetaJSON,
+            imagen_url: recetaJSON, // Guarda la receta numérico-matemática en lugar del archivo PNG
             lore: lore
         }], { onConflict: 'id' });
 
@@ -286,7 +282,7 @@ async function cargarCatalogoBaseDatos() {
     const contenedor = document.getElementById('grid-catalogo-admin');
     if (!contenedor) return;
 
-    contenedor.innerHTML = "<div style='font-size:7px; color:#888; grid-column:1/-1; text-align:center; padding:20px;'>Cargando recetas publicadas...</div>";
+    contenedor.innerHTML = "<div style='font-size:7px; color:#888;'>Cargando recetas...</div>";
 
     const { data, error } = await supabaseClient
         .from('Cartas')
@@ -294,12 +290,7 @@ async function cargarCatalogoBaseDatos() {
         .order('id', { ascending: true });
 
     if (error) {
-        contenedor.innerHTML = `<div style='font-size:7px; color:#ff0055; grid-column:1/-1; text-align:center;'>Error al cargar catálogo: ${error.message}</div>`;
-        return;
-    }
-
-    if (!data || data.length === 0) {
-        contenedor.innerHTML = "<div style='font-size:7px; color:#ffcc00; grid-column:1/-1; text-align:center; padding:20px;'>No hay cartas registradas todavía.</div>";
+        contenedor.innerHTML = "<div style='font-size:7px; color:#ff0055;'>Error al cargar catálogo.</div>";
         return;
     }
 
@@ -327,14 +318,14 @@ async function cargarCatalogoBaseDatos() {
         };
 
         try {
-            if (carta.imagen_url && carta.imagen_url.trim().startsWith('{')) {
+            if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
                 configCarta = JSON.parse(carta.imagen_url);
             }
         } catch (e) {
-            console.warn(`Carta #${carta.id} sin formato JSON estándar, usando fallback.`);
+            console.warn(`Carta #${carta.id} sin formato JSON válido.`);
         }
 
-        // Renderizado estático de la receta en la miniatura del catálogo
+        // Renderizado inicial sin animación para miniaturas
         dibujarCartaProcedural(ctx, canvas.width, canvas.height, configCarta, 0);
 
         item.innerHTML = `

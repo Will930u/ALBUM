@@ -27,6 +27,8 @@ body {
     width: 100%;
     box-shadow: 6px 6px 0px #092612;
     border-radius: 4px;
+    display: flex;
+    flex-direction: column;
 }
 
 .titulo-central {
@@ -70,7 +72,7 @@ body {
     box-shadow: 2px 2px 0px #000;
 }
 
-.contenido-pestana { display: none; }
+.contenido-pestana { display: none; width: 100%; }
 .contenido-pestana.activa { display: block; }
 
 .subtitulo-admin {
@@ -182,19 +184,24 @@ input:focus, select:focus {
 }
 
 /* =============================================================================
- * 📖 CATÁLOGO DE RECETAS Y CARTA REGISTRADAS
+ * 📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS
  * ============================================================================= */
 .grid-cartas-admin {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 12px;
-    max-height: 400px;
+    min-height: 200px;
+    max-height: 420px;
     overflow-y: auto;
-    padding-right: 5px;
+    padding: 5px;
+    background-color: #08080a;
+    border: 1px solid #222;
+    border-radius: 4px;
+    margin-bottom: 15px;
 }
 
 .tarjeta-admin-item {
-    background-color: #000;
+    background-color: #121216;
     border: 2px solid #333;
     border-radius: 6px;
     padding: 8px;
@@ -209,6 +216,7 @@ input:focus, select:focus {
     height: 140px;
     border-radius: 4px;
     border: 1px solid #222;
+    background-color: #000;
 }
 
 .info-admin-card {
@@ -246,3 +254,17 @@ input:focus, select:focus {
 
 .btn-mini-drop { background-color: #eab308; color: #000; }
 .btn-mini-del { background-color: #ef4444; color: #fff; width: 100%; margin-top: 4px; }
+
+/* Status Log Box */
+.status-log {
+    margin-top: 15px;
+    font-size: 7px;
+    color: #00ff66;
+    padding: 10px;
+    background: #000000;
+    border: 1px solid #333333;
+    min-height: 40px;
+    word-break: break-all;
+    border-radius: 4px;
+    line-height: 1.4;
+}

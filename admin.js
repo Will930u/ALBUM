@@ -61,6 +61,8 @@ function cambiarPestana(idPestana) {
         cargarCatalogoBaseDatos();
     } else if (idPestana === 'tab-plantillas') {
         contarPlantillasRegistradas();
+    } else if (idPestana === 'tab-servidor') {
+        cargarEstadisticasServidor();
     }
 }
 
@@ -118,6 +120,112 @@ function inicializarControlesGUI() {
     document.getElementById('btn-regalar-carta').addEventListener('click', regalarCartaAUsuario);
     document.getElementById('btn-procesar-plantillas').addEventListener('click', parsearYGuardarPlantillas);
     document.getElementById('btn-limpiar-plantillas').addEventListener('click', vaciarTablaPlantillas);
+}
+
+// =============================================================================
+// 📊 METRICAS DEL SERVIDOR Y ESTADÍSTICAS EN TIEMPO REAL
+// =============================================================================
+
+async function cargarEstadisticasServidor() {
+    if (!supabaseClient) return logStatus("Supabase no conectado.", true);
+
+    logStatus("Cargando métricas del servidor...");
+
+    try {
+        // 1. Usuarios Totales (Unicos que han ingresado)
+        let totalUsuarios = 0;
+        const { count: countUsuarios, error: errUsuarios } = await supabaseClient
+            .from('Usuarios')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!errUsuarios && countUsuarios !== null) {
+            totalUsuarios = countUsuarios;
+        } else {
+            // Fallback si la info está en Coleccion_Usuario
+            const { data: cols } = await supabaseClient.from('Coleccion_Usuario').select('usuario_id');
+            if (cols) {
+                const unicos = new Set(cols.map(c => c.usuario_id));
+                totalUsuarios = unicos.size;
+            }
+        }
+        document.getElementById('kpi-usuarios-totales').innerText = totalUsuarios;
+
+        // 2. Consulta de Colecciones para Compradores y Barajitas Totales
+        const { data: colecciones, error: errColeccion } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .select('usuario_id, cantidad');
+
+        if (errColeccion) {
+            logStatus(`Error al consultar colecciones: ${errColeccion.message}`, true);
+            return;
+        }
+
+        const mapaUsuarios = {};
+        let sumaBarajitas = 0;
+
+        colecciones.forEach(row => {
+            const user = row.usuario_id || "Anonimo";
+            const cant = row.cantidad || 0;
+            sumaBarajitas += cant;
+
+            if (!mapaUsuarios[user]) {
+                mapaUsuarios[user] = 0;
+            }
+            mapaUsuarios[user] += cant;
+        });
+
+        const listaCompradores = Object.keys(mapaUsuarios);
+        document.getElementById('kpi-compradores-activos').innerText = listaCompradores.length;
+        document.getElementById('kpi-barajitas-totales').innerText = sumaBarajitas;
+
+        // 3. Conteo de Premios Reclamados
+        let p1 = 0, p2 = 0, p3 = 0, p4 = 0;
+        listaCompradores.forEach(user => {
+            const total = mapaUsuarios[user];
+            if (total >= 500) p1++;
+            if (total >= 1000) p2++;
+            if (total >= 1500) p3++;
+            if (total >= 2000) p4++;
+        });
+
+        document.getElementById('premio-1').innerText = p1;
+        document.getElementById('premio-2').innerText = p2;
+        document.getElementById('premio-3').innerText = p3;
+        document.getElementById('premio-4').innerText = p4;
+
+        // 4. Poblar Tabla de Participantes en Tiempo Real
+        const tbody = document.getElementById('tabla-usuarios-body');
+        tbody.innerHTML = "";
+
+        if (listaCompradores.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#888;">No hay compras registradas aún.</td></tr>`;
+        } else {
+            // Ordenar de mayor a menor según barajitas acumuladas
+            const usuariosOrdenados = listaCompradores.sort((a, b) => mapaUsuarios[b] - mapaUsuarios[a]);
+
+            usuariosOrdenados.forEach(user => {
+                const cant = mapaUsuarios[user];
+                const tr = document.createElement('tr');
+
+                let insignia = "🌱 Principiante";
+                if (cant >= 2000) insignia = "🏆 Nivel 4 (Completado)";
+                else if (cant >= 1500) insignia = "🥉 Nivel 3";
+                else if (cant >= 1000) insignia = "🥈 Nivel 2";
+                else if (cant >= 500) insignia = "🥇 Nivel 1";
+
+                tr.innerHTML = `
+                    <td style="color:#00ff66;">@${user}</td>
+                    <td style="text-align:center; font-weight:bold;">${cant}</td>
+                    <td style="font-size:6px; color:#ffcc00;">${insignia}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        logStatus("✅ Métricas del servidor actualizadas.");
+    } catch (e) {
+        logStatus(`Error en procesamiento de servidor: ${e.message}`, true);
+    }
 }
 
 // =============================================================================

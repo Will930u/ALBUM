@@ -530,6 +530,7 @@ async function regalarCartaAUsuario() {
     logStatus(`Asignando carta #${cartaId} a @${usuario}...`);
 
     try {
+        // CORRECCIÓN: 'Coleccion_Usuario' con C y U mayúsculas
         const { data: existente } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*')

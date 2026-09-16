@@ -59,22 +59,95 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 });
 
+// =============================================================================
+// 🛠️ INICIALIZACIÓN DE USUARIO CON FALLBACK Y NORMALIZACIÓN DE ID
+// =============================================================================
 function inicializarUsuarioTelegram() {
+    let idDetectado = null;
+
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
         const user = tg.initDataUnsafe.user;
-        // Capturar username sin arroba o ID numérico como respaldo
-        idUsuarioTelegram = user.username ? user.username.replace(/^@/, '') : user.id.toString();
         
+        // 1. Priorizar username (sin @) o fallback a ID numérico de Telegram
+        if (user.username) {
+            idDetectado = user.username.replace(/^@/, '').trim();
+        } else if (user.id) {
+            idDetectado = user.id.toString().trim();
+        }
+
         const uName = document.getElementById('user-username');
         const fName = document.getElementById('user-fullname');
         const avatar = document.getElementById('user-avatar');
 
-        if (uName) uName.innerText = `@${idUsuarioTelegram}`;
+        if (uName) uName.innerText = `@${idDetectado || 'utrera930'}`;
         if (fName) fName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
         if (avatar && user.photo_url) avatar.src = user.photo_url;
-    } else {
-        const uName = document.getElementById('user-username');
-        if (uName) uName.innerText = `@${idUsuarioTelegram} (Web)`;
+    }
+
+    // 2. Si no se detectó ID o se ejecuta fuera de Telegram, usar utrera930 por defecto
+    idUsuarioTelegram = idDetectado || "utrera930";
+}
+
+async function cargarInventarioInicial() {
+    try {
+        if (!supabaseClient) return;
+
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim();
+        const idConArroba = `@${idLimpio}`;
+
+        // Consulta OR para abarcar formatos comunes (ej. "utrera930", "@utrera930" y fallback)
+        let { data: coleccion, error: errColeccion } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .select('*')
+            .or(`usuario_id.eq.${idLimpio},usuario_id.eq.${idConArroba},usuario_id.eq.utrera930`);
+
+        if (errColeccion) {
+            console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
+            return;
+        }
+
+        inventarioUsuarioCache.clear();
+
+        if (coleccion && coleccion.length > 0) {
+            const idsCartas = coleccion.map(item => item.carta_id);
+
+            const { data: datosCartas, error: errCartas } = await supabaseClient
+                .from('Cartas')
+                .select('*')
+                .in('id', idsCartas);
+
+            if (errCartas) {
+                console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
+            }
+
+            const mapaCartas = new Map();
+            if (datosCartas) {
+                datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
+            }
+
+            coleccion.forEach(item => {
+                if (item.carta_id) {
+                    const idCartaNum = Number(item.carta_id);
+                    const previo = inventarioUsuarioCache.get(idCartaNum);
+                    const infoCarta = mapaCartas.get(idCartaNum);
+                    
+                    if (previo) {
+                        previo.cantidad += item.cantidad;
+                    } else {
+                        inventarioUsuarioCache.set(idCartaNum, { 
+                            carta_id: idCartaNum, 
+                            cantidad: item.cantidad,
+                            datosCarta: infoCarta || { id: idCartaNum, nombre: `Carta #${idCartaNum}` }
+                        });
+                    }
+                }
+            });
+        }
+
+        renderizarLibro(paginaActual);
+
+    } catch (err) {
+        console.error("Excepción en cargarInventarioInicial:", err);
     }
 }
 

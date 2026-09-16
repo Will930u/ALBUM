@@ -8,6 +8,122 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let supabaseClient = null;
 let animacionFrameId = null;
 
+// =============================================================================
+// 📜 DICCIONARIO BASE DE CRIATURAS, ZONAS Y BESTIAS
+// =============================================================================
+const BASE_CRIATURAS = [
+    // 🌋 Zona del Caos y Criaturas de la Noche
+    { emoji: "👾", nombre: "Monstruo Alienígena", lore: "Invasor del espacio exterior.", era: "espacial" },
+    { emoji: "👽", nombre: "Alienígena Ancestral", lore: "Invasor silenciador de mundos.", era: "espacial" },
+    { emoji: "🤖", nombre: "Robot Autónomo", lore: "Unidad sintética invasora del espacio.", era: "cyber" },
+    { emoji: "👻", nombre: "Fantasma Errante", lore: "Habitante del cementerio maldito.", era: "antiguo" },
+    { emoji: "💀", nombre: "Cráneo Profano", lore: "Ectoplasma del cementerio olvidado.", era: "antiguo" },
+    { emoji: "☠️", nombre: "Calavera de Huesos", lore: "Guardián de las tumbas antiguas.", era: "antiguo" },
+    { emoji: "🧟", nombre: "Zombi No-Muerto", lore: "Cadáver reanimado por la magia negra.", era: "antiguo" },
+    { emoji: "👹", nombre: "Ogro Japonés", lore: "Demonio de la mitología oriental.", era: "antiguo" },
+    { emoji: "👺", nombre: "Duende de la Montaña", lore: "Espíritu tramposo del bosque oscuro.", era: "antiguo" },
+    { emoji: "🎃", nombre: "Calabaza Macabra", lore: "Llama espectral de la noche de brujas.", era: "antiguo" },
+    { emoji: "🦇", nombre: "Murciélago Espectral", lore: "Cazador nocturno del bosque oscuro.", era: "antiguo" },
+    { emoji: "🧛", nombre: "Vampiro Sangriento", lore: "Señor inmortal de la oscuridad.", era: "antiguo" },
+    { emoji: "🧞", nombre: "Genio Místico", lore: "Ser elemental de reinos místico ancestrales.", era: "antiguo" },
+    { emoji: "🧜‍♀️", nombre: "Sirena Encantada", lore: "Enchanteresa de las profundidades marinas.", era: "antiguo" },
+    { emoji: "🧝", nombre: "Elfo Místico", lore: "Guardián milenario de los bosques mágicos.", era: "antiguo" },
+    { emoji: "🦄", nombre: "Unicornio Mágico", lore: "Criatura pura de los reinos celestiales.", era: "antiguo" },
+
+    // 🏡 El Poblado y Granja de los Hombres
+    { emoji: "🐶", nombre: "Perro Leal", lore: "Protector de las casas del poblado.", era: "cotidianos" },
+    { emoji: "🐕", nombre: "Perro Guardián", lore: "Fiel defensor de las fronteras locales.", era: "cotidianos" },
+    { emoji: "🐩", nombre: "Caniche Real", lore: "Mascota de la alta aristocracia.", era: "cotidianos" },
+    { emoji: "🐱", nombre: "Gato Silencioso", lore: "Cazador de sombras en los hogares.", era: "cotidianos" },
+    { emoji: "🐈", nombre: "Gato Doméstico", lore: "Compañero nocturno del poblado.", era: "cotidianos" },
+    { emoji: "🐭", nombre: "Ratón Veloz", lore: "Escurridizo habitante de las despensas.", era: "cotidianos" },
+    { emoji: "🐹", nombre: "Hámster Tierno", lore: "Pequeño roedor de los hogares.", era: "cotidianos" },
+    { emoji: "🐰", nombre: "Conejo de Campo", lore: "Ágil habitante de las praderas.", era: "cotidianos" },
+    { emoji: "🐮", nombre: "Vaca Lechera", lore: "Ganado pacífico del pastizal.", era: "cotidianos" },
+    { emoji: "🐄", nombre: "Vaca Manchada", lore: "Proveedora de sustento para la granja.", era: "cotidianos" },
+    { emoji: "🐂", nombre: "Buey Fuerte", lore: "Fuerza imparable del arado.", era: "cotidianos" },
+    { emoji: "🐃", nombre: "Buey de Agua", lore: "Bestia de carga de los humedales.", era: "cotidianos" },
+    { emoji: "🐑", nombre: "Oveja Lanuda", lore: "Pacífica criatura de las colinas.", era: "cotidianos" },
+    { emoji: "🐏", nombre: "Carnero Salvaje", lore: "Líder protector de los rebaños.", era: "cotidianos" },
+    { emoji: "🐐", nombre: "Cabra Montés", lore: "Escaladora de las rocas del poblado.", era: "cotidianos" },
+    { emoji: "🐷", nombre: "Puerco de Granja", lore: "Animal alegre de los corrales.", era: "cotidianos" },
+    { emoji: "🐽", nombre: "Hocico de Cerdo", lore: "Rastreador de raíces en el fango.", era: "cotidianos" },
+    { emoji: "🐗", nombre: "Jabalí Feroz", lore: "Bestia indomable de las bellotas.", era: "cotidianos" },
+    { emoji: "🐔", nombre: "Gallina del Corral", lore: "Avisadora del amanecer campestre.", era: "cotidianos" },
+    { emoji: "🦃", nombre: "Pavo del Poblado", lore: "Ave de gran plumaje campesino.", era: "cotidianos" },
+    { emoji: "🐣", nombre: "Pollo Naciendo", lore: "Símbolo de renacimiento en la granja.", era: "cotidianos" },
+    { emoji: "🐤", nombre: "Pío Pío", lore: "Pequeña ave cantora del amanecer.", era: "cotidianos" },
+    { emoji: "🐥", nombre: "Pollito Amarillo", lore: "Habitante de los gallineros del pueblo.", era: "cotidianos" },
+    { emoji: "🐴", cabalgata: true, nombre: "Caballo Veloz", lore: "Bestia noble de carga y velocidad.", era: "cotidianos" },
+    { emoji: "🦓", nombre: "Cebra Rayada", lore: "Nómada de las llanuras abiertas.", era: "cotidianos" },
+
+    // 🌳 La Selva y los Bosques Salvajes
+    { emoji: "🦊", nombre: "Zorro Astuto", lore: "Cazador silente de las sombras.", era: "cotidianos" },
+    { emoji: "🐺", nombre: "Lobo Alfa", lore: "Líder de la jauría salvaje.", era: "antiguo" },
+    { emoji: "🐻", nombre: "Oso Pardo", lore: "Guardián de las cavernas profundas.", era: "cotidianos" },
+    { emoji: "🐼", nombre: "Panda Silencioso", lore: "Maestro del bambú en las montañas.", era: "cotidianos" },
+    { emoji: "🐨", nombre: "Koala Trepador", lore: "Habitante tranquilo del eucalipto.", era: "cotidianos" },
+    { emoji: "🐯", nombre: "Tigre Feroz", lore: "Depredador supremo de la selva.", era: "cotidianos" },
+    { emoji: "🦁", nombre: "León Leal", lore: "Rey indiscutible de la sabana.", era: "cotidianos" },
+    { emoji: "🐆", nombre: "Leopardo Ágil", lore: "Cazador sigiloso de la fronda.", era: "cotidianos" },
+    { emoji: "🐵", nombre: "Mono Curioso", lore: "Acróbata de la cima de los árboles.", era: "cotidianos" },
+    { emoji: "🐒", nombre: "Mono Selvático", lore: "Habitante de la canopia tropical.", era: "cotidianos" },
+    { emoji: "🦍", nombre: "Gorila de Montaña", lore: "Fuerza colosal de la selva profunda.", era: "cotidianos" },
+    { emoji: "🦧", nombre: "Orangután Sabio", lore: "Ermitaño de las selvas asiáticas.", era: "cotidianos" },
+    { emoji: "🦝", nombre: "Mapache Astuto", lore: "Explorador nocturno de los ríos.", era: "cotidianos" },
+    { emoji: "🦡", nombre: "Tejón Fiero", lore: "Excavador tenaz de madrigueras.", era: "cotidianos" },
+    { emoji: "🦔", nombre: "Erizo Espinoso", lore: "Defensor acorazado de los bosques.", era: "cotidianos" },
+    { emoji: "🦦", nombre: "Nutria de Río", lore: "Nadadora juguetona de aguas dulces.", era: "espacial" },
+    { emoji: "🦫", nombre: "Castor Constructor", lore: "Arquitecto de presas y represas.", era: "cotidianos" },
+    { emoji: "🦥", nombre: "Perezoso Lento", lore: "Meditador de los árboles selváticos.", era: "cotidianos" },
+    { emoji: "🦌", nombre: "Ciervo Majestuoso", lore: "Espíritu guardián del claro del bosque.", era: "antiguo" },
+    { emoji: "🦬", nombre: "Bisonte Ancestral", lore: "Gigante de las grandes praderas.", era: "cotidianos" },
+    { emoji: "🦒", nombre: "Jirafa Altiva", lore: "Vigilante de las copas de los árboles.", era: "cotidianos" },
+    { emoji: "🐘", nombre: "Elefante Sabio", lore: "Memoria viva de la sabana.", era: "cotidianos" },
+    { emoji: "🦣", nombre: "Mamut Lanudo", lore: "Gigante prehistórico de la era de hielo.", era: "antiguo" },
+    { emoji: "🦏", nombre: "Rinoceronte Blindado", lore: "Tanque viviente de la vegetación.", era: "cotidianos" },
+    { emoji: "🦛", nombre: "Hipopótamo del Río", lore: "Bestia territorial de los arroyos.", era: "cotidianos" },
+    { emoji: "🦘", nombre: "Canguro Saltarín", lore: "Veloz guerrero de las estepas.", era: "cotidianos" },
+
+    // 🦅 Los Cielos Abiertos
+    { emoji: "🐦", nombre: "Pájaro Cantarín", lore: "Mensajero de los vientos del norte.", era: "espacial" },
+    { emoji: "🐧", nombre: "Pingüino Ártico", lore: "Navegante de los hielos eternos.", era: "cotidianos" },
+    { emoji: "🕊️", nombre: "Paloma de la Paz", lore: "Emisaria de treguas ancestrales.", era: "antiguo" },
+    { emoji: "🦅", nombre: "Águila Imperial", lore: "Ojo supremo de los cielos abiertos.", era: "espacial" },
+    { emoji: "🦆", nombre: "Pato Silvestre", lore: "Viajero de los lagos y cielos.", era: "cotidianos" },
+    { emoji: "🦢", nombre: "Cisne Majestuoso", lore: "Elegancia pura sobre las aguas.", era: "antiguo" },
+    { emoji: "🦉", nombre: "Búho Sabio", lore: "Observador nocturno del bosque.", era: "antiguo" },
+    { emoji: "🦤", nombre: "Dodo Olvidado", lore: "Ave mítica de tiempos lejanos.", era: "antiguo" },
+    { emoji: "🦩", nombre: "Flamenco Rosado", lore: "Elegante habitante de las lagunas.", era: "espacial" },
+    { emoji: "🦚", nombre: "Pavo Real", lore: "Abono de mil colores en el aire.", era: "espacial" },
+    { emoji: "🦜", nombre: "Loro Tropical", lore: "Hablador de las copas de la selva.", era: "espacial" },
+
+    // 🐊 Pantanos y Ríos Prehistóricos
+    { emoji: "🐊", nombre: "Cocodrilo del Pantano", lore: "Depredador de la sangre fría.", era: "antiguo" },
+    { emoji: "🐢", nombre: "Tortuga Longeva", lore: "Viajera paciente de eras pasadas.", era: "antiguo" },
+    { emoji: "🦎", nombre: "Lagartija de Roca", lore: "Superviviente del desierto cálido.", era: "cotidianos" },
+    { emoji: "🐍", nombre: "Serpiente Venenosa", lore: "Sombra sigilosa en la hierba.", era: "antiguo" },
+    { emoji: "🐸", nombre: "Rana Venenosa", lore: "Anfibio brillante de las charcas.", era: "cyber" },
+    { emoji: "🐲", nombre: "Dragón Antiguo", lore: "Cabeza mítica del terror del fuego.", era: "antiguo" },
+    { emoji: "🐉", nombre: "Dragón Legendario", lore: "Soberano absoluto de los cielos y fuego.", era: "antiguo" },
+    { emoji: "🦕", nombre: "Saurópodo Gigante", lore: "Titán del pasado prehistórico.", era: "antiguo" },
+    { emoji: "🦖", nombre: "T-Rex Feroz", lore: "Tirano de la era prehistórica.", era: "antiguo" },
+
+    // 🌊 El Trono del Océano
+    { emoji: "🐳", nombre: "Ballena Azul", lore: "Gigante majestuoso del océano.", era: "espacial" },
+    { emoji: "🐋", nombre: "Ballena de las Profundidades", lore: "Criatura ancestral de los abismos.", era: "espacial" },
+    { emoji: "🐬", nombre: "Delfín del Arrecife", lore: "Guía veloz de los mares cálidos.", era: "espacial" },
+    { emoji: "🦭", nombre: "Foca Marina", lore: "Habitante de las costas heladas.", era: "cotidianos" },
+    { emoji: "🐟", nombre: "Pez de Río", lore: "Navegante de la corriente rápida.", era: "espacial" },
+    { emoji: "🐠", nombre: "Pez Tropical", lore: "Joya viviente del arrecife de coral.", era: "cyber" },
+    { emoji: "🐡", nombre: "Pez Globo", lore: "Defensor espinoso de las mareas.", era: "cyber" },
+    { emoji: "🦈", nombre: "Tiburón Cazador", lore: "Terror implacable del océano.", era: "cyber" },
+    { emoji: "🐙", nombre: "Pulpo de los Abismos", lore: "Maestro del camuflaje submarino.", era: "cyber" },
+    { emoji: "🦀", nombre: "Cangrejo del Arrecife", lore: "Guardián acorazado de la costa.", era: "cotidianos" }
+];
+
+const RAREZAS = ["Común", "Común", "Común", "Rara", "Rara", "Épica", "Legendaria"];
+
 // Parámetros dinámicos de la carta actual en el visor
 let estadoCartaActual = {
     semilla: Math.floor(Math.random() * 900000) + 100000,
@@ -80,10 +196,29 @@ function inicializarControlesGUI() {
     document.getElementById('btn-regalar-carta').addEventListener('click', regalarCartaAUsuario);
 }
 
-// Generación de semilla y colores aleatorios
+// Generación de semilla y selección aleatoria desde la lista
 function randomizarParametros() {
+    // 1. Selección aleatoria de criatura
+    const criatura = BASE_CRIATURAS[Math.floor(Math.random() * BASE_CRIATURAS.length)];
+    const rarezaAleatoria = RAREZAS[Math.floor(Math.random() * RAREZAS.length)];
+
+    // 2. Asignar Semilla
     estadoCartaActual.semilla = Math.floor(Math.random() * 900000) + 100000;
+    estadoCartaActual.era = criatura.era;
+    estadoCartaActual.rareza = rarezaAleatoria;
+    estadoCartaActual.simbolo = criatura.emoji;
+
+    // 3. Rellenar entradas del DOM
+    document.getElementById('carta-id').value = Math.floor(Math.random() * 1900) + 1;
+    document.getElementById('carta-nombre').value = criatura.nombre;
+    document.getElementById('carta-simbolo').value = criatura.emoji;
+    document.getElementById('carta-lore').value = criatura.lore;
+    document.getElementById('carta-era').value = criatura.era;
+    document.getElementById('carta-rareza').value = rarezaAleatoria;
+
+    // 4. Actualizar colores y visualizador
     actualizarPaletaPorEra();
+    logStatus(`🎲 Criatura autoseleccionada: ${criatura.emoji} ${criatura.nombre}`);
 }
 
 function actualizarPaletaPorEra() {
@@ -102,7 +237,7 @@ function actualizarPaletaPorEra() {
         estadoCartaActual.colorPrimario = `hsl(${(s % 80) + 180}, 100%, 60%)`;
         estadoCartaActual.colorSecundario = `hsl(${(s % 60) + 220}, 90%, 20%)`;
         estadoCartaActual.colorFondo = "#030712";
-    } else { // antiguo
+    } else { // antiguo / místico
         estadoCartaActual.colorPrimario = `hsl(${(s % 40) + 40}, 80%, 50%)`;
         estadoCartaActual.colorSecundario = `hsl(${(s % 30) + 0}, 70%, 20%)`;
         estadoCartaActual.colorFondo = "#1a0c0c";
@@ -185,7 +320,7 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
     ctx.fillStyle = "#ffffff";
     ctx.font = "8px 'Press Start 2P', monospace";
     ctx.textAlign = "center";
-    ctx.fillText(config.rareza.toUpperCase(), w / 2, h - 25);
+    ctx.fillText((config.rareza || "COMÚN").toUpperCase(), w / 2, h - 25);
 }
 
 // Guardar la carta publicando la RECETA JSON en 'imagen_url'
@@ -220,7 +355,7 @@ async function guardarCartaEnSupabase() {
             id: id,
             nombre: nombre,
             rareza: estadoCartaActual.rareza,
-            imagen_url: recetaJSON, // Guarda la receta numérico-matemática en lugar del archivo PNG
+            imagen_url: recetaJSON,
             lore: lore
         }], { onConflict: 'id' });
 
@@ -325,7 +460,6 @@ async function cargarCatalogoBaseDatos() {
             console.warn(`Carta #${carta.id} sin formato JSON válido.`);
         }
 
-        // Renderizado inicial sin animación para miniaturas
         dibujarCartaProcedural(ctx, canvas.width, canvas.height, configCarta, 0);
 
         item.innerHTML = `

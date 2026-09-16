@@ -20,6 +20,7 @@
             <button class="tab-btn" onclick="cambiarPestana('tab-plantillas')">📋 PLANTILLAS</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-asignar')">🎁 REGALAR</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-catalogo')">📖 CATÁLOGO</button>
+            <button class="nav-btn" onclick="switchTab('servidor')">🖥️ SERVIDOR</button>
         </div>
 
         <!-- PESTAÑA 1: GENERADOR PROCEDURAL Y POLLINATIONS IA -->
@@ -151,11 +152,69 @@
                 <!-- Se puebla dinámicamente -->
             </div>
         </div>
+        <!-- ================= SECCIÓN SERVIDOR ================= -->
+<div id="tab-servidor" class="tab-content" style="display: none;">
+  <div class="panel-box">
+    <h2 class="panel-title">[ MONITOREO Y ESTADO DEL SERVIDOR ]</h2>
+    
+    <!-- MÉTIRAS RÁPIDAS / DASHBOARD -->
+    <div class="server-grid-metrics">
+      <div class="metric-card">
+        <span class="metric-label">ESTADO DE SUPABASE</span>
+        <span class="metric-value status-online" id="status-supabase">● ONLINE</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">CARTAS REGISTRADAS</span>
+        <span class="metric-value" id="total-cartas-count">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">LATENCIA BD</span>
+        <span class="metric-value" id="ping-supabase">-- ms</span>
+      </div>
+    </div>
 
+    <hr class="pixel-hr">
+
+    <!-- CONTROLES Y HERRAMIENTAS MANTENIMIENTO -->
+    <h3 class="panel-subtitle">HERRAMIENTAS DE MANTENIMIENTO Y BUCKET</h3>
+    <div class="server-actions-grid">
+      
+      <!-- PRUEBA DE CONEXIÓN -->
+      <div class="action-card">
+        <h4>🔌 Test de Conexión</h4>
+        <p>Verifica credenciales y ping en tiempo real con la base de datos.</p>
+        <button class="btn-retro" onclick="testearConexionSupabase()">PROBAR CONEXIÓN</button>
+      </div>
+
+      <!-- LIMPIEZA DE IMÁGENES HUÉRFANAS -->
+      <div class="action-card">
+        <h4>🧹 Limpiar Storage (Bucket)</h4>
+        <p>Elimina imágenes subidas que no están vinculadas a ninguna carta activa.</p>
+        <button class="btn-retro danger" onclick="limpiarStorageHuerfano()">PURGAR HUÉRFANOS</button>
+      </div>
+
+      <!-- RE-SINCRONIZACIÓN -->
+      <div class="action-card">
+        <h4>🔄 Forzar Recarga de Cache</h4>
+        <p>Actualiza la estructura de datos local para la MiniApp.</p>
+        <button class="btn-retro" onclick="forzarSincronizacionServidor()">RE-SINCRONIZAR</button>
+      </div>
+
+    </div>
+
+    <!-- TERMINAL / CONSOLA DE SALIDA DE LOGS -->
+    <h3 class="panel-subtitle">CONSOLA DE EVENTOS EN VIVO</h3>
+    <div class="server-console" id="servidor-log-output">
+      <p class="log-line text-system">[SISTEMA] Módulo de servidor preparado. Esperando comandos...</p>
+    </div>
+
+  </div>
+</div>
         <div class="status-log" id="status-log" style="margin-top:15px; font-size:7px; color:#00ff66; padding:8px; background:#000; border:1px solid #333; min-height:40px; word-break:break-all;">
             Sistema inicializado. Listo para procesar algoritmos.
         </div>
     </div>
+    
 
     <!-- SDK SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>

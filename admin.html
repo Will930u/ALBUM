@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="admin-style.css">
+    <link rel="stylesheet" href="admin-style_2.css">
 </head>
 <body>
 
@@ -20,7 +20,6 @@
             <button class="tab-btn" onclick="cambiarPestana('tab-plantillas')">📋 PLANTILLAS</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-asignar')">🎁 REGALAR</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-catalogo')">📖 CATÁLOGO</button>
-            <button class="tab-btn" onclick="cambiarPestana('tab-servidor')">🖥️ SERVIDOR</button>
         </div>
 
         <!-- PESTAÑA 1: GENERADOR PROCEDURAL Y POLLINATIONS IA -->
@@ -153,73 +152,6 @@
             </div>
         </div>
 
-        <!-- PESTAÑA 5: MÉTRICAS Y MONITOREO DEL SERVIDOR -->
-        <div id="tab-servidor" class="contenido-pestana">
-            <div class="subtitulo-admin">MÉTRICAS DEL SERVIDOR Y ESTADÍSTICAS DEL JUEGO</div>
-
-            <!-- TARJETAS DE ESTADÍSTICAS RÁPIDAS (KPIS) -->
-            <div class="grid-kpi-servidor">
-                <div class="kpi-card">
-                    <span class="kpi-titulo">USUARIOS TOTALES</span>
-                    <span class="kpi-valor" id="kpi-usuarios-totales">0</span>
-                </div>
-                <div class="kpi-card">
-                    <span class="kpi-titulo">COMPRADORES ACTIVOS</span>
-                    <span class="kpi-valor" id="kpi-compradores-activos">0</span>
-                </div>
-                <div class="kpi-card">
-                    <span class="kpi-titulo">BARAJITAS COMPRADAS</span>
-                    <span class="kpi-valor" id="kpi-barajitas-totales">0</span>
-                </div>
-            </div>
-
-            <!-- DESGLOSE DE PREMIOS RECLAMADOS -->
-            <div class="seccion-premios-servidor">
-                <div class="premios-header">EMBUDO DE PREMIOS RECLAMADOS</div>
-                <div class="grid-premios">
-                    <div class="premio-item">
-                        <span>🥇 1er Premio (500)</span>
-                        <strong id="premio-1">0</strong>
-                    </div>
-                    <div class="premio-item">
-                        <span>🥈 2do Premio (1.000)</span>
-                        <strong id="premio-2">0</strong>
-                    </div>
-                    <div class="premio-item">
-                        <span>🥉 3er Premio (1.500)</span>
-                        <strong id="premio-3">0</strong>
-                    </div>
-                    <div class="premio-item">
-                        <span>🏆 4to Premio (2.000)</span>
-                        <strong id="premio-4">0</strong>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TABLA EN TIEMPO REAL DE COLECCIONISTAS -->
-            <div class="form-grupo" style="margin-top: 15px;">
-                <label>PARTICIPANTES ACTIVOS Y ÁLBUM EN TIEMPO REAL:</label>
-                <div class="contenedor-tabla-servidor">
-                    <table class="tabla-servidor">
-                        <thead>
-                            <tr>
-                                <th>USUARIO</th>
-                                <th>BARAJITAS</th>
-                                <th>ESTADO ÁLBUM</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-usuarios-body">
-                            <tr>
-                                <td colspan="3" style="text-align:center; color:#888;">Cargando datos del servidor...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <button type="button" onclick="cargarEstadisticasServidor()" class="btn-admin-final" style="background:#a855f7; color:#fff;">🔄 ACTUALIZAR MÉTRICAS</button>
-        </div>
-
         <div class="status-log" id="status-log" style="margin-top:15px; font-size:7px; color:#00ff66; padding:8px; background:#000; border:1px solid #333; min-height:40px; word-break:break-all;">
             Sistema inicializado. Listo para procesar algoritmos.
         </div>
@@ -227,6 +159,7 @@
 
     <!-- SDK SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- RUTA CORREGIDA -->
     <script src="admin.js"></script>
 </body>
 </html>

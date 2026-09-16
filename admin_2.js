@@ -83,21 +83,21 @@ function seleccionarModoRender(modo) {
     const labelModo = document.getElementById('label-modo-previa');
 
     if (modo === 'canvas') {
-        btnCanvas.classList.add('activo');
-        btnIA.classList.remove('activo');
-        canvas.style.display = 'block';
-        imgIA.style.display = 'none';
-        panelIA.style.display = 'none';
-        btnGenIA.style.display = 'none';
-        labelModo.innerText = 'EN VIVO: RENDERIZADO CANVAS MATEMÁTICO';
+        if (btnCanvas) btnCanvas.classList.add('activo');
+        if (btnIA) btnIA.classList.remove('activo');
+        if (canvas) canvas.style.display = 'block';
+        if (imgIA) imgIA.style.display = 'none';
+        if (panelIA) panelIA.style.display = 'none';
+        if (btnGenIA) btnGenIA.style.display = 'none';
+        if (labelModo) labelModo.innerText = 'EN VIVO: RENDERIZADO CANVAS MATEMÁTICO';
     } else {
-        btnIA.classList.add('activo');
-        btnCanvas.classList.remove('activo');
-        canvas.style.display = 'none';
-        imgIA.style.display = 'block';
-        panelIA.style.display = 'block';
-        btnGenIA.style.display = 'block';
-        labelModo.innerText = 'EN VIVO: GENERADOR POLLINATIONS.AI';
+        if (btnIA) btnIA.classList.add('activo');
+        if (btnCanvas) btnCanvas.classList.remove('activo');
+        if (canvas) canvas.style.display = 'none';
+        if (imgIA) imgIA.style.display = 'block';
+        if (panelIA) panelIA.style.display = 'block';
+        if (btnGenIA) btnGenIA.style.display = 'block';
+        if (labelModo) labelModo.innerText = 'EN VIVO: GENERADOR POLLINATIONS.AI';
 
         if (!estadoCartaActual.urlImagenIA) {
             generarImagenPollinationsDirecta();
@@ -106,24 +106,25 @@ function seleccionarModoRender(modo) {
 }
 
 function inicializarControlesGUI() {
-    document.getElementById('carta-era').addEventListener('change', (e) => {
+    document.getElementById('carta-era')?.addEventListener('change', (e) => {
         estadoCartaActual.era = e.target.value;
         actualizarPaletaPorEra();
     });
 
-    document.getElementById('carta-rareza').addEventListener('change', (e) => {
+    document.getElementById('carta-rareza')?.addEventListener('change', (e) => {
         estadoCartaActual.rareza = e.target.value;
     });
 
-    document.getElementById('carta-simbolo').addEventListener('input', (e) => {
+    document.getElementById('carta-simbolo')?.addEventListener('input', (e) => {
         estadoCartaActual.simbolo = e.target.value || "🃏";
     });
 
-    document.getElementById('btn-randomizar').addEventListener('click', randomizarDesdePlantillas);
-    document.getElementById('btn-guardar-carta').addEventListener('click', guardarCartaEnSupabase);
-    document.getElementById('btn-regalar-carta').addEventListener('click', regalarCartaAUsuario);
-    document.getElementById('btn-procesar-plantillas').addEventListener('click', parsearYGuardarPlantillas);
-    document.getElementById('btn-limpiar-plantillas').addEventListener('click', vaciarTablaPlantillas);
+    document.getElementById('btn-randomizar')?.addEventListener('click', randomizarDesdePlantillas);
+    document.getElementById('btn-guardar-carta')?.addEventListener('click', guardarCartaEnSupabase);
+    document.getElementById('btn-crear-carta')?.addEventListener('click', guardarCartaEnSupabase);
+    document.getElementById('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
+    document.getElementById('btn-procesar-plantillas')?.addEventListener('click', parsearYGuardarPlantillas);
+    document.getElementById('btn-limpiar-plantillas')?.addEventListener('click', vaciarTablaPlantillas);
 }
 
 // =============================================================================
@@ -131,10 +132,10 @@ function inicializarControlesGUI() {
 // =============================================================================
 
 function construirPromptIA() {
-    const custom = document.getElementById('prompt-ia-custom').value.trim();
+    const custom = document.getElementById('prompt-ia-custom')?.value.trim();
     if (custom) return custom;
 
-    const nombre = document.getElementById('carta-nombre').value.trim() || "creature";
+    const nombre = document.getElementById('carta-nombre')?.value.trim() || "creature";
     const simbolo = estadoCartaActual.simbolo || "";
     return `3d emoji style of ${nombre} ${simbolo}, vibrant colors, smooth glossy surface, centered, isolated on white background, vector high quality, 8k render`;
 }
@@ -152,19 +153,21 @@ function generarImagenPollinationsDirecta() {
 
     const url = `https://image.pollinations.ai/prompt/${promptEncoded}?width=512&height=512&seed=${seed}&nologo=true`;
 
-    imgElement.onload = () => {
-        if (spinner) spinner.style.display = 'none';
-        estadoCartaActual.urlImagenIA = url;
-        estadoCartaActual.promptIA = prompt;
-        logStatus("✅ Imagen de Pollinations.ai renderizada con éxito.");
-    };
+    if (imgElement) {
+        imgElement.onload = () => {
+            if (spinner) spinner.style.display = 'none';
+            estadoCartaActual.urlImagenIA = url;
+            estadoCartaActual.promptIA = prompt;
+            logStatus("✅ Imagen de Pollinations.ai renderizada con éxito.");
+        };
 
-    imgElement.onerror = () => {
-        if (spinner) spinner.style.display = 'none';
-        logStatus("X Error al cargar la imagen desde Pollinations.ai.", true);
-    };
+        imgElement.onerror = () => {
+            if (spinner) spinner.style.display = 'none';
+            logStatus("❌ Error al cargar la imagen desde Pollinations.ai.", true);
+        };
 
-    imgElement.src = url;
+        imgElement.src = url;
+    }
 }
 
 // =============================================================================
@@ -186,7 +189,7 @@ function determinarEraPorZona(zonaNombre) {
 async function parsearYGuardarPlantillas() {
     if (!supabaseClient) return logStatus("Supabase no conectado.", true);
 
-    const textoRaw = document.getElementById('textarea-plantillas').value.trim();
+    const textoRaw = document.getElementById('textarea-plantillas')?.value.trim();
     if (!textoRaw) {
         return logStatus("El campo de texto está vacío. Pega la lista primero.", true);
     }
@@ -246,7 +249,9 @@ async function parsearYGuardarPlantillas() {
         logStatus(`Error al guardar plantillas: ${error.message}`, true);
     } else {
         logStatus(`✅ ¡Se guardaron exitosamente ${registrosAInsertar.length} plantillas!`);
-        document.getElementById('textarea-plantillas').value = "";
+        if (document.getElementById('textarea-plantillas')) {
+            document.getElementById('textarea-plantillas').value = "";
+        }
         contarPlantillasRegistradas();
     }
 }
@@ -317,12 +322,12 @@ async function randomizarDesdePlantillas() {
     estadoCartaActual.rareza = rarezaAleatoria;
     estadoCartaActual.simbolo = data.emoji;
 
-    document.getElementById('carta-id').value = Math.floor(Math.random() * 1900) + 1;
-    document.getElementById('carta-nombre').value = data.nombre;
-    document.getElementById('carta-simbolo').value = data.emoji;
-    document.getElementById('carta-lore').value = data.lore;
-    document.getElementById('carta-era').value = data.era_sugerida;
-    document.getElementById('carta-rareza').value = rarezaAleatoria;
+    if (document.getElementById('carta-id')) document.getElementById('carta-id').value = Math.floor(Math.random() * 1900) + 1;
+    if (document.getElementById('carta-nombre')) document.getElementById('carta-nombre').value = data.nombre;
+    if (document.getElementById('carta-simbolo')) document.getElementById('carta-simbolo').value = data.emoji;
+    if (document.getElementById('carta-lore')) document.getElementById('carta-lore').value = data.lore;
+    if (document.getElementById('carta-era')) document.getElementById('carta-era').value = data.era_sugerida;
+    if (document.getElementById('carta-rareza')) document.getElementById('carta-rareza').value = rarezaAleatoria;
 
     actualizarPaletaPorEra();
     logStatus(`🎲 Plantilla seleccionada: ${data.emoji} ${data.nombre} (${data.zona})`);
@@ -434,17 +439,22 @@ function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
 }
 
 // =============================================================================
-// 💾 GUARDADO Y ASIGNACIÓN DE CARTAS
+// 💾 GUARDADO Y ASIGNACIÓN DE CARTAS (EVALUACIÓN INTELIGENTE DE TABLAS)
 // =============================================================================
 
-async function guardarCartaEnSupabase() {
+async function guardarCartaEnSupabase(e) {
+    if (e) e.preventDefault();
     if (!supabaseClient) return logStatus("Cliente Supabase desconectado.", true);
 
-    const id = parseInt(document.getElementById('carta-id').value);
-    const nombre = document.getElementById('carta-nombre').value.trim();
-    const lore = document.getElementById('carta-lore').value.trim();
+    const inputId = document.getElementById('carta-id');
+    const inputNombre = document.getElementById('carta-nombre');
+    const inputLore = document.getElementById('carta-lore');
 
-    if (!id || !nombre) {
+    const id = parseInt(inputId?.value || "0");
+    const nombre = inputNombre?.value?.trim() || "Sin Nombre";
+    const lore = inputLore?.value?.trim() || `Carta #${id}`;
+
+    if (!id || id <= 0 || !nombre) {
         return logStatus("El ID y el Nombre son obligatorios.", true);
     }
 
@@ -464,65 +474,91 @@ async function guardarCartaEnSupabase() {
 
     logStatus(`Publicando receta de la Carta #${id}...`);
 
-    // Nombre de tabla ajustado a minúsculas 'cartas'
-    const { error } = await supabaseClient
-        .from('cartas')
-        .upsert([{
+    try {
+        // Consulta previa segura a 'Cartas' para esquivar el fallo del onConflict/404 de PostgREST
+        const { data: existente } = await supabaseClient
+            .from('Cartas')
+            .select('id')
+            .eq('id', id)
+            .maybeSingle();
+
+        let error = null;
+
+        const payload = {
             id: id,
             nombre: nombre,
             rareza: estadoCartaActual.rareza,
             imagen_url: recetaJSON,
             lore: lore
-        }], { onConflict: 'id' });
+        };
 
-    if (error) {
-        logStatus(`Error guardando en Supabase: ${error.message}`, true);
-    } else {
-        logStatus(`✅ ¡Carta #${id} (${nombre}) guardada en la base de datos!`);
-        cargarCatalogoBaseDatos();
+        if (existente) {
+            const { error: errUpdate } = await supabaseClient
+                .from('Cartas')
+                .update(payload)
+                .eq('id', id);
+            error = errUpdate;
+        } else {
+            const { error: errInsert } = await supabaseClient
+                .from('Cartas')
+                .insert([payload]);
+            error = errInsert;
+        }
+
+        if (error) {
+            logStatus(`Error guardando en Supabase: ${error.message}`, true);
+        } else {
+            logStatus(`✅ ¡Carta #${id} (${nombre}) guardada en la base de datos!`);
+            cargarCatalogoBaseDatos();
+        }
+    } catch (err) {
+        logStatus(`Excepción al conectar con la base de datos.`, true);
     }
 }
 
 async function regalarCartaAUsuario() {
     if (!supabaseClient) return logStatus("Cliente Supabase desconectado.", true);
 
-    let usuario = document.getElementById('target-user').value.trim().replace(/^@/, '');
-    const cartaId = parseInt(document.getElementById('target-carta-id').value);
-    const cantidad = parseInt(document.getElementById('target-cantidad').value) || 1;
+    let usuario = document.getElementById('target-user')?.value.trim().replace(/^@/, '').toLowerCase();
+    const cartaId = parseInt(document.getElementById('target-carta-id')?.value || "0");
+    const cantidad = parseInt(document.getElementById('target-cantidad')?.value || "1");
 
     if (!usuario || !cartaId) {
-        return logStatus("El Usuario y el ID son obligatorios.", true);
+        return logStatus("El Usuario y el ID de Carta son obligatorios.", true);
     }
 
     logStatus(`Asignando carta #${cartaId} a @${usuario}...`);
 
-    // Ajustado a minúsculas 'coleccion_usuario'
-    const { data: existente } = await supabaseClient
-        .from('coleccion_usuario')
-        .select('*')
-        .eq('usuario_id', usuario)
-        .eq('carta_id', cartaId)
-        .maybeSingle();
+    try {
+        const { data: existente } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .select('*')
+            .ilike('usuario_id', usuario)
+            .eq('carta_id', cartaId)
+            .maybeSingle();
 
-    let errorRes = null;
+        let errorRes = null;
 
-    if (existente) {
-        const { error } = await supabaseClient
-            .from('coleccion_usuario')
-            .update({ cantidad: existente.cantidad + cantidad })
-            .eq('id', existente.id);
-        errorRes = error;
-    } else {
-        const { error } = await supabaseClient
-            .from('coleccion_usuario')
-            .insert([{ usuario_id: usuario, carta_id: cartaId, cantidad: cantidad }]);
-        errorRes = error;
-    }
+        if (existente) {
+            const { error } = await supabaseClient
+                .from('Coleccion_Usuario')
+                .update({ cantidad: existente.cantidad + cantidad })
+                .eq('id', existente.id);
+            errorRes = error;
+        } else {
+            const { error } = await supabaseClient
+                .from('Coleccion_Usuario')
+                .insert([{ usuario_id: usuario, carta_id: cartaId, cantidad: cantidad }]);
+            errorRes = error;
+        }
 
-    if (errorRes) {
-        logStatus(`Error al regalar carta: ${errorRes.message}`, true);
-    } else {
-        logStatus(`🎁 ¡Carta #${cartaId} (x${cantidad}) asignada a @${usuario}!`);
+        if (errorRes) {
+            logStatus(`Error al regalar carta: ${errorRes.message}`, true);
+        } else {
+            logStatus(`🎁 ¡Carta #${cartaId} (x${cantidad}) asignada a @${usuario}!`);
+        }
+    } catch (err) {
+        logStatus(`Excepción procesando regalar carta.`, true);
     }
 }
 
@@ -532,11 +568,10 @@ async function cargarCatalogoBaseDatos() {
     const contenedor = document.getElementById('grid-catalogo-admin');
     if (!contenedor) return;
 
-    contenedor.innerHTML = "<div style='font-size:7px; color:#888;'>Cargando recetas...</div>";
+    contenedor.innerHTML = "<div style='font-size:7px; color:#888;'>Cargando catálogo...</div>";
 
-    // Ajustado a minúsculas 'cartas'
     const { data, error } = await supabaseClient
-        .from('cartas')
+        .from('Cartas')
         .select('*')
         .order('id', { ascending: true });
 
@@ -567,7 +602,7 @@ async function cargarCatalogoBaseDatos() {
                 configCarta = JSON.parse(carta.imagen_url);
             }
         } catch (e) {
-            console.warn(`Carta #${carta.id} sin receta válida.`);
+            console.warn(`Carta #${carta.id} sin receta en JSON.`);
         }
 
         if (configCarta.modo === 'ia' && configCarta.urlImagenIA) {
@@ -605,9 +640,8 @@ async function cargarCatalogoBaseDatos() {
 async function eliminarCarta(id) {
     if (!confirm(`¿Eliminar la carta #${id} del catálogo global?`)) return;
 
-    // Ajustado a minúsculas 'cartas'
     const { error } = await supabaseClient
-        .from('cartas')
+        .from('Cartas')
         .delete()
         .eq('id', id);
 
@@ -650,7 +684,7 @@ async function testearConexionSupabase() {
 
     try {
         const { count, error } = await supabaseClient
-            .from('cartas')
+            .from('Cartas')
             .select('*', { count: 'exact', head: true });
 
         const fin = performance.now();
@@ -694,14 +728,14 @@ async function cargarMetricasServidor() {
     // 2. Colecciones Totales
     try {
         const { count, error } = await supabaseClient
-            .from('coleccion_usuario')
+            .from('Coleccion_Usuario')
             .select('*', { count: 'exact', head: true });
 
         if (!error && document.getElementById('kpi-total-colecciones')) {
             document.getElementById('kpi-total-colecciones').innerText = count || 0;
         }
     } catch (e) {
-        logServidor(`Tabla 'coleccion_usuario' no disponible.`, "WARN");
+        logServidor(`Tabla 'Coleccion_Usuario' no disponible.`, "WARN");
     }
 
     // 3. Reclamaciones de Premios

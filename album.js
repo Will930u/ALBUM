@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN COMPLETA CORREGIDA PARA TELEGRAM)
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN COMPLETA RLS-COMPATIBLE)
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -15,7 +15,6 @@ if (tg) {
     } catch (e) {}
 }
 
-// Identificador por defecto para pruebas fuera de Telegram
 let idUsuarioTelegram = "utrera930"; 
 let paginaActual = 1;
 const cartasPorPagina = 25;
@@ -24,7 +23,6 @@ const totalPaginas = 80;
 let inventarioUsuarioCache = new Map();
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Inicializar Supabase SDK
     if (typeof supabase !== 'undefined') {
         supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     } else {
@@ -38,7 +36,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await cargarInventarioInicial();
 
-    // Eventos de Navegación
     document.getElementById('btn-anterior')?.addEventListener('click', () => {
         if (paginaActual > 1) { 
             paginaActual--; 
@@ -59,16 +56,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 });
 
-// =============================================================================
-// 🛠️ INICIALIZACIÓN DE USUARIO CON FALLBACK Y NORMALIZACIÓN DE ID
-// =============================================================================
 function inicializarUsuarioTelegram() {
     let idDetectado = null;
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
         const user = tg.initDataUnsafe.user;
         
-        // 1. Priorizar username (sin @) o fallback a ID numérico de Telegram
         if (user.username) {
             idDetectado = user.username.replace(/^@/, '').trim();
         } else if (user.id) {
@@ -82,9 +75,11 @@ function inicializarUsuarioTelegram() {
         if (uName) uName.innerText = `@${idDetectado || 'utrera930'}`;
         if (fName) fName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim();
         if (avatar && user.photo_url) avatar.src = user.photo_url;
+    } else {
+        const uName = document.getElementById('user-username');
+        if (uName) uName.innerText = `@${idUsuarioTelegram} (Web)`;
     }
 
-    // 2. Si no se detectó ID o se ejecuta fuera de Telegram, usar utrera930 por defecto
     idUsuarioTelegram = idDetectado || "utrera930";
 }
 
@@ -93,13 +88,12 @@ async function cargarInventarioInicial() {
         if (!supabaseClient) return;
 
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim();
-        const idConArroba = `@${idLimpio}`;
 
-        // Consulta OR para abarcar formatos comunes (ej. "utrera930", "@utrera930" y fallback)
+        // ilike ignora diferencias entre mayúsculas y minúsculas (Utrera930 == utrera930)
         let { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*')
-            .or(`usuario_id.eq.${idLimpio},usuario_id.eq.${idConArroba},usuario_id.eq.utrera930`);
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio},usuario_id.ilike.utrera930`);
 
         if (errColeccion) {
             console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
@@ -116,81 +110,13 @@ async function cargarInventarioInicial() {
                 .select('*')
                 .in('id', idsCartas);
 
-            if (errCartas) {
-                console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
-            }
+            if (errCartas) console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
 
             const mapaCartas = new Map();
             if (datosCartas) {
                 datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
             }
 
-            coleccion.forEach(item => {
-                if (item.carta_id) {
-                    const idCartaNum = Number(item.carta_id);
-                    const previo = inventarioUsuarioCache.get(idCartaNum);
-                    const infoCarta = mapaCartas.get(idCartaNum);
-                    
-                    if (previo) {
-                        previo.cantidad += item.cantidad;
-                    } else {
-                        inventarioUsuarioCache.set(idCartaNum, { 
-                            carta_id: idCartaNum, 
-                            cantidad: item.cantidad,
-                            datosCarta: infoCarta || { id: idCartaNum, nombre: `Carta #${idCartaNum}` }
-                        });
-                    }
-                }
-            });
-        }
-
-        renderizarLibro(paginaActual);
-
-    } catch (err) {
-        console.error("Excepción en cargarInventarioInicial:", err);
-    }
-}
-
-async function cargarInventarioInicial() {
-    try {
-        if (!supabaseClient) return;
-
-        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim();
-        const idConArroba = `@${idLimpio}`;
-
-        // 1. Obtener la colección del usuario (soporta con @ y sin @)
-        const { data: coleccion, error: errColeccion } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .select('*')
-            .or(`usuario_id.eq.${idLimpio},usuario_id.eq.${idConArroba}`);
-
-        if (errColeccion) {
-            console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
-            return;
-        }
-
-        inventarioUsuarioCache.clear();
-
-        if (coleccion && coleccion.length > 0) {
-            // 2. Obtener los IDs de cartas que posee
-            const idsCartas = coleccion.map(item => item.carta_id);
-
-            // 3. Obtener los datos visuales/recetas de la tabla 'Cartas'
-            const { data: datosCartas, error: errCartas } = await supabaseClient
-                .from('Cartas')
-                .select('*')
-                .in('id', idsCartas);
-
-            if (errCartas) {
-                console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
-            }
-
-            const mapaCartas = new Map();
-            if (datosCartas) {
-                datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
-            }
-
-            // 4. Mapear al inventario local
             coleccion.forEach(item => {
                 if (item.carta_id) {
                     const idCartaNum = Number(item.carta_id);
@@ -242,7 +168,6 @@ function renderizarLibro(pagina) {
         if (itemPoseido) {
             slot.classList.add('poseida');
 
-            // Renderizar la barajita algorítmica en Canvas dentro del slot
             dibujarBarajitaAlgoritmicaSlot(slot, itemPoseido.datosCarta, idCarta);
 
             if (itemPoseido.cantidad > 1) {
@@ -264,7 +189,6 @@ function renderizarLibro(pagina) {
     }
 }
 
-// Dibujador de Canvas para barajitas algorítmicas (compatible con tu Admin_2.js)
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let config = {};
     try {
@@ -275,7 +199,6 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         config = {};
     }
 
-    // Si es una imagen Base64 o URL directa
     if (typeof datosCarta?.imagen_url === 'string' && datosCarta.imagen_url.startsWith('data:image')) {
         const img = document.createElement('img');
         img.src = datosCarta.imagen_url;
@@ -284,7 +207,6 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         return;
     }
 
-    // Si es una receta algorítmica JSON de tu generador
     const canvas = document.createElement('canvas');
     canvas.width = 120;
     canvas.height = 160;
@@ -294,22 +216,18 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
 
     const ctx = canvas.getContext('2d');
 
-    // 1. Fondo
     ctx.fillStyle = config.fondoColor || "#1e293b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Símbolo del personaje
     ctx.font = "38px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(config.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 10);
 
-    // 3. Marco Neón
     ctx.strokeStyle = config.marcoColor || "#64748b";
     ctx.lineWidth = 6;
     ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
 
-    // 4. Etiqueta con el nombre
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.fillRect(5, canvas.height - 28, canvas.width - 10, 22);
 

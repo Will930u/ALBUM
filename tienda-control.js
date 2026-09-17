@@ -3,7 +3,7 @@
 // =============================================================================
 
 // ⚠️ PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/TU_DEPLOYMENT_ID_AQUI/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDOleGg11pEqPwnpSrBvO4U6kIOyRh1D_WGnZ9BJXkMFfKDTxbzFbecFTG58cCBV6M/exec";
 
 const PRECIO_SOBRE_USD = 0.62;
 const API_TASA_URL = 'https://dolarapi.com/v1/dolares/oficial';

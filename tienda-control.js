@@ -2,7 +2,7 @@
 // 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA & APPS SCRIPT)
 // =============================================================================
 
-// ⚠️ PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+// URL oficial de tu aplicación web en Google Apps Script
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDOleGg11pEqPwnpSrBvO4U6kIOyRh1D_WGnZ9BJXkMFfKDTxbzFbecFTG58cCBV6M/exec";
 
 const PRECIO_SOBRE_USD = 0.62;
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Obtener el ID dinámico de Telegram del usuario si está en la MiniApp
+            // Capturar ID dinámico de Telegram
             const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
             const usuarioId = telegramUser ? String(telegramUser.id) : "usuario_test_venezuela";
 
@@ -144,9 +144,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 console.log("📡 Enviando reporte de pago a Google Apps Script...", payload);
 
-                // Se utiliza Content-Type text/plain para evitar bloqueos CORS
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: "POST",
+                    redirect: "follow",
                     headers: {
                         "Content-Type": "text/plain;charset=utf-8"
                     },

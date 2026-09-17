@@ -1,12 +1,10 @@
 // =============================================================================
-// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA & SUPABASE)
+// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA & APPS SCRIPT)
 // =============================================================================
 
-const SUPABASE_URL = "https://supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeG1qcGdud3F4eXpkam5ud2FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MTk4MzIsImV4cCI6MjEwNDE5NTgzMn0.5ZLVDAUHXpITQs2GpDhtGAXTphZUZ7gaE4ElIHPsaAo";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ⚠️ PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/TU_DEPLOYMENT_ID_AQUI/exec";
 
-const USUARIO_ID_MOCK = "usuario_test_venezuela";
 const PRECIO_SOBRE_USD = 0.62;
 const API_TASA_URL = 'https://dolarapi.com/v1/dolares/oficial';
 let TASA_BCV = 833.00;
@@ -25,11 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const formReportePm = document.getElementById('form-registro-referencia');
 
     function actualizarTotales() {
-        let cantidad = parseInt(inputCantidad.value) || 1;
+        let cantidad = parseInt(inputCantidad?.value) || 1;
         
         if (cantidad < 1) cantidad = 1;
         if (cantidad > 99) cantidad = 99;
-        inputCantidad.value = cantidad;
+        if (inputCantidad) inputCantidad.value = cantidad;
 
         const totalUsd = cantidad * PRECIO_SOBRE_USD;
         const totalBs = totalUsd * TASA_BCV;
@@ -117,38 +115,58 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const ref = document.getElementById('ref-bancaria')?.value.trim();
             const telf = document.getElementById('telf-origen')?.value.trim();
-            const cantidadSobres = parseInt(inputCantidad.value) || 1;
-            
+            const cantidadSobres = parseInt(inputCantidad?.value) || 1;
             const totalBsCalculado = parseFloat((cantidadSobres * PRECIO_SOBRE_USD * TASA_BCV).toFixed(2));
 
-            if (ref && telf) {
-                try {
-                    console.log(`📡 Registrando reporte de ${cantidadSobres} sobre(s) en Supabase...`);
-                    
-                    const { error } = await supabaseClient
-                        .from('pagos_pendientes')
-                        .insert([{
-                            usuario_id: USUARIO_ID_MOCK,
-                            referencia: ref,
-                            monto_bs: totalBsCalculado,
-                            telefono_origen: telf,
-                            banco_origen: "0134",
-                            estado: "pendiente",
-                            cantidad_sobres: cantidadSobres,
-                            created_at: new Date().toISOString()
-                        }]);
+            if (!ref || ref.length < 6) {
+                alert("⚠️ Por favor ingresa al menos los últimos 6 dígitos de la referencia.");
+                return;
+            }
 
-                    if (error) throw error;
+            if (!telf) {
+                alert("⚠️ Por favor ingresa el número de teléfono desde donde realizaste el pago.");
+                return;
+            }
 
-                    alert(`🛰️ ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu saldo se actualizará automáticamente apenas el banco procese la transacción.`);
+            // Obtener el ID dinámico de Telegram del usuario si está en la MiniApp
+            const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            const usuarioId = telegramUser ? String(telegramUser.id) : "usuario_test_venezuela";
+
+            const payload = {
+                action: "send_payment",
+                usuarioId: usuarioId,
+                referencia: ref,
+                telfOrigen: telf,
+                totalBS: totalBsCalculado,
+                qty: cantidadSobres
+            };
+
+            try {
+                console.log("📡 Enviando reporte de pago a Google Apps Script...", payload);
+
+                // Se utiliza Content-Type text/plain para evitar bloqueos CORS
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const res = await response.json();
+
+                if (res.success) {
+                    alert(`🛰️ ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu compra se acreditará automáticamente apenas el banco confirme la transacción.`);
                     
                     if (modalPm) modalPm.style.display = 'none';
                     formReportePm.reset();
-
-                } catch (errSupabase) {
-                    console.error("Error al asentar pago en Supabase:", errSupabase);
-                    alert("❌ ERROR AL ENVIAR REPORTE: Revisa la conexión de tu Mini App.");
+                } else {
+                    alert(`❌ ERROR EN EL SERVIDOR: ${res.message || "No se pudo procesar el reporte."}`);
                 }
+
+            } catch (err) {
+                console.error("Error al enviar reporte a Apps Script:", err);
+                alert("❌ ERROR AL ENVIAR REPORTE: Revisa la URL de Apps Script o tu conexión de red.");
             }
         });
     }

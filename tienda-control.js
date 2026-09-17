@@ -128,9 +128,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Capturar ID dinámico de Telegram
+            // Usar el ID de Telegram si está disponible, o un UUID de prueba válido para Supabase
             const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-            const usuarioId = telegramUser ? String(telegramUser.id) : "usuario_test_venezuela";
+            const usuarioId = telegramUser ? String(telegramUser.id) : "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 
             const payload = {
                 action: "send_payment",

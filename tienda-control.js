@@ -19,17 +19,27 @@ function obtenerTelegramUserId() {
             window.Telegram.WebApp.expand();
             
             const user = window.Telegram.WebApp.initDataUnsafe?.user;
+            
+            // 1. Prioridad: Intentar obtener el username de Telegram
+            if (user && user.username) {
+                return String(user.username).replace(/^@/, '').trim().toLowerCase();
+            }
+            
+            // Si el usuario no tiene username público, usar su ID numérico
             if (user && user.id) {
                 return String(user.id);
             }
             
-            // Reintento extrayendo initData si no viene parseado
+            // 2. Reintento extrayendo initData si no viene parseado
             const initData = window.Telegram.WebApp.initData;
             if (initData) {
                 const searchParams = new URLSearchParams(initData);
                 const userParam = searchParams.get('user');
                 if (userParam) {
                     const parsedUser = JSON.parse(decodeURIComponent(userParam));
+                    if (parsedUser && parsedUser.username) {
+                        return String(parsedUser.username).replace(/^@/, '').trim().toLowerCase();
+                    }
                     if (parsedUser && parsedUser.id) {
                         return String(parsedUser.id);
                     }
@@ -37,7 +47,7 @@ function obtenerTelegramUserId() {
             }
         }
         
-        // Búsqueda en parámetros URL si la WebApp está dentro de un iframe
+        // 3. Búsqueda en parámetros URL si la WebApp está dentro de un iframe
         const urlParams = new URLSearchParams(window.location.search);
         const tgData = urlParams.get('tgWebAppData');
         if (tgData) {
@@ -45,6 +55,9 @@ function obtenerTelegramUserId() {
             const userParam = searchParams.get('user');
             if (userParam) {
                 const parsedUser = JSON.parse(userParam);
+                if (parsedUser && parsedUser.username) {
+                    return String(parsedUser.username).replace(/^@/, '').trim().toLowerCase();
+                }
                 if (parsedUser && parsedUser.id) {
                     return String(parsedUser.id);
                 }
@@ -54,8 +67,8 @@ function obtenerTelegramUserId() {
         console.warn("⚠️ Error extrayendo ID de Telegram:", e);
     }
 
-    // Retorno de fallback estricto para entorno web fuera de Telegram
-    return "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+    // Fallback estándar en entorno web de desarrollo fuera de Telegram
+    return "utrera930";
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

@@ -17,6 +17,8 @@ if (tg) {
 
 // Variables globales de sesión dinámica
 let idUsuarioTelegram = ""; 
+let idNumTelegram = "";
+let uuidUsuarioApp = "";
 let nombreUsuarioTelegram = "Jugador";
 
 let paginaActual = 1;
@@ -40,7 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await registrarOActualizarUsuarioBD();
     await cargarInventarioInicial();
 
-    // ⚡ Activar escucha en vivo de nuevas barajitas recibidas
+    // Activar escucha en tiempo real
     activarAlbumEnTiempoReal();
 
     document.getElementById('btn-anterior')?.addEventListener('click', () => {
@@ -71,19 +73,24 @@ function inicializarUsuarioTelegram() {
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
         const user = tg.initDataUnsafe.user;
         
-        // Asignación totalmente dinámica basada en la cuenta de Telegram actual
         idUsuarioTelegram = user.username 
             ? user.username.replace(/^@/, '').trim().toLowerCase() 
-            : (user.id ? user.id.toString().trim() : "invitado_dev");
+            : "";
 
+        idNumTelegram = user.id ? user.id.toString().trim() : "";
         nombreUsuarioTelegram = `${user.first_name || ''} ${user.last_name || ''}`.trim() || "Jugador";
 
-        if (uName) uName.innerText = `@${user.username || idUsuarioTelegram}`;
+        // Obtener UUID persistente guardado en la app local si existe
+        uuidUsuarioApp = localStorage.getItem('usuario_uuid') || "";
+
+        if (uName) uName.innerText = `@${user.username || idNumTelegram || "invitado"}`;
         if (fName) fName.innerText = nombreUsuarioTelegram;
         if (avatar && user.photo_url) avatar.src = user.photo_url;
     } else {
-        // Fallback genérico exclusivamente para entorno de desarrollo local (navegador PC)
+        // Fallback genérico para entorno local
         idUsuarioTelegram = "invitado_dev";
+        idNumTelegram = "123456789";
+        uuidUsuarioApp = localStorage.getItem('usuario_uuid') || "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
         nombreUsuarioTelegram = "Invitado Pruebas";
 
         if (uName) uName.innerText = `@${idUsuarioTelegram}`;
@@ -92,19 +99,26 @@ function inicializarUsuarioTelegram() {
 }
 
 async function registrarOActualizarUsuarioBD() {
-    if (!supabaseClient || !idUsuarioTelegram) return;
+    if (!supabaseClient) return;
 
     try {
-        const tgIdNum = tg?.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : null;
+        const tgIdNum = idNumTelegram || null;
+        const uname = idUsuarioTelegram || `user_${tgIdNum}`;
 
-        await supabaseClient
+        const { data, error } = await supabaseClient
             .from('usuarios')
             .upsert([{
-                telegram_id: tgIdNum || idUsuarioTelegram,
-                username: idUsuarioTelegram,
+                telegram_id: tgIdNum,
+                username: uname,
                 nombre: nombreUsuarioTelegram,
                 ultimo_ingreso: new Date().toISOString()
-            }], { onConflict: 'username' });
+            }], { onConflict: 'username' })
+            .select();
+
+        if (data && data.length > 0 && data[0].id) {
+            uuidUsuarioApp = data[0].id;
+            localStorage.setItem('usuario_uuid', uuidUsuarioApp);
+        }
     } catch (e) {
         console.warn("Aviso al sincronizar usuario con BD:", e);
     }
@@ -112,15 +126,25 @@ async function registrarOActualizarUsuarioBD() {
 
 async function cargarInventarioInicial() {
     try {
-        if (!supabaseClient || !idUsuarioTelegram) return;
+        if (!supabaseClient) return;
 
-        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+        // Construir conjunto de identificadores posibles del usuario
+        const identificadores = [];
+        if (idUsuarioTelegram) {
+            const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+            identificadores.push(`usuario_id.ilike.${idLimpio}`);
+            identificadores.push(`usuario_id.ilike.@${idLimpio}`);
+        }
+        if (idNumTelegram) identificadores.push(`usuario_id.eq.${idNumTelegram}`);
+        if (uuidUsuarioApp) identificadores.push(`usuario_id.eq.${uuidUsuarioApp}`);
 
-        // Búsqueda multi-formato flexible en Supabase para soportar distintos formatos de almacenamiento
+        if (identificadores.length === 0) return;
+
+        // Búsqueda multi-filtro para consolidar cualquier formato de usuario_id
         let { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*')
-            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`);
+            .or(identificadores.join(','));
 
         if (errColeccion) {
             console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
@@ -305,66 +329,36 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
 // =============================================================================
 
 function activarAlbumEnTiempoReal() {
-    if (!supabaseClient || !idUsuarioTelegram) return;
-
-    const usuarioLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+    if (!supabaseClient) return;
 
     supabaseClient
-        .channel(`realtime-album-${usuarioLimpio}`)
+        .channel(`realtime-album-global`)
         .on(
             'postgres_changes',
             {
                 event: '*',
                 schema: 'public',
-                table: 'Coleccion_Usuario',
-                filter: `usuario_id=eq.${usuarioLimpio}`
+                table: 'Coleccion_Usuario'
             },
             (payload) => {
-                console.log("⚡ Cambio en vivo detectado para este usuario:", payload);
-                // Vuelve a cargar y pintar las cartas al recibir el evento
-                cargarInventarioInicial();
-            }
-        )
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log(`🟢 Álbum sincronizado en tiempo real para @${usuarioLimpio}`);
-            }
-        });
-}
-// =============================================================================
-// ⚡ ESCUCHADOR EN TIEMPO REAL PARA EL ÁLBUM DEL USUARIO
-// =============================================================================
+                const nuevoRegistro = payload.new;
+                if (!nuevoRegistro) return;
 
-function suscribirACambiosDeColeccion(usuarioIdActual) {
-    if (!supabaseClient) return;
+                const uId = String(nuevoRegistro.usuario_id || "").toLowerCase();
+                const esMio = uId === idUsuarioTelegram || 
+                             uId === `@${idUsuarioTelegram}` || 
+                             uId === idNumTelegram || 
+                             uId === uuidUsuarioApp;
 
-    supabaseClient
-        .channel('cambios-coleccion-realtime')
-        .on(
-            'postgres_changes',
-            {
-                event: '*', // Escucha INSERT y UPDATE
-                schema: 'public',
-                table: 'Coleccion_Usuario',
-                filter: `usuario_id=eq.${usuarioIdActual}`
-            },
-            (payload) => {
-                console.log("⚡ Cambio detectado en tiempo real:", payload);
-                
-                // Recargar las cartas en pantalla sin refrescar la página
-                if (typeof cargarAlbumUsuario === 'function') {
-                    cargarAlbumUsuario(); 
-                } else if (typeof renderizarAlbum === 'function') {
-                    renderizarAlbum();
+                if (esMio) {
+                    mostrarNotificacionCartaRecibida(nuevoRegistro);
+                    cargarInventarioInicial();
                 }
-                
-                // Mostrar notificación en pantalla
-                mostrarNotificacionCartaRecibida(payload.new);
             }
         )
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-                console.log("🟢 Conectado al canal en tiempo real de la colección.");
+                console.log(`🟢 Álbum sincronizado en tiempo real.`);
             }
         });
 }
@@ -389,24 +383,3 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
 
     setTimeout(() => toast.remove(), 4000);
 }
-
-// =============================================================================
-// 🚀 INICIALIZACIÓN AL CARGAR LA PÁGINA
-// =============================================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Obtener el usuario activo (puedes adaptarlo según cómo guardes el usuario en Telegram o sesión)
-    const usuarioActual = window.Telegram?.WebApp?.initDataUnsafe?.user?.username 
-        || localStorage.getItem('usuario_telegram') 
-        || 'utrera930';
-
-    // 2. Cargar las cartas iniciales si existe esa función en tu código
-    if (typeof cargarAlbumUsuario === 'function') {
-        cargarAlbumUsuario();
-    }
-
-    // 3. Activar el escuchador en tiempo real para este usuario
-    if (usuarioActual) {
-        suscribirACambiosDeColeccion(usuarioActual.toLowerCase());
-    }
-});

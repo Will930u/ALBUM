@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN HOMOLOGADA CON UUID Y REALTIME)
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN UNIFICADA POR USERNAME)
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -15,10 +15,8 @@ if (tg) {
     } catch (e) {}
 }
 
-// Variables globales de sesión dinámica
 let idUsuarioTelegram = ""; 
 let nombreUsuarioTelegram = "Jugador";
-let uuidUsuarioSupabase = "";
 
 let paginaActual = 1;
 const cartasPorPagina = 25;
@@ -38,13 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elAno = document.getElementById('ano-actual');
     if (elAno) elAno.innerText = new Date().getFullYear();
 
-    // 1. Resolver obligatoriamente el UUID en la tabla 'usuarios' antes de cargar inventario
-    await resolverOObtenerUUIDUsuario();
-
-    // 2. Cargar colección usando búsqueda amplia (UUID, username, ID)
     await cargarInventarioInicial();
-
-    // 3. Activar escucha en vivo de nuevas barajitas recibidas
     activarAlbumEnTiempoReal();
 
     document.getElementById('btn-anterior')?.addEventListener('click', () => {
@@ -77,7 +69,7 @@ function inicializarUsuarioTelegram() {
         
         idUsuarioTelegram = user.username 
             ? user.username.replace(/^@/, '').trim().toLowerCase() 
-            : (user.id ? user.id.toString().trim() : "invitado_dev");
+            : (user.id ? user.id.toString().trim() : "utrera930");
 
         nombreUsuarioTelegram = `${user.first_name || ''} ${user.last_name || ''}`.trim() || "Jugador";
 
@@ -85,7 +77,6 @@ function inicializarUsuarioTelegram() {
         if (fName) fName.innerText = nombreUsuarioTelegram;
         if (avatar && user.photo_url) avatar.src = user.photo_url;
     } else {
-        // Fallback genérico exclusivamente para entorno de desarrollo local
         idUsuarioTelegram = "utrera930";
         nombreUsuarioTelegram = "William Utrera";
 
@@ -94,73 +85,17 @@ function inicializarUsuarioTelegram() {
     }
 }
 
-async function resolverOObtenerUUIDUsuario() {
-    if (!supabaseClient || !idUsuarioTelegram) return;
-
-    try {
-        const tgIdNum = tg?.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : null;
-        const usernameLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
-
-        // Intentar consultar en la tabla 'usuarios'
-        let filtros = [];
-        if (usernameLimpio) filtros.push(`username.ilike.${usernameLimpio}`);
-        if (tgIdNum) filtros.push(`telegram_id.eq.${tgIdNum}`);
-
-        const { data: usuarioBD } = await supabaseClient
-            .from('usuarios')
-            .select('id')
-            .or(filtros.join(','))
-            .maybeSingle();
-
-        if (usuarioBD && usuarioBD.id) {
-            uuidUsuarioSupabase = String(usuarioBD.id).trim();
-            localStorage.setItem('usuario_uuid', uuidUsuarioSupabase);
-        } else {
-            // Si el usuario no existe aún en la tabla usuarios, se crea
-            const { data: nuevoUsuario } = await supabaseClient
-                .from('usuarios')
-                .upsert([{
-                    telegram_id: tgIdNum || usernameLimpio,
-                    username: usernameLimpio,
-                    nombre: nombreUsuarioTelegram,
-                    ultimo_ingreso: new Date().toISOString()
-                }], { onConflict: 'username' })
-                .select();
-
-            if (nuevoUsuario && nuevoUsuario.length > 0 && nuevoUsuario[0].id) {
-                uuidUsuarioSupabase = String(nuevoUsuario[0].id).trim();
-                localStorage.setItem('usuario_uuid', uuidUsuarioSupabase);
-            }
-        }
-    } catch (e) {
-        console.warn("Aviso al sincronizar UUID de usuario:", e);
-    }
-}
-
 async function cargarInventarioInicial() {
     try {
-        if (!supabaseClient) return;
+        if (!supabaseClient || !idUsuarioTelegram) return;
 
-        const identificadores = [];
-        const idLimpio = idUsuarioTelegram ? idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase() : "";
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
         
-        if (idLimpio) {
-            identificadores.push(`usuario_id.ilike.${idLimpio}`);
-            identificadores.push(`usuario_id.ilike.@${idLimpio}`);
-        }
-        
-        const tgIdNum = tg?.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : null;
-        if (tgIdNum) identificadores.push(`usuario_id.eq.${tgIdNum}`);
-        
-        const uuidLocal = uuidUsuarioSupabase || localStorage.getItem('usuario_uuid');
-        if (uuidLocal) identificadores.push(`usuario_id.eq.${uuidLocal}`);
-
-        if (identificadores.length === 0) return;
-
+        // Búsqueda directa por el username con o sin arroba
         let { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*')
-            .or(identificadores.join(','));
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`);
 
         if (errColeccion) {
             console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
@@ -350,10 +285,6 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     modalVisor.style.display = 'flex';
 }
 
-// =============================================================================
-// ⚡ CONEXIÓN EN TIEMPO REAL CON SUPABASE
-// =============================================================================
-
 function activarAlbumEnTiempoReal() {
     if (!supabaseClient) return;
 
@@ -372,13 +303,8 @@ function activarAlbumEnTiempoReal() {
 
                 const uId = String(nuevoRegistro.usuario_id || "").toLowerCase();
                 const usuarioLimpio = idUsuarioTelegram ? idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase() : "";
-                const tgIdNum = tg?.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : "";
-                const uuidLocal = (uuidUsuarioSupabase || localStorage.getItem('usuario_uuid') || "").toLowerCase();
 
-                const esMio = uId === usuarioLimpio || 
-                             uId === `@${usuarioLimpio}` || 
-                             (tgIdNum && uId === tgIdNum) || 
-                             (uuidLocal && uId === uuidLocal);
+                const esMio = uId === usuarioLimpio || uId === `@${usuarioLimpio}`;
 
                 if (esMio) {
                     mostrarNotificacionCartaRecibida(nuevoRegistro);

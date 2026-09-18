@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN CORREGIDA - VYLON)
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN HOMOLOGADA CON UUID Y REALTIME)
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -15,6 +15,7 @@ if (tg) {
     } catch (e) {}
 }
 
+// Variables globales de sesión dinámica
 let idUsuarioTelegram = ""; 
 let nombreUsuarioTelegram = "Jugador";
 let uuidUsuarioSupabase = "";
@@ -37,13 +38,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const elAno = document.getElementById('ano-actual');
     if (elAno) elAno.innerText = new Date().getFullYear();
 
-    // 1. Obtener y resolver obligatoriamente el UUID de la tabla 'usuarios'
-    await resolverUUIDUsuario();
+    // 1. Resolver obligatoriamente el UUID en la tabla 'usuarios' antes de cargar inventario
+    await resolverOObtenerUUIDUsuario();
 
-    // 2. Cargar la colección en base a todos los identificadores detectados
+    // 2. Cargar colección usando búsqueda amplia (UUID, username, ID)
     await cargarInventarioInicial();
 
-    // 3. Activar listener en vivo para compras/premios en tiempo real
+    // 3. Activar escucha en vivo de nuevas barajitas recibidas
     activarAlbumEnTiempoReal();
 
     document.getElementById('btn-anterior')?.addEventListener('click', () => {
@@ -84,6 +85,7 @@ function inicializarUsuarioTelegram() {
         if (fName) fName.innerText = nombreUsuarioTelegram;
         if (avatar && user.photo_url) avatar.src = user.photo_url;
     } else {
+        // Fallback genérico exclusivamente para entorno de desarrollo local
         idUsuarioTelegram = "utrera930";
         nombreUsuarioTelegram = "William Utrera";
 
@@ -92,30 +94,29 @@ function inicializarUsuarioTelegram() {
     }
 }
 
-async function resolverUUIDUsuario() {
+async function resolverOObtenerUUIDUsuario() {
     if (!supabaseClient || !idUsuarioTelegram) return;
 
     try {
         const tgIdNum = tg?.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : null;
         const usernameLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
 
-        // Buscar primero en la tabla 'usuarios' para mapear username / telegram_id con el UUID
-        let queryFilter = `username.ilike.${usernameLimpio}`;
-        if (tgIdNum) {
-            queryFilter += `,telegram_id.eq.${tgIdNum}`;
-        }
+        // Intentar consultar en la tabla 'usuarios'
+        let filtros = [];
+        if (usernameLimpio) filtros.push(`username.ilike.${usernameLimpio}`);
+        if (tgIdNum) filtros.push(`telegram_id.eq.${tgIdNum}`);
 
         const { data: usuarioBD } = await supabaseClient
             .from('usuarios')
             .select('id')
-            .or(queryFilter)
+            .or(filtros.join(','))
             .maybeSingle();
 
         if (usuarioBD && usuarioBD.id) {
             uuidUsuarioSupabase = String(usuarioBD.id).trim();
             localStorage.setItem('usuario_uuid', uuidUsuarioSupabase);
         } else {
-            // Si el usuario no existe en la tabla usuarios, se registra para asignarle un UUID
+            // Si el usuario no existe aún en la tabla usuarios, se crea
             const { data: nuevoUsuario } = await supabaseClient
                 .from('usuarios')
                 .upsert([{
@@ -132,7 +133,7 @@ async function resolverUUIDUsuario() {
             }
         }
     } catch (e) {
-        console.warn("Aviso al vincular UUID de usuario:", e);
+        console.warn("Aviso al sincronizar UUID de usuario:", e);
     }
 }
 
@@ -141,7 +142,7 @@ async function cargarInventarioInicial() {
         if (!supabaseClient) return;
 
         const identificadores = [];
-        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+        const idLimpio = idUsuarioTelegram ? idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase() : "";
         
         if (idLimpio) {
             identificadores.push(`usuario_id.ilike.${idLimpio}`);
@@ -149,18 +150,13 @@ async function cargarInventarioInicial() {
         }
         
         const tgIdNum = tg?.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : null;
-        if (tgIdNum) {
-            identificadores.push(`usuario_id.eq.${tgIdNum}`);
-        }
-
+        if (tgIdNum) identificadores.push(`usuario_id.eq.${tgIdNum}`);
+        
         const uuidLocal = uuidUsuarioSupabase || localStorage.getItem('usuario_uuid');
-        if (uuidLocal) {
-            identificadores.push(`usuario_id.eq.${uuidLocal}`);
-        }
+        if (uuidLocal) identificadores.push(`usuario_id.eq.${uuidLocal}`);
 
         if (identificadores.length === 0) return;
 
-        // Búsqueda multi-filtro (Username + Telegram ID + UUID)
         let { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*')
@@ -353,6 +349,10 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
 
     modalVisor.style.display = 'flex';
 }
+
+// =============================================================================
+// ⚡ CONEXIÓN EN TIEMPO REAL CON SUPABASE
+// =============================================================================
 
 function activarAlbumEnTiempoReal() {
     if (!supabaseClient) return;

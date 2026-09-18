@@ -134,7 +134,6 @@ async function cargarInventarioInicial() {
 
         if (identificadores.length === 0) return;
 
-        // Búsqueda multi-formato flexible en Supabase para soportar distintos formatos de almacenamiento
         let { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*')
@@ -148,7 +147,8 @@ async function cargarInventarioInicial() {
         inventarioUsuarioCache.clear();
 
         if (coleccion && coleccion.length > 0) {
-            const idsCartas = coleccion.map(item => item.carta_id);
+            // Conversión explícita a Number para evitar fallos de coincidencia por String
+            const idsCartas = coleccion.map(item => Number(item.carta_id)).filter(id => !isNaN(id));
 
             const { data: datosCartas, error: errCartas } = await supabaseClient
                 .from('Cartas')
@@ -163,17 +163,18 @@ async function cargarInventarioInicial() {
             }
 
             coleccion.forEach(item => {
-                if (item.carta_id) {
+                if (item.carta_id !== undefined && item.carta_id !== null) {
                     const idCartaNum = Number(item.carta_id);
+                    const cantidadNum = Number(item.cantidad) || 1;
                     const previo = inventarioUsuarioCache.get(idCartaNum);
                     const infoCarta = mapaCartas.get(idCartaNum);
                     
                     if (previo) {
-                        previo.cantidad += item.cantidad;
+                        previo.cantidad += cantidadNum;
                     } else {
                         inventarioUsuarioCache.set(idCartaNum, { 
                             carta_id: idCartaNum, 
-                            cantidad: item.cantidad,
+                            cantidad: cantidadNum,
                             datosCarta: infoCarta || { id: idCartaNum, nombre: `Carta #${idCartaNum}` }
                         });
                     }
@@ -217,7 +218,7 @@ function renderizarLibro(pagina) {
         const slot = document.createElement('div');
         slot.className = 'miniatura-slot';
 
-        const itemPoseido = inventarioUsuarioCache.get(idCarta);
+        const itemPoseido = inventarioUsuarioCache.get(Number(idCarta));
 
         if (itemPoseido) {
             slot.classList.add('poseida');

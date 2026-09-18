@@ -128,12 +128,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Usar el ID de Telegram si está disponible, o un UUID de prueba válido para Supabase
+            // Capturar ID dinámico del usuario Telegram
             const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
             const usuarioId = telegramUser ? String(telegramUser.id) : "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 
-            const payload = {
+            const datosPago = {
                 action: "send_payment",
+                tipo: "tienda",
                 usuarioId: usuarioId,
                 referencia: ref,
                 telfOrigen: telf,
@@ -142,26 +143,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             try {
-                console.log("📡 Enviando reporte de pago a Google Apps Script...", payload);
+                console.log("📡 Enviando reporte de pago a Google Apps Script...", datosPago);
 
                 const response = await fetch(APPS_SCRIPT_URL, {
-                    method: "POST",
-                    redirect: "follow",
+                    method: 'POST',
                     headers: {
-                        "Content-Type": "text/plain;charset=utf-8"
+                        'Content-Type': 'text/plain;charset=utf-8' // Evita la verificación pre-flight OPTIONS de CORS
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(datosPago)
                 });
 
-                const res = await response.json();
+                const data = await response.json();
 
-                if (res.success) {
-                    alert(`🛰️ ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu compra se acreditará automáticamente apenas el banco confirme la transacción.`);
+                if (data.success) {
+                    alert(`🚀 ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu compra se acreditará automáticamente apenas el banco confirme la transacción.`);
                     
                     if (modalPm) modalPm.style.display = 'none';
                     formReportePm.reset();
+                    if (inputCantidad) inputCantidad.value = 1;
+                    actualizarTotales();
                 } else {
-                    alert(`❌ ERROR EN EL SERVIDOR: ${res.message || "No se pudo procesar el reporte."}`);
+                    alert(`❌ ERROR EN EL SERVIDOR: ${data.message || "No se pudo registrar el pago."}`);
                 }
 
             } catch (err) {

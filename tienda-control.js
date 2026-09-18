@@ -193,26 +193,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 console.log("📡 Enviando reporte de pago a Google Apps Script...", datosPago);
 
-                const response = await fetch(APPS_SCRIPT_URL, {
+                await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
+                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'text/plain;charset=utf-8'
                     },
                     body: JSON.stringify(datosPago)
                 });
 
-                const data = await response.json();
-
-                if (data.success) {
-                    alert(`🚀 ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu compra se acreditará automáticamente apenas el banco confirme la transacción.`);
-                    
-                    if (modalPm) modalPm.style.display = 'none';
-                    formReportePm.reset();
-                    if (inputCantidad) inputCantidad.value = 1;
-                    actualizarTotales();
-                } else {
-                    alert(`❌ ERROR EN EL SERVIDOR: ${data.message || "No se pudo registrar el pago."}`);
-                }
+                alert(`🚀 ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu compra se acreditará automáticamente apenas el banco confirme la transacción.`);
+                
+                if (modalPm) modalPm.style.display = 'none';
+                formReportePm.reset();
+                if (inputCantidad) inputCantidad.value = 1;
+                actualizarTotales();
 
             } catch (err) {
                 console.error("Error al enviar reporte a Apps Script:", err);

@@ -9,6 +9,55 @@ const PRECIO_SOBRE_USD = 0.62;
 const API_TASA_URL = 'https://dolarapi.com/v1/dolares/oficial';
 let TASA_BCV = 833.00;
 
+/**
+ * Captura de forma dinámica y robusta el ID del usuario de Telegram.
+ */
+function obtenerTelegramUserId() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+            
+            const user = window.Telegram.WebApp.initDataUnsafe?.user;
+            if (user && user.id) {
+                return String(user.id);
+            }
+            
+            // Reintento extrayendo initData si no viene parseado
+            const initData = window.Telegram.WebApp.initData;
+            if (initData) {
+                const searchParams = new URLSearchParams(initData);
+                const userParam = searchParams.get('user');
+                if (userParam) {
+                    const parsedUser = JSON.parse(decodeURIComponent(userParam));
+                    if (parsedUser && parsedUser.id) {
+                        return String(parsedUser.id);
+                    }
+                }
+            }
+        }
+        
+        // Búsqueda en parámetros URL si la WebApp está dentro de un iframe
+        const urlParams = new URLSearchParams(window.location.search);
+        const tgData = urlParams.get('tgWebAppData');
+        if (tgData) {
+            const searchParams = new URLSearchParams(decodeURIComponent(tgData));
+            const userParam = searchParams.get('user');
+            if (userParam) {
+                const parsedUser = JSON.parse(userParam);
+                if (parsedUser && parsedUser.id) {
+                    return String(parsedUser.id);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("⚠️ Error extrayendo ID de Telegram:", e);
+    }
+
+    // Retorno de fallback estricto para entorno web fuera de Telegram
+    return "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     
     const btnMenos = document.getElementById('btn-menos');
@@ -128,9 +177,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Capturar ID dinámico del usuario Telegram
-            const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-            const usuarioId = telegramUser ? String(telegramUser.id) : "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+            // Capturar ID dinámico real
+            const usuarioId = obtenerTelegramUserId();
 
             const datosPago = {
                 action: "send_payment",
@@ -148,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'text/plain;charset=utf-8' // Evita la verificación pre-flight OPTIONS de CORS
+                        'Content-Type': 'text/plain;charset=utf-8'
                     },
                     body: JSON.stringify(datosPago)
                 });

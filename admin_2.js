@@ -418,28 +418,52 @@ async function seleccionarPlantillaAleatoria() {
 
 // 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
 async function cargarMetricasServidor() {
-    logEstado("🔄 Comprobando estado del servidor Supabase...");
+    logEstado("🔄 Comprobando métricas del servidor Supabase...");
     const inicio = Date.now();
+    
     try {
-        const { count, error } = await supabaseClient
+        // 1. Consultar Total de Cartas
+        const { count: countCartas, error: errCartas } = await supabaseClient
             .from('Cartas')
             .select('*', { count: 'exact', head: true });
-            
+
+        // 2. Consultar Usuarios Registrados (Tabla 'usuarios')
+        const { count: countUsuarios, error: errUsuarios } = await supabaseClient
+            .from('usuarios')
+            .select('*', { count: 'exact', head: true });
+
+        // 3. Consultar Premios Pendientes (Tabla 'reclamaciones_premios' o 'pagos_pendientes')
+        const { count: countPremios, error: errPremios } = await supabaseClient
+            .from('reclamaciones_premios')
+            .select('*', { count: 'exact', head: true });
+
+        // 4. Consultar Colecciones Activas (Tabla 'Coleccion_Usuario')
+        const { count: countColecciones, error: errColecciones } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .select('*', { count: 'exact', head: true });
+
         const latencia = Date.now() - inicio;
 
-        if (error) {
+        if (errCartas) {
             DOM.setText('status-supabase', "● ERROR CONEXIÓN");
             const statusEl = DOM.get('status-supabase');
             if (statusEl) statusEl.style.color = "#ef4444";
-            logEstado(`❌ Error de conexión al servidor: ${error.message}`);
+            logEstado(`❌ Error de conexión al servidor: ${errCartas.message}`);
         } else {
             DOM.setText('status-supabase', "● CONECTADO");
             const statusEl = DOM.get('status-supabase');
             if (statusEl) statusEl.style.color = "#00ff66";
             
-            DOM.setText('total-cartas-count', count !== null ? count : 0);
+            // Actualizar Métricas Principales
+            DOM.setText('total-cartas-count', countCartas !== null ? countCartas : 0);
             DOM.setText('ping-supabase', `${latencia} ms`);
-            logEstado(`🟢 Servidor activo | Latencia: ${latencia}ms | Total Cartas: ${count || 0}`);
+
+            // Actualizar Métricas en Tiempo Real (MiniApp)
+            DOM.setText('total-usuarios-count', countUsuarios !== null ? countUsuarios : 0);
+            DOM.setText('premios-pendientes-count', countPremios !== null ? countPremios : 0);
+            DOM.setText('colecciones-activas-count', countColecciones !== null ? countColecciones : 0);
+
+            logEstado(`🟢 Servidor activo | Latencia: ${latencia}ms | Usuarios: ${countUsuarios || 0}`);
         }
     } catch (e) {
         DOM.setText('status-supabase', "● DESCONECTADO");

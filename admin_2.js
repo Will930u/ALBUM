@@ -442,7 +442,7 @@ async function cargarMetricasServidor() {
 
         // 2. Consultar Usuarios Registrados (Tabla 'usuarios')
         const { count: countUsuarios, error: errUsuarios } = await supabaseClient
-            .from('usuarios')
+            .from('Usuarios')
             .select('*', { count: 'exact', head: true });
         
         if (errUsuarios) {

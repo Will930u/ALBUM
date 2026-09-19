@@ -239,7 +239,7 @@ async function cargarCatálogoCartas() {
     grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
 }
 
-// Función para renderizar una carta recuperada de la base de datos
+// Función para renderizar una carta recuperada de la base de datos (CORREGIDA)
 function renderizarCartaDesdeBD(carta) {
     // 1. Normalización de Era y Rareza
     const eraClave = (carta.era || 'cyber').toString().toLowerCase().trim();
@@ -251,14 +251,31 @@ function renderizarCartaDesdeBD(carta) {
         ? PALETAS_ERA[eraClave] 
         : { fondo: '#1a0033', borde: '#00ff66', texto: '#ffffff', acento: '#00ff66' };
 
-    // 3. Procesamiento y saneamiento de la URL o Base64 de la imagen
+    // 3. Procesamiento de la imagen
     let imgSrc = '';
+    let esConfiguracionGenerador = false;
+    let configGenerador = null;
+    
     if (carta.imagen_url) {
-        imgSrc = String(carta.imagen_url).trim().replace(/^['"{}]+|['"{}]+$/g, '');
+        const urlLimpia = String(carta.imagen_url).trim();
         
-        // Si es una ruta relativa de Supabase Storage, convertir a URL completa
-        if (imgSrc.startsWith('/storage/v1/object/public/')) {
-            imgSrc = SUPABASE_URL + imgSrc;
+        // Verificar si es un JSON de configuración del generador
+        if (urlLimpia.startsWith('{') && urlLimpia.endsWith('}')) {
+            try {
+                configGenerador = JSON.parse(urlLimpia);
+                esConfiguracionGenerador = true;
+                console.log(`🎨 Carta #${carta.id} tiene configuración de generador:`, configGenerador);
+            } catch (e) {
+                console.warn(`⚠️ Carta #${carta.id} tiene JSON inválido`);
+            }
+        } else {
+            // Es una URL o Base64 normal
+            imgSrc = urlLimpia.replace(/^['"{}]+|['"{}]+$/g, '');
+            
+            // Si es una ruta relativa de Supabase Storage
+            if (imgSrc.startsWith('/storage/v1/object/public/')) {
+                imgSrc = SUPABASE_URL + imgSrc;
+            }
         }
     }
 
@@ -268,13 +285,18 @@ function renderizarCartaDesdeBD(carta) {
          imgSrc.startsWith('https://') || 
          imgSrc.startsWith('data:image/'));
 
-    // 4. Renderizado del HTML con capas animadas y manejo de errores de imagen
+    // 4. Renderizado del HTML
+    // Si es configuración del generador, usamos el símbolo y colores de la config
+    const simbolo = configGenerador?.simbolo || carta.simbolo || '👾';
+    const colorFondo = configGenerador?.fondoColor || paleta.fondo;
+    
     return `
         <div class="tarjeta-carta ${rarezaClase} era-${eraClave}" 
              data-id="${carta.id || ''}"
              data-era="${eraClave}" 
              data-rareza="${rarezaTexto}"
-             style="background: ${paleta.fondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 12px ${paleta.acento}66; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
+             data-config='${JSON.stringify(configGenerador || {})}'
+             style="background: ${colorFondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 12px ${paleta.acento}66; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
             <!-- CAPAS DE EFECTOS MÓVILES Y HOLOGRÁFICOS -->
             <div class="fondo-movil-animado"></div>
             <div class="efecto-brillo-holografico"></div>
@@ -283,17 +305,19 @@ function renderizarCartaDesdeBD(carta) {
                 <span style="font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">#${carta.id || '?'} ${carta.nombre || 'Sin nombre'}</span>
                 <span class="badge-rareza" style="color:${paleta.acento}; font-weight:bold;">${rarezaTexto}</span>
             </div>
-            <!-- CONTENEDOR VISUAL DE LA IMAGEN GUARDADA -->
-            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
+            <!-- CONTENEDOR VISUAL DE LA IMAGEN -->
+            <div class="contenedor-imagen-carta" style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
                 ${tieneImagenValida 
                     ? `<img src="${imgSrc}" 
                             alt="${carta.nombre || 'Carta'}" 
                             style="max-width:100%; max-height:100%; object-fit:contain; filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));" 
-                            onerror="console.error('Error cargando imagen carta #${carta.id}:', '${imgSrc}'); this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
-                       <span style="font-size:36px; display:none;">${carta.simbolo || '👾'}</span>` 
-                    : `<div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                         <span style="font-size:36px;">${carta.simbolo || '👾'}</span>
-                         <span style="font-size:6px; color:#666;">Sin imagen</span>
+                            onerror="console.error('Error cargando imagen carta #${carta.id}'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                       <div class="fallback-simbolo" style="display:none; flex-direction:column; align-items:center; gap:4px;">
+                         <span style="font-size:36px;">${simbolo}</span>
+                       </div>` 
+                    : `<div class="fallback-simbolo" style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                         <span style="font-size:36px;">${simbolo}</span>
+                         ${esConfiguracionGenerador ? '<span style="font-size:6px; color:#666;">Algorítmica</span>' : '<span style="font-size:6px; color:#666;">Sin imagen</span>'}
                        </div>`
                 }
             </div>
@@ -310,6 +334,90 @@ function renderizarCartaDesdeBD(carta) {
     `;
 }
 
+// Función para regenerar imágenes de cartas algorítmicas después de renderizar
+function regenerarImagenesAlgoritmicas() {
+    const tarjetas = document.querySelectorAll('.tarjeta-carta[data-config]');
+    
+    tarjetas.forEach(tarjeta => {
+        const configStr = tarjeta.getAttribute('data-config');
+        if (!configStr || configStr === '{}') return;
+        
+        try {
+            const config = JSON.parse(configStr);
+            if (!config.procedural) return; // Solo regenerar si es procedural
+            
+            const contenedorImg = tarjeta.querySelector('.contenedor-imagen-carta');
+            const fallback = tarjeta.querySelector('.fallback-simbolo');
+            
+            if (!contenedorImg || !fallback) return;
+            
+            // Crear canvas temporal para regenerar la imagen
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 140;
+            const ctx = canvas.getContext('2d');
+            
+            // Dibujar fondo
+            ctx.fillStyle = config.fondoColor || '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar símbolo
+            const simbolo = config.simbolo || '👾';
+            ctx.font = '48px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(simbolo, canvas.width / 2, canvas.height / 2);
+            
+            // Convertir a Base64 y mostrar
+            const dataURL = canvas.toDataURL('image/png');
+            const img = document.createElement('img');
+            img.src = dataURL;
+            img.alt = 'Carta algorítmica';
+            img.style.cssText = 'max-width:100%; max-height:100%; object-fit:contain;';
+            
+            // Reemplazar el fallback con la imagen regenerada
+            fallback.style.display = 'none';
+            contenedorImg.insertBefore(img, fallback);
+            
+            console.log(`✅ Imagen regenerada para carta con config:`, config);
+        } catch (e) {
+            console.error('Error regenerando imagen:', e);
+        }
+    });
+}
+
+// Modificar cargarCatálogoCartas para llamar a regenerarImagenesAlgoritmicas
+async function cargarCatálogoCartas() {
+    const grid = document.getElementById('grid-catalogo-admin');
+    if (!grid) return;
+
+    console.log('🔄 Cargando catálogo de cartas...');
+
+    const { data: cartas, error } = await supabaseClient
+        .from('Cartas')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error('❌ Error al cargar cartas:', error);
+        grid.innerHTML = `<div style="color:#ef4444; font-size:9px;">Error al cargar catálogo: ${error.message}</div>`;
+        return;
+    }
+
+    if (!cartas || cartas.length === 0) {
+        console.log('⚠️ No hay cartas en la base de datos');
+        grid.innerHTML = `<div style="color:#888; font-size:9px;">No hay cartas creadas aún.</div>`;
+        return;
+    }
+
+    console.log(`✅ ${cartas.length} cartas cargadas`);
+    
+    // CORRECCIÓN: Usar renderizarCartaDesdeBD en lugar de renderizarHTMLCarta
+    grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
+    
+    // Regenerar imágenes de cartas algorítmicas después de renderizar
+    setTimeout(regenerarImagenesAlgoritmicas, 100);
+}
 // 8. GENERADOR CANVAS EN VIVO
 function escucharDibujoCanvas() {
     ['carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo'].forEach(id => {

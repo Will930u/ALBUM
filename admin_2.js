@@ -473,7 +473,7 @@ async function cargarMetricasServidor() {
         DOM.setText('kpi-premios-pendientes', countPremios ?? 0);
         DOM.setText('kpi-total-colecciones', countColecciones ?? 0);
 
-        logEstado(`🟢 Servidor activo | Usuarios: ${countUsuarios ?? 0}`);
+        logEstado(`🟢 Servidor activo | usuarios: ${countUsuarios ?? 0}`);
     } catch (e) {
         logEstado(`❌ Error procesando métricas: ${e.message}`);
     }

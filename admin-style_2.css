@@ -299,3 +299,64 @@ input:focus, select:focus, textarea:focus {
 
 .btn-mini-drop { background-color: #eab308; color: #000; }
 .btn-mini-del { background-color: #ef4444; color: #fff; width: 100%; margin-top: 4px; }
+
+/* ==========================================================================
+   ESTILOS Y ANIMACIONES DE FONDOS MÓVILES PARA CARTAS
+   ========================================================================== */
+
+/* Fondo dinámico en movimiento */
+.fondo-movil-animado {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+    animation: moverFondo 6s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Efecto Holográfico de Brillo */
+.efecto-brillo-holografico {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(115deg, transparent 20%, rgba(0, 255, 204, 0.15) 40%, rgba(255, 0, 127, 0.15) 60%, transparent 80%);
+    background-size: 200% 200%;
+    animation: brilloHolograma 4s ease infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Variaciones por Era */
+.era-cyber {
+    background: radial-gradient(circle, #1a0033 0%, #0d0f18 100%) !important;
+}
+
+.era-espacial {
+    background: radial-gradient(circle, #150d2a 0%, #0b091a 100%) !important;
+}
+
+.era-antiguo {
+    background: radial-gradient(circle, #2a180d 0%, #1c120c 100%) !important;
+}
+
+.era-cotidianos {
+    background: radial-gradient(circle, #2b2218 0%, #1f1b24 100%) !important;
+}
+
+/* Animaciones @keyframes */
+@keyframes moverFondo {
+    0% { transform: translate(-30%, -30%) rotate(0deg); }
+    50% { transform: translate(10%, 10%) rotate(180deg); }
+    100% { transform: translate(-30%, -30%) rotate(360deg); }
+}
+
+@keyframes brilloHolograma {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}

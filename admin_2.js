@@ -469,9 +469,9 @@ async function cargarMetricasServidor() {
         // Inyectar datos en el DOM
         DOM.setText('total-cartas-count', countCartas ?? 0);
         DOM.setText('ping-supabase', `${latencia} ms`);
-        DOM.setText('total-usuarios-count', countUsuarios ?? 0);
-        DOM.setText('premios-pendientes-count', countPremios ?? 0);
-        DOM.setText('colecciones-activas-count', countColecciones ?? 0);
+        DOM.setText('kpi-usuarios-totales', countUsuarios ?? 0);
+        DOM.setText('kpi-premios-pendientes', countPremios ?? 0);
+        DOM.setText('kpi-total-colecciones', countColecciones ?? 0);
 
         logEstado(`🟢 Servidor activo | Usuarios: ${countUsuarios ?? 0}`);
     } catch (e) {

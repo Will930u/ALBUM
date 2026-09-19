@@ -191,7 +191,7 @@ async function guardarCartaBD() {
 }
 
 // 6. RENDERIZADO DEL CATÁLOGO DE CARTAS (¡CORREGIDO!)
-async function cargarCatalogoCartas() {
+async function cargarCatálogoCartas() {
     const grid = document.getElementById('grid-catalogo-admin');
     if (!grid) return;
 
@@ -201,16 +201,16 @@ async function cargarCatalogoCartas() {
         .order('id', { ascending: true });
 
     if (error) {
-        grid.innerHTML = `<div style="color:#ef4444; font-size:9px;">Error al cargar catálogo: ${error.message}</div>`;
+        grid.innerHTML = `<div style="color:#ef4444; font-size:9px;">Error: ${error.message}</div>`;
         return;
     }
 
     if (!cartas || cartas.length === 0) {
-        grid.innerHTML = `<div style="color:#888; font-size:9px;">No hay cartas creadas aún.</div>`;
+        grid.innerHTML = `<div style="color:#888; font-size:9px;">No hay cartas.</div>`;
         return;
     }
 
-    // CORRECCIÓN CLAVE: Usar renderizarCartaDesdeBD en lugar de renderizarHTMLCarta
+    // ✅ CORRECCIÓN: Cambiar renderizarHTMLCarta por renderizarCartaDesdeBD
     grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
 }
 

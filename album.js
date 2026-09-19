@@ -4,6 +4,7 @@
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
+const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbyi8o0jE_x_xY/exec"; // URL de tu Webhook GAS
 
 let supabaseClient = null;
 const tg = window.Telegram?.WebApp;
@@ -23,6 +24,14 @@ const cartasPorPagina = 25;
 const totalPaginas = 80;
 
 let inventarioUsuarioCache = new Map();
+
+// Rangos Oficiales de Premios
+const RANGOS_PREMIOS = [
+    { nivel: 1, inicio: 1, fin: 500, nombre: "1er Premio ($200 Tasa BCV)" },
+    { nivel: 2, inicio: 501, fin: 1000, nombre: "2do Premio ($200 Tasa BCV)" },
+    { nivel: 3, inicio: 1001, fin: 1500, nombre: "3er Premio ($200 Tasa BCV)" },
+    { nivel: 4, inicio: 1501, fin: 2000, nombre: "4to Premio ($200 Tasa BCV)" }
+];
 
 document.addEventListener("DOMContentLoaded", async () => {
     if (typeof supabase !== 'undefined') {
@@ -91,7 +100,6 @@ async function cargarInventarioInicial() {
 
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
         
-        // Búsqueda directa por el username con o sin arroba
         let { data: coleccion, error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*')
@@ -140,9 +148,161 @@ async function cargarInventarioInicial() {
         }
 
         renderizarLibro(paginaActual);
+        
+        // Verificación de hitos de álbum completados y consulta de pagos
+        await verificarProgresoHitosPremios();
+        await consultarEstadoPremiosYComprobantes();
 
     } catch (err) {
         console.error("Excepción en cargarInventarioInicial:", err);
+    }
+}
+
+// =============================================================================
+// 🏆 SISTEMA DE REVISIÓN Y RECLAMO DE PREMIOS POR RANGOS DE ÁLBUM
+// =============================================================================
+async function verificarProgresoHitosPremios() {
+    if (!supabaseClient || inventarioUsuarioCache.size === 0) return;
+
+    try {
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+        // 1. Obtener los premios que el usuario ya reclamó anteriormente
+        const { data: reclamados, error } = await supabaseClient
+            .from('premios_ganados')
+            .select('nivel_premio')
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`);
+
+        if (error) {
+            console.error("Error verificando premios reclamados:", error.message);
+            return;
+        }
+
+        const nivelesReclamados = new Set(reclamados ? reclamados.map(r => Number(r.nivel_premio)) : []);
+
+        // 2. Verificar cada rango de álbum
+        for (const rango of RANGOS_PREMIOS) {
+            if (nivelesReclamados.has(rango.nivel)) continue; // Si ya fue reclamado, saltar
+
+            let incompleto = false;
+            for (let id = rango.inicio; id <= rango.fin; id++) {
+                if (!inventarioUsuarioCache.has(id)) {
+                    incompleto = true;
+                    break;
+                }
+            }
+
+            // Si posee TODAS las cartas correlativas del rango (#1 al #500, etc.)
+            if (!incompleto) {
+                desplegarModalGanadorPremio(rango);
+                break; // Muestra un modal a la vez
+            }
+        }
+    } catch (e) {
+        console.error("Error evaluando hitos de premios:", e);
+    }
+}
+
+function desplegarModalGanadorPremio(rango) {
+    const modalPremio = document.getElementById('modal-ganador-premio');
+    if (!modalPremio) return;
+
+    document.getElementById('premio-titulo-nivel').innerText = rango.nombre;
+    document.getElementById('premio-rango-cartas').innerText = `Rango Completado: Barajita #${rango.inicio} a la #${rango.fin}`;
+    document.getElementById('input-premio-nivel').value = rango.nivel;
+
+    modalPremio.style.display = 'flex';
+}
+
+async function enviarSolicitudPremio() {
+    const nivel = document.getElementById('input-premio-nivel').value;
+    const cedula = document.getElementById('input-premio-cedula').value.trim();
+    const telefono = document.getElementById('input-premio-telefono').value.trim();
+    const banco = document.getElementById('input-premio-banco').value.trim();
+    const btnEnviar = document.getElementById('btn-enviar-premio');
+
+    if (!cedula || !telefono || !banco) {
+        alert("Por favor completa todos tus datos bancarios (Cédula, Teléfono y Banco).");
+        return;
+    }
+
+    try {
+        btnEnviar.disabled = true;
+        btnEnviar.innerText = "PROCESANDO...";
+
+        const payload = {
+            action: "claim_milestone_reward",
+            usuarioId: idUsuarioTelegram,
+            nivelPremio: nivel,
+            cedula: cedula,
+            telefono: telefono,
+            banco: banco
+        };
+
+        const res = await fetch(GAS_BACKEND_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            alert("¡Felicitaciones! Tu información de pago se ha enviado correctamente a Telegram. Procesaremos tu premio a la brevedad.");
+            document.getElementById('modal-ganador-premio').style.display = 'none';
+            await cargarInventarioInicial();
+        } else {
+            alert("Atención: " + data.message);
+        }
+    } catch (e) {
+        alert("Error de comunicación: " + e.toString());
+    } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.innerText = "ENVIAR Y RECLAMAR PREMIO";
+    }
+}
+
+// =============================================================================
+// 📜 CONSULTA DE COMPROBANTE DE PAGO DESDE LA MINIAPP
+// =============================================================================
+async function consultarEstadoPremiosYComprobantes() {
+    try {
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+        const { data: premios, error } = await supabaseClient
+            .from('premios_ganados')
+            .select('*')
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`)
+            .eq('estado', 'pagado');
+
+        if (error || !premios || premios.length === 0) return;
+
+        // Mostrar el último premio pagado si no ha sido visto o está disponible
+        const ultimoPagado = premios[premios.length - 1];
+        if (ultimoPagado && ultimoPagado.referencia_pago) {
+            mostrarComprobantePagoMiniApp(ultimoPagado);
+        }
+    } catch (e) {
+        console.error("Error consultando comprobantes de pago:", e);
+    }
+}
+
+function mostrarComprobantePagoMiniApp(datosPremio) {
+    const modalComprobante = document.getElementById('modal-comprobante-pago');
+    if (!modalComprobante) return;
+
+    const rInfo = RANGOS_PREMIOS.find(r => r.nivel === Number(datosPremio.nivel_premio));
+    const nombrePremio = rInfo ? rInfo.nombre : `Premio Nivel #${datosPremio.nivel_premio}`;
+
+    document.getElementById('comp-nombre-premio').innerText = nombrePremio;
+    document.getElementById('comp-monto-bs').innerText = `${datosPremio.monto_bs || '0.00'} Bs.`;
+    document.getElementById('comp-referencia').innerText = datosPremio.referencia_pago || 'N/A';
+    document.getElementById('comp-fecha').innerText = datosPremio.fecha_pago ? new Date(datosPremio.fecha_pago).toLocaleString() : 'Recientemente';
+
+    // Para evitar que sea invasivo cada vez que abra la app, se guarda un flag de visualización en localStorage
+    const vistoKey = `premio_visto_${datosPremio.id}_${datosPremio.referencia_pago}`;
+    if (!localStorage.getItem(vistoKey)) {
+        modalComprobante.style.display = 'flex';
+        localStorage.setItem(vistoKey, "true");
     }
 }
 

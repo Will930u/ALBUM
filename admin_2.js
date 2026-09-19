@@ -2,7 +2,13 @@
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+// INICIALIZACIÓN CLIENTE SUPABASE
+let supabase = null;
+if (window.supabase && typeof window.supabase.createClient === 'function') {
+    if (SUPABASE_URL !== "https://tu-proyecto.supabase.co") {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+}
 
 // ESTADO GLOBAL DEL EDITOR
 let modoRenderActual = 'canvas'; // 'canvas' | 'ia'
@@ -16,7 +22,7 @@ const PALETAS_ERA = {
     antiguo: { fondo: '#1a0f07', borde: '#d97706', texto: '#fef08a', acento: '#dc2626' }
 };
 
-// INICIALIZACIÓN
+// INICIALIZACIÓN AL Cargar EL DOM
 document.addEventListener('DOMContentLoaded', () => {
     logStatus("Cargando componentes del panel de administración...");
     inicializarEventos();
@@ -90,7 +96,7 @@ function seleccionarModoRender(modo) {
     }
 }
 
-// INICIALIZADOR DE LISTONERS
+// INICIALIZADOR DE EVENTOS DE ENTRADA
 function inicializarEventos() {
     ['carta-id', 'carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo', 'carta-lore'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', () => {
@@ -105,7 +111,7 @@ function inicializarEventos() {
     document.getElementById('btn-randomizar')?.addEventListener('click', randomizarDesdePlantillas);
 }
 
-// RENDERIZADO CANVAS
+// RENDERIZADO CANVAS 2D
 function renderizarCanvasProcedural() {
     const canvas = document.getElementById('canvasCartaGenerada');
     if (!canvas || modoRenderActual !== 'canvas') return;
@@ -116,7 +122,7 @@ function renderizarCanvasProcedural() {
     const era = document.getElementById('carta-era')?.value || 'cyber';
     const rareza = document.getElementById('carta-rareza')?.value || 'Común';
     const simbolo = document.getElementById('carta-simbolo')?.value || '👾';
-    const lore = document.getElementById('carta-lore')?.value || 'Sin descripción disponble.';
+    const lore = document.getElementById('carta-lore')?.value || 'Sin descripción disponible.';
 
     const col = PALETAS_ERA[era] || PALETAS_ERA.cyber;
 
@@ -184,7 +190,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     ctx.fillText(line, x, y);
 }
 
-// GENERACIÓN MEDIANTE IA (POLLINATIONS)
+// GENERACIÓN DE IMAGEN IA (POLLINATIONS)
 async function generarImagenPollinationsDirecta() {
     const promptCustom = document.getElementById('prompt-ia-custom')?.value;
     const nombre = document.getElementById('carta-nombre')?.value || 'creature';
@@ -214,7 +220,7 @@ async function generarImagenPollinationsDirecta() {
     }
 }
 
-// INTEGRACIÓN BASE DE DATOS (SUPABASE)
+// INTEGRACIÓN CON BASE DE DATOS (SUPABASE)
 async function publicarCartaBD() {
     if (!supabase) return logStatus("Error: Supabase no está configurado.");
 
@@ -354,7 +360,12 @@ async function regalarCartaUsuario() {
 
 async function cargarCatalogoBD() {
     const grid = document.getElementById('grid-catalogo-admin');
-    if (!grid || !supabase) return;
+    if (!grid) return;
+
+    if (!supabase) {
+        grid.innerHTML = '<div style="color:#eab308; font-size:8px;">Base de datos desconectada. Configure SUPABASE_URL en admin_2.js.</div>';
+        return;
+    }
 
     grid.innerHTML = '<div style="color:#aaa; font-size:8px;">Cargando catálogo...</div>';
     const { data, error } = await supabase.from('cartas_recetas').select('*').order('id', { ascending: true });
@@ -364,7 +375,7 @@ async function cargarCatalogoBD() {
         return;
     }
 
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
         grid.innerHTML = '<div style="color:#666; font-size:8px;">No hay cartas en la base de datos.</div>';
         return;
     }
@@ -390,7 +401,7 @@ async function testearConexionSupabase() {
     }
 
     const tInicial = Date.now();
-    const { data, error } = await supabase.from('cartas_recetas').select('id', { count: 'exact', head: true });
+    const { error } = await supabase.from('cartas_recetas').select('id', { count: 'exact', head: true });
     const ping = Date.now() - tInicial;
 
     if (error) {
@@ -421,7 +432,7 @@ async function cargarMetricasServidor() {
     document.getElementById('total-cartas-count').innerText = resCartas.count || '0';
 
     // Total Usuarios
-    const resUsers = await supabase.from('usuarios_coleccion').select('username', { head: false });
+    const resUsers = await supabase.from('usuarios_coleccion').select('username');
     const usuariosUnicos = new Set(resUsers.data?.map(u => u.username)).size;
     document.getElementById('kpi-usuarios-totales').innerText = usuariosUnicos || '0';
 

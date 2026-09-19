@@ -250,45 +250,50 @@ async function cargarCatálogoCartas() {
 // Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores
 // Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores (CORREGIDA)
 function renderizarHTMLCarta(carta) {
-    // Normalizar la 'era' para evitar UNDEFINED
-    const eraClave = (carta.era || 'cyber').toLowerCase().trim();
+    // 1. Normalizar Era para asegurar coincidencias con CSS y Paletas
+    const eraClave = (carta.era || 'cyber').toString().toLowerCase().trim();
     const paleta = PALETAS_ERA[eraClave] || PALETAS_ERA.cyber;
     
-    // Normalizar rareza
+    // 2. Normalizar Rareza
     const rarezaTexto = carta.rareza || 'Común';
-    const rarezaClase = `rareza-${rarezaTexto.toLowerCase()}`;
+    const rarezaClase = `rareza-${rarezaTexto.toLowerCase().trim()}`;
 
-    // Limpieza de la URL para evitar errores %7B o comillas sueltas
+    // 3. Limpiar y validar la URL de la imagen (Soporta Base64 y HTTP/HTTPS)
     let imgSrc = (carta.imagen_url || '').toString().trim();
-    imgSrc = imgSrc.replace(/^\{|\}$/g, ''); // Elimina llaves si quedaron guardadas en la BD
+    imgSrc = imgSrc.replace(/^\{|\}$/g, ''); // Elimina llaves residuales si existen
 
-    // Validar si existe una URL de imagen limpia
-    const tieneImagen = imgSrc.length > 5 && (imgSrc.startsWith('http') || imgSrc.startsWith('data:image'));
+    const tieneImagen = imgSrc.length > 10 && (imgSrc.startsWith('http') || imgSrc.startsWith('data:image'));
 
     return `
         <div class="tarjeta-carta ${rarezaClase} era-${eraClave}" 
              data-era="${eraClave}" 
              data-rareza="${rarezaTexto}"
-             style="background: ${paleta.fondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 10px ${paleta.acento}44; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
+             style="background: ${paleta.fondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 12px ${paleta.acento}66; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
             
+            <!-- CAPA DE FONDO ANIMADO Y BRILLO HOLOGRÁFICO -->
+            <div class="fondo-movil-animado"></div>
             <div class="efecto-brillo-holografico"></div>
 
-            <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px;">
+            <!-- ENCABEZADO -->
+            <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px; position:relative; z-index:2;">
                 <span style="font-weight:bold;">#${carta.id || '?'} ${carta.nombre || 'Sin nombre'}</span>
-                <span class="badge-rareza" style="color:${paleta.acento};">${rarezaTexto}</span>
+                <span class="badge-rareza" style="color:${paleta.acento}; font-weight:bold;">${rarezaTexto}</span>
             </div>
 
-            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.3); border-radius:4px; padding:8px; height:110px; display:flex; align-items:center; justify-content:center;">
+            <!-- CONTENEDOR DE IMAGEN / SYMBOLO -->
+            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.4); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:6px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2;">
                 ${tieneImagen 
-                    ? `<img src="${imgSrc}" alt="${carta.nombre}" style="max-width:100%; max-height:100px; object-fit:contain;" onerror="this.onerror=null; this.parentNode.innerHTML='<span style=\\'font-size:32px;\\'>${carta.simbolo || '👾'}</span>';">` 
-                    : `<span style="font-size:32px;">${carta.simbolo || '👾'}</span>`}
+                    ? `<img src="${imgSrc}" alt="${carta.nombre}" style="max-width:100%; max-height:100px; object-fit:contain; filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));" onerror="this.onerror=null; this.parentNode.innerHTML='<span style=\\'font-size:36px;\\'>${carta.simbolo || '👾'}</span>';">` 
+                    : `<span style="font-size:36px;">${carta.simbolo || '👾'}</span>`}
             </div>
 
-            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#ccc; min-height:24px; overflow:hidden;">
+            <!-- LORE -->
+            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; min-height:24px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000;">
                 "${carta.lore || 'Sin historia registrada.'}"
             </div>
 
-            <div style="margin-top:6px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; text-align:right;">
+            <!-- PIE DE CARTA -->
+            <div style="margin-top:6px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; text-align:right; font-weight:bold; position:relative; z-index:2;">
                 ERA: ${eraClave.toUpperCase()}
             </div>
         </div>

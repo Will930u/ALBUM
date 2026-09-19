@@ -445,55 +445,37 @@ async function cargarMetricasServidor() {
             .from('Cartas')
             .select('*', { count: 'exact', head: true });
 
-        // 2. Consultar Usuarios Registrados (Tabla 'usuarios')
+        // 2. Consultar Usuarios Registrados (Verificar si la tabla es 'usuarios' o 'perfiles')
         const { count: countUsuarios, error: errUsuarios } = await supabaseClient
-            .from('Usuarios')
+            .from('usuarios')
             .select('*', { count: 'exact', head: true });
-        
-        if (errUsuarios) {
-            console.error("Error al contar usuarios:", errUsuarios);
-        } else {
-            console.log("Usuarios en Supabase:", countUsuarios);
-        }
 
-        // 3. Consultar Premios Pendientes (Tabla 'reclamaciones_premios' o 'pagos_pendientes')
+        // 3. Consultar Premios Pendientes (Verificar 'reclamaciones_premios' o 'premios_ganados')
         const { count: countPremios, error: errPremios } = await supabaseClient
             .from('reclamaciones_premios')
             .select('*', { count: 'exact', head: true });
 
-        // 4. Consultar Colecciones Activas (Tabla 'Coleccion_Usuario')
+        // 4. Consultar Colecciones Activas
         const { count: countColecciones, error: errColecciones } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*', { count: 'exact', head: true });
 
         const latencia = Date.now() - inicio;
 
-        if (errCartas) {
-            DOM.setText('status-supabase', "● ERROR CONEXIÓN");
-            const statusEl = DOM.get('status-supabase');
-            if (statusEl) statusEl.style.color = "#ef4444";
-            logEstado(`❌ Error de conexión al servidor: ${errCartas.message}`);
-        } else {
-            DOM.setText('status-supabase', "● CONECTADO");
-            const statusEl = DOM.get('status-supabase');
-            if (statusEl) statusEl.style.color = "#00ff66";
-            
-            // Actualizar Métricas Principales
-            DOM.setText('total-cartas-count', countCartas !== null ? countCartas : 0);
-            DOM.setText('ping-supabase', `${latencia} ms`);
+        if (errUsuarios) console.error("Error Supabase (usuarios):", errUsuarios.message);
+        if (errPremios) console.error("Error Supabase (premios):", errPremios.message);
+        if (errColecciones) console.error("Error Supabase (colecciones):", errColecciones.message);
 
-            // Actualizar Métricas en Tiempo Real (MiniApp)
-            DOM.setText('total-usuarios-count', countUsuarios !== null ? countUsuarios : 0);
-            DOM.setText('premios-pendientes-count', countPremios !== null ? countPremios : 0);
-            DOM.setText('colecciones-activas-count', countColecciones !== null ? countColecciones : 0);
+        // Inyectar datos en el DOM
+        DOM.setText('total-cartas-count', countCartas ?? 0);
+        DOM.setText('ping-supabase', `${latencia} ms`);
+        DOM.setText('total-usuarios-count', countUsuarios ?? 0);
+        DOM.setText('premios-pendientes-count', countPremios ?? 0);
+        DOM.setText('colecciones-activas-count', countColecciones ?? 0);
 
-            logEstado(`🟢 Servidor activo | Latencia: ${latencia}ms | Usuarios: ${countUsuarios || 0}`);
-        }
+        logEstado(`🟢 Servidor activo | Usuarios: ${countUsuarios ?? 0}`);
     } catch (e) {
-        DOM.setText('status-supabase', "● DESCONECTADO");
-        const statusEl = DOM.get('status-supabase');
-        if (statusEl) statusEl.style.color = "#ef4444";
-        logEstado(`❌ Falla crítica en servidor: ${e.message}`);
+        logEstado(`❌ Error procesando métricas: ${e.message}`);
     }
 }
 

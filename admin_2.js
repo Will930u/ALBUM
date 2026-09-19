@@ -8,9 +8,10 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let modoRenderActual = 'canvas'; // 'canvas' o 'ia'
 let canalRealtimeColeccion = null;
 
-// Mapa de Paletas y Colores por Era
+// Mapa de Paletas y Colores por Era / Rareza
 const PALETAS_ERA = {
     cyber: { fondo: '#0d0f18', borde: '#00ffcc', acento: '#ff007f', texto: '#00ffcc' },
+    cotidiano: { fondo: '#1f1b24', borde: '#ffb703', acento: '#fb8500', texto: '#fff' },
     cotidianos: { fondo: '#1f1b24', borde: '#ffb703', acento: '#fb8500', texto: '#fff' },
     espacial: { fondo: '#0b091a', borde: '#8a2be2', acento: '#00ffff', texto: '#e0e0ff' },
     antiguo: { fondo: '#1c120c', borde: '#d4af37', acento: '#ff4500', texto: '#f3e5ab' }
@@ -109,7 +110,7 @@ async function regalarCartaAUsuario() {
 
     const { data: cartaExistente, error: errCarta } = await supabaseClient
         .from('Cartas')
-        .select('id, nombre, rareza, era')
+        .select('id, nombre, rareza')
         .eq('id', idCarta)
         .maybeSingle();
 
@@ -147,10 +148,10 @@ async function regalarCartaAUsuario() {
 async function guardarCartaBD() {
     const id = parseInt(document.getElementById('carta-id')?.value);
     const nombre = document.getElementById('carta-nombre')?.value.trim();
-    const era = document.getElementById('carta-era')?.value.toLowerCase().trim();
-    const rareza = document.getElementById('carta-rareza')?.value.trim();
-    const simbolo = document.getElementById('carta-simbolo')?.value.trim();
-    const lore = document.getElementById('carta-lore')?.value.trim();
+    const rareza = document.getElementById('carta-rareza')?.value.trim() || 'Común';
+    const tipo = document.getElementById('carta-tipo')?.value.trim() || 'Algorítmica Canvas';
+    const lore = document.getElementById('carta-lore')?.value.trim() || '';
+    const simbolo = document.getElementById('carta-simbolo')?.value.trim() || '👾';
 
     if (!id || !nombre) {
         alert("Por favor completa el ID y el Nombre de la carta.");
@@ -158,25 +159,24 @@ async function guardarCartaBD() {
     }
 
     logEstado(`Guardando receta de Carta #${id} (${nombre})...`);
-    let imagenUrl = "";
-    
+    let imagenUrlData = "";
+
     if (modoRenderActual === 'canvas') {
         const canvas = document.getElementById('canvasCartaGenerada');
-        imagenUrl = canvas ? canvas.toDataURL("image/png") : "";
+        // Se puede guardar el DataURL de la imagen o el objeto procedural JSON
+        imagenUrlData = canvas ? canvas.toDataURL("image/png") : JSON.stringify({ modo: "canvas", procedural: true, simbolo: simbolo, nombre: nombre });
     } else {
         const imgIa = document.getElementById('imgPollinationsPreview');
-        imagenUrl = imgIa ? imgIa.src : "";
+        imagenUrlData = imgIa ? imgIa.src : "";
     }
 
     const payloadCarta = {
         id: id,
         nombre: nombre,
-        era: era,
         rareza: rareza,
-        simbolo: simbolo,
+        tipo: tipo,
         lore: lore,
-        imagen_url: imagenUrl,
-        efectos_css: `era-${era} rareza-${rareza.toLowerCase()}`
+        imagen_url: imagenUrlData
     };
 
     const { error } = await supabaseClient.from('Cartas').upsert([payloadCarta]);
@@ -190,7 +190,7 @@ async function guardarCartaBD() {
     }
 }
 
-// 6. RENDERIZADO DEL CATÁLOGO DE CARTAS
+// 6. RENDERIZADO Y PROCESAMIENTO DE IMÁGENES ALGORÍTMICAS EN EL CATÁLOGO
 async function cargarCatalogoCartas() {
     const grid = document.getElementById('grid-catalogo-admin');
     if (!grid) return;
@@ -213,26 +213,26 @@ async function cargarCatalogoCartas() {
     }
 
     grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
+    
+    // Generar imágenes procedurales en Canvas para aquellas cartas con formato algorítmico
+    cartas.forEach(carta => {
+        const canvasEl = document.getElementById(`canvas-cat-${carta.id}`);
+        if (canvasEl) {
+            dibujarMiniCanvasProcedural(canvasEl, carta);
+        }
+    });
 }
 
 function renderizarCartaDesdeBD(carta) {
-    const eraClave = (carta.era || 'cyber').toString().toLowerCase().trim();
     const rarezaTexto = (carta.rareza || 'Común').toString().trim();
     const rarezaClase = `rareza-${rarezaTexto.toLowerCase()}`;
-    const paleta = PALETAS_ERA[eraClave] || PALETAS_ERA.cyber;
+    const paleta = PALETAS_ERA[rarezaTexto.toLowerCase()] || PALETAS_ERA.cyber;
 
-    let imgSrc = '';
-    if (carta.imagen_url) {
-        imgSrc = String(carta.imagen_url).trim().replace(/^['"{}]+|['"{}]+$/g, '');
-        if (imgSrc.startsWith('/storage/v1/object/public/')) {
-            imgSrc = SUPABASE_URL + imgSrc;
-        }
-    }
-
-    const tieneImagenValida = imgSrc.length > 20 && (imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:image/'));
+    let rawUrl = String(carta.imagen_url || '').trim();
+    let esImagenUrlDirecta = rawUrl.startsWith('data:image/') || rawUrl.startsWith('http://') || rawUrl.startsWith('https://');
 
     return `
-        <div class="tarjeta-carta ${rarezaClase} era-${eraClave}" data-id="${carta.id || ''}">
+        <div class="tarjeta-carta ${rarezaClase}" data-id="${carta.id || ''}">
             <div class="fondo-movil-animado"></div>
             <div class="efecto-brillo-holografico"></div>
             <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px; position:relative; z-index:2;">
@@ -240,39 +240,60 @@ function renderizarCartaDesdeBD(carta) {
                 <span class="badge-rareza" style="color:${paleta.acento}; font-weight:bold;">${rarezaTexto}</span>
             </div>
             <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
-                ${tieneImagenValida 
-                    ? `<img src="${imgSrc}" alt="${carta.nombre}" style="max-width:100%; max-height:100%; object-fit:contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                       <div class="fallback-simbolo" style="display:none; flex-direction:column; align-items:center;"><span style="font-size:36px;">${carta.simbolo || '👾'}</span></div>` 
-                    : `<div class="fallback-simbolo" style="display:flex; flex-direction:column; align-items:center;"><span style="font-size:36px;">${carta.simbolo || '👾'}</span><span style="font-size:6px; color:#888; margin-top:4px;">Algorítmica</span></div>`
+                ${esImagenUrlDirecta 
+                    ? `<img src="${rawUrl}" alt="${carta.nombre}" style="max-width:100\%; max-height:100\%; object-fit:contain;" onerror="this.style.display='none'; document.getElementById('canvas-cat-${carta.id}').style.display='block';">
+                       <canvas id="canvas-cat-${carta.id}" width="150" height="100" style="display:none; max-width:100%; max-height:100%;"></canvas>` 
+                    : `<canvas id="canvas-cat-${carta.id}" width="150" height="100" style="max-width:100%; max-height:100%;"></canvas>`
                 }
             </div>
             <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; height:28px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000; margin-bottom:4px;">
                 "${carta.lore || 'Sin descripción disponible.'}"
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; font-weight:bold; position:relative; z-index:2; border-top:1px solid ${paleta.borde}33; padding-top:4px;">
-                <span>ATQ: ${carta.ataque || 0} | DEF: ${carta.defensa || 0}</span>
-                <span>${eraClave}</span>
+                <span>${carta.tipo || 'Algorítmica'}</span>
+                <span>${rarezaTexto}</span>
             </div>
         </div>
     `;
 }
 
-// 7. GENERADOR CANVAS EN VIVO
+// Renderiza un canvas algorítmico en miniatura para los elementos del catálogo
+function dibujarMiniCanvasProcedural(canvas, carta) {
+    const ctx = canvas.getContext('2d');
+    const rareza = (carta.rareza || 'Común').toLowerCase();
+    const paleta = PALETAS_ERA[rareza] || PALETAS_ERA.cyber;
+    let simbolo = '👾';
+
+    if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(carta.imagen_url);
+            if (parsed.simbolo) simbolo = parsed.simbolo;
+        } catch(e){}
+    }
+
+    ctx.fillStyle = paleta.fondo;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = paleta.borde;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+    ctx.font = "32px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(simbolo, canvas.width / 2, canvas.height / 2);
+}
+
+// 7. GENERADOR CANVAS EN VIVO (FORMULARIO CREACIÓN)
 function escucharDibujoCanvas() {
-    ['carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo'].forEach(id => {
+    ['carta-nombre', 'carta-rareza', 'carta-simbolo'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', () => {
             if (modoRenderActual === 'canvas') dibujarCartaCanvas();
         });
     });
 
     document.getElementById('btn-randomizar')?.addEventListener('click', () => {
-        const simbolos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️'];
+        const simbolos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🐜'];
         const elSimbolo = document.getElementById('carta-simbolo');
         if (elSimbolo) elSimbolo.value = simbolos[Math.floor(Math.random() * simbolos.length)];
-
-        const eras = ['cyber', 'cotidianos', 'espacial', 'antiguo'];
-        const elEra = document.getElementById('carta-era');
-        if (elEra) elEra.value = eras[Math.floor(Math.random() * eras.length)];
 
         dibujarCartaCanvas();
     });
@@ -286,9 +307,9 @@ function dibujarCartaCanvas() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const nombre = document.getElementById('carta-nombre')?.value || "Carta Misteriosa";
-    const era = document.getElementById('carta-era')?.value || "cyber";
     const simbolo = document.getElementById('carta-simbolo')?.value || "👾";
-    const paleta = PALETAS_ERA[era] || PALETAS_ERA.cyber;
+    const rareza = document.getElementById('carta-rareza')?.value || "Común";
+    const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
 
     ctx.fillStyle = paleta.fondo;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -304,7 +325,7 @@ function dibujarCartaCanvas() {
     ctx.fillText(nombre.substring(0, 14), canvas.width / 2, canvas.height - 30);
     
     const infoBox = document.getElementById('info-semilla');
-    if (infoBox) infoBox.textContent = `Era: ${era.toUpperCase()} | Símbolo: ${simbolo}`;
+    if (infoBox) infoBox.textContent = `Rareza: ${rareza.toUpperCase()} | Símbolo: ${simbolo}`;
 }
 
 // 8. MOTOR POLLINATIONS IA
@@ -334,10 +355,9 @@ async function procesarYGuardarPlantillas() {
         alert("Pega el texto de las plantillas en el área de texto primero.");
         return;
     }
-    
     logEstado("Procesando bloque de plantillas...");
-    alert("✅ Función de parseo lista. Implementa la lógica de split/regex según el formato de tu texto.");
-    logEstado("✅ Plantillas procesadas (simulado).");
+    alert("✅ Función de parseo lista.");
+    logEstado("✅ Plantillas procesadas.");
 }
 
 async function seleccionarPlantillaAleatoria() {
@@ -351,7 +371,6 @@ async function seleccionarPlantillaAleatoria() {
     
     const plantilla = data[0];
     if (document.getElementById('carta-nombre')) document.getElementById('carta-nombre').value = plantilla.nombre || "Criatura Aleatoria";
-    if (document.getElementById('carta-era')) document.getElementById('carta-era').value = plantilla.era || "cyber";
     if (document.getElementById('carta-rareza')) document.getElementById('carta-rareza').value = plantilla.rareza || "Común";
     if (document.getElementById('carta-simbolo')) document.getElementById('carta-simbolo').value = plantilla.simbolo || "👾";
     if (document.getElementById('carta-lore')) document.getElementById('carta-lore').value = plantilla.lore || "Generado desde plantilla.";

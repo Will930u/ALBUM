@@ -244,11 +244,11 @@ async function cargarCatálogoCartas() {
         return;
     }
 
-    grid.innerHTML = cartas.map(carta => renderizarHTMLCarta(carta)).join('');
+    // Corregido: Se utiliza la función definida renderizarCartaDesdeBD
+    grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
 }
 
 // Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores
-// Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores (CORREGIDA)
 // Función para renderizar una carta recuperada de la base de datos
 function renderizarCartaDesdeBD(carta) {
     // 1. Normalización de Era y Rareza
@@ -313,6 +313,7 @@ function renderizarCartaDesdeBD(carta) {
         </div>
     `;
 }
+
 // 8. GENERADOR CANVAS EN VIVO
 function escucharDibujoCanvas() {
     ['carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo'].forEach(id => {

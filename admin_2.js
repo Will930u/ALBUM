@@ -448,7 +448,7 @@ async function cargarMetricasServidor() {
         if (errUsuarios) {
             console.error("Error al contar usuarios:", errUsuarios);
         } else {
-            console.log("usuarios en Supabase:", countUsuarios);
+            console.log("Usuarios en Supabase:", countUsuarios);
         }
 
         // 3. Consultar Premios Pendientes (Tabla 'reclamaciones_premios' o 'pagos_pendientes')

@@ -39,15 +39,20 @@ const DOM = {
 document.addEventListener('DOMContentLoaded', async () => {
     logEstado("Inicializando Panel de Mando...");
     configurarEventosUI();
-    escucharDibujoCanvas();
+
+    // 🔄 Obtener la última pestaña guardada (o 'tab-crear' si es la primera vez)
+    const pestanaGuardada = localStorage.getItem('admin_pestana_activa') || 'tab-crear';
+    
+    // Abrir la pestaña en la que estabas antes de refrescar
+    cambiarPestana(pestanaGuardada);
+
+    // Cargar los datos correspondientes
     await Promise.all([
         cargarMetricasServidor(),
         cargarCatalogoCartas()
     ]);
-    iniciarSuscripcionRealtimeAlbum();
 });
 
-// 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
 // 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
 function cambiarPestana(idPestana) {
     if (!idPestana) return;

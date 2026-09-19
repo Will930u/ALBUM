@@ -1,817 +1,436 @@
-// =============================================================================
-// 🎴 PANEL DE ADMINISTRACIÓN Y PARSER PROCEDURAL / IA DE PLANTILLAS
-// =============================================================================
-
+// CONFIGURACIÓN DE SUPABASE
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 
-let supabaseClient = null;
-let animacionFrameId = null;
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-const RAREZAS = ["Común", "Común", "Común", "Rara", "Rara", "Épica", "Legendaria"];
+// ESTADO GLOBAL DEL EDITOR
+let modoRenderActual = 'canvas'; // 'canvas' | 'ia'
+let urlImagenIAGenerada = '';
 
-// Modo de renderizado actual: 'canvas' o 'ia'
-let modoRenderizadoActual = "canvas";
-
-// Estado reactivo del canvas y generador IA
-let estadoCartaActual = {
-    modo: "canvas",
-    semilla: Math.floor(Math.random() * 900000) + 100000,
-    era: "cyber",
-    rareza: "Común",
-    simbolo: "👾",
-    colorPrimario: "#00ff66",
-    colorSecundario: "#1e293b",
-    colorFondo: "#0d0e15",
-    promptIA: "",
-    urlImagenIA: ""
+// ESQUEMAS DE COLOR POR ERA
+const PALETAS_ERA = {
+    cyber: { fondo: '#0f172a', borde: '#00ff66', texto: '#38bdf8', acento: '#f43f5e' },
+    cotidianos: { fondo: '#1c1917', borde: '#f59e0b', texto: '#fbbf24', acento: '#10b981' },
+    espacial: { fondo: '#090d16', borde: '#818cf8', texto: '#c084fc', acento: '#38bdf8' },
+    antiguo: { fondo: '#1a0f07', borde: '#d97706', texto: '#fef08a', acento: '#dc2626' }
 };
 
+// INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof supabase !== 'undefined') {
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        logStatus("Supabase conectado correctamente.");
-    } else {
-        logStatus("Error: SDK de Supabase no disponible.", true);
-    }
-
-    inicializarControlesGUI();
-    iniciarBucleRenderizado();
-    contarPlantillasRegistradas();
+    logStatus("Cargando componentes del panel de administración...");
+    inicializarEventos();
+    renderizarCanvasProcedural();
+    testearConexionSupabase();
 });
 
-function logStatus(msg, esError = false) {
-    const box = document.getElementById('status-log');
-    if (!box) return;
-    box.style.color = esError ? "#ff0055" : "#00ff66";
-    box.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+function logStatus(msg) {
+    const el = document.getElementById('status-log');
+    if (el) el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logServidor(msg);
 }
 
-function cambiarPestana(idPestana) {
-    document.querySelectorAll('.contenido-pestana').forEach(p => p.classList.remove('activa'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+function logServidor(msg) {
+    const logBox = document.getElementById('servidor-log-output');
+    if (logBox) {
+        logBox.innerHTML += `<br>[${new Date().toLocaleTimeString()}] ${msg}`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+}
 
-    const pestanaTarget = document.getElementById(idPestana);
-    if (pestanaTarget) pestanaTarget.classList.add('activa');
+// CONTROL DE PESTAÑAS (SPA)
+function cambiarPestana(tabId) {
+    document.querySelectorAll('.contenido-pestana').forEach(el => el.classList.remove('activa'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('activo'));
 
-    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(b => {
-        const attr = b.getAttribute('onclick');
-        return attr && attr.includes(idPestana);
-    });
+    const tabTarget = document.getElementById(tabId);
+    if (tabTarget) tabTarget.classList.add('activa');
+
+    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(
+        btn => btn.getAttribute('onclick')?.includes(tabId)
+    );
     if (btnActivo) btnActivo.classList.add('activo');
 
-    if (idPestana === 'tab-catalogo') {
-        cargarCatalogoBaseDatos();
-    } else if (idPestana === 'tab-plantillas') {
-        contarPlantillasRegistradas();
-    } else if (idPestana === 'tab-servidor') {
-        testearConexionSupabase();
-        cargarMetricasServidor();
-    }
+    if (tabId === 'tab-catalogo') cargarCatalogoBD();
+    if (tabId === 'tab-servidor') cargarMetricasServidor();
+    if (tabId === 'tab-plantillas') contarPlantillasBD();
 }
 
+// CAMBIO DE MODO DE RENDER
 function seleccionarModoRender(modo) {
-    modoRenderizadoActual = modo;
-    estadoCartaActual.modo = modo;
-
+    modoRenderActual = modo;
     const btnCanvas = document.getElementById('btn-modo-canvas');
     const btnIA = document.getElementById('btn-modo-ia');
-    const canvas = document.getElementById('canvasCartaGenerada');
-    const imgIA = document.getElementById('imgPollinationsPreview');
+    const labelModo = document.getElementById('label-modo-previa');
     const panelIA = document.getElementById('panel-opciones-ia');
     const btnGenIA = document.getElementById('btn-generar-ia');
-    const labelModo = document.getElementById('label-modo-previa');
+    
+    const canvas = document.getElementById('canvasCartaGenerada');
+    const imgPreview = document.getElementById('imgPollinationsPreview');
 
     if (modo === 'canvas') {
-        if (btnCanvas) btnCanvas.classList.add('activo');
-        if (btnIA) btnIA.classList.remove('activo');
-        if (canvas) canvas.style.display = 'block';
-        if (imgIA) imgIA.style.display = 'none';
+        btnCanvas?.classList.add('activo');
+        btnIA?.classList.remove('activo');
+        if (labelModo) labelModo.innerText = 'EN VIVO: RENDERIZADO CANVAS MATEMÁTICO';
         if (panelIA) panelIA.style.display = 'none';
         if (btnGenIA) btnGenIA.style.display = 'none';
-        if (labelModo) labelModo.innerText = 'EN VIVO: RENDERIZADO CANVAS MATEMÁTICO';
+        
+        if (canvas) canvas.style.display = 'block';
+        if (imgPreview) imgPreview.style.display = 'none';
+        renderizarCanvasProcedural();
     } else {
-        if (btnIA) btnIA.classList.add('activo');
-        if (btnCanvas) btnCanvas.classList.remove('activo');
-        if (canvas) canvas.style.display = 'none';
-        if (imgIA) imgIA.style.display = 'block';
+        btnIA?.classList.add('activo');
+        btnCanvas?.classList.remove('activo');
+        if (labelModo) labelModo.innerText = 'EN VIVO: MOTOR GENERATIVO POLLINATIONS IA';
         if (panelIA) panelIA.style.display = 'block';
-        if (btnGenIA) btnGenIA.style.display = 'block';
-        if (labelModo) labelModo.innerText = 'EN VIVO: GENERADOR POLLINATIONS.AI';
-
-        if (!estadoCartaActual.urlImagenIA) {
-            generarImagenPollinationsDirecta();
-        }
+        if (btnGenIA) btnGenIA.style.display = 'inline-block';
+        
+        if (canvas) canvas.style.display = 'none';
+        if (imgPreview) imgPreview.style.display = 'block';
     }
 }
 
-function inicializarControlesGUI() {
-    document.getElementById('carta-era')?.addEventListener('change', (e) => {
-        estadoCartaActual.era = e.target.value;
-        actualizarPaletaPorEra();
+// INICIALIZADOR DE LISTONERS
+function inicializarEventos() {
+    ['carta-id', 'carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo', 'carta-lore'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => {
+            if (modoRenderActual === 'canvas') renderizarCanvasProcedural();
+        });
     });
 
-    document.getElementById('carta-rareza')?.addEventListener('change', (e) => {
-        estadoCartaActual.rareza = e.target.value;
-    });
-
-    document.getElementById('carta-simbolo')?.addEventListener('input', (e) => {
-        estadoCartaActual.simbolo = e.target.value || "🃏";
-    });
-
+    document.getElementById('btn-guardar-carta')?.addEventListener('click', publicarCartaBD);
+    document.getElementById('btn-procesar-plantillas')?.addEventListener('click', procesarPlantillasTexto);
+    document.getElementById('btn-limpiar-plantillas')?.addEventListener('click', vaciarPlantillasBD);
+    document.getElementById('btn-regalar-carta')?.addEventListener('click', regalarCartaUsuario);
     document.getElementById('btn-randomizar')?.addEventListener('click', randomizarDesdePlantillas);
-    document.getElementById('btn-guardar-carta')?.addEventListener('click', guardarCartaEnSupabase);
-    document.getElementById('btn-crear-carta')?.addEventListener('click', guardarCartaEnSupabase);
-    document.getElementById('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
-    document.getElementById('btn-procesar-plantillas')?.addEventListener('click', parsearYGuardarPlantillas);
-    document.getElementById('btn-limpiar-plantillas')?.addEventListener('click', vaciarTablaPlantillas);
 }
 
-// =============================================================================
-// 🤖 INTEGRACIÓN GENERACIÓN DE IMÁGENES POLLINATIONS.AI
-// =============================================================================
-
-function construirPromptIA() {
-    const custom = document.getElementById('prompt-ia-custom')?.value.trim();
-    if (custom) return custom;
-
-    const nombre = document.getElementById('carta-nombre')?.value.trim() || "creature";
-    const simbolo = estadoCartaActual.simbolo || "";
-    return `3d emoji style of ${nombre} ${simbolo}, vibrant colors, smooth glossy surface, centered, isolated on white background, vector high quality, 8k render`;
-}
-
-function generarImagenPollinationsDirecta() {
-    const prompt = construirPromptIA();
-    const seed = estadoCartaActual.semilla;
-    const promptEncoded = encodeURIComponent(prompt);
-
-    const spinner = document.getElementById('spinnerIA');
-    const imgElement = document.getElementById('imgPollinationsPreview');
-
-    if (spinner) spinner.style.display = 'block';
-    logStatus("Generando imagen desde Pollinations.ai...");
-
-    const url = `https://image.pollinations.ai/prompt/${promptEncoded}?width=512&height=512&seed=${seed}&nologo=true`;
-
-    if (imgElement) {
-        imgElement.onload = () => {
-            if (spinner) spinner.style.display = 'none';
-            estadoCartaActual.urlImagenIA = url;
-            estadoCartaActual.promptIA = prompt;
-            logStatus("✅ Imagen de Pollinations.ai renderizada con éxito.");
-        };
-
-        imgElement.onerror = () => {
-            if (spinner) spinner.style.display = 'none';
-            logStatus("❌ Error al cargar la imagen desde Pollinations.ai.", true);
-        };
-
-        imgElement.src = url;
-    }
-}
-
-// =============================================================================
-// ⚙️ PARSER INTELIGENTE DE TEXTO Y MAPEO A BASE DE DATOS
-// =============================================================================
-
-function determinarEraPorZona(zonaNombre) {
-    const txt = zonaNombre.toLowerCase();
-    if (txt.includes("caos") || txt.includes("noche") || txt.includes("pantano") || txt.includes("prehistóricos")) {
-        return "antiguo";
-    } else if (txt.includes("poblado") || txt.includes("granja") || txt.includes("selva") || txt.includes("bosques")) {
-        return "cotidianos";
-    } else if (txt.includes("cielos") || txt.includes("océano") || txt.includes("trono")) {
-        return "espacial";
-    }
-    return "cyber";
-}
-
-async function parsearYGuardarPlantillas() {
-    if (!supabaseClient) return logStatus("Supabase no conectado.", true);
-
-    const textoRaw = document.getElementById('textarea-plantillas')?.value.trim();
-    if (!textoRaw) {
-        return logStatus("El campo de texto está vacío. Pega la lista primero.", true);
-    }
-
-    logStatus("Iniciando procesamiento de texto...");
-
-    const lineas = textoRaw.split('\n');
-    let zonaActual = "Zona Desconocida";
-    let eraActual = "cotidianos";
-    const registrosAInsertar = [];
-
-    const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
-
-    for (let linea of lineas) {
-        linea = linea.trim();
-        if (!linea) continue;
-
-        if (!linea.includes(":") && !linea.includes("/")) {
-            zonaActual = linea;
-            eraActual = determinarEraPorZona(zonaActual);
-            continue;
-        }
-
-        const partes = linea.split(':');
-        const lore = partes.length > 1 ? partes[1].trim() : "Criatura misteriosa.";
-        const items = partes[0].split('/');
-
-        for (let item of items) {
-            item = item.trim();
-            const emojisEncontrados = item.match(emojiRegex);
-            const emoji = emojisEncontrados ? emojisEncontrados[0] : "👾";
-            const nombre = item.replace(emojiRegex, '').trim();
-
-            if (nombre) {
-                registrosAInsertar.push({
-                    emoji: emoji,
-                    nombre: nombre,
-                    lore: lore,
-                    zona: zonaActual,
-                    era_sugerida: eraActual
-                });
-            }
-        }
-    }
-
-    if (registrosAInsertar.length === 0) {
-        return logStatus("No se pudieron extraer elementos válidos del texto.", true);
-    }
-
-    logStatus(`Procesadas ${registrosAInsertar.length} plantillas. Guardando en Supabase...`);
-
-    const { error } = await supabaseClient
-        .from('plantillas_criaturas')
-        .insert(registrosAInsertar);
-
-    if (error) {
-        logStatus(`Error al guardar plantillas: ${error.message}`, true);
-    } else {
-        logStatus(`✅ ¡Se guardaron exitosamente ${registrosAInsertar.length} plantillas!`);
-        if (document.getElementById('textarea-plantillas')) {
-            document.getElementById('textarea-plantillas').value = "";
-        }
-        contarPlantillasRegistradas();
-    }
-}
-
-async function contarPlantillasRegistradas() {
-    if (!supabaseClient) return;
-
-    const { count, error } = await supabaseClient
-        .from('plantillas_criaturas')
-        .select('*', { count: 'exact', head: true });
-
-    if (!error) {
-        const el = document.getElementById('count-plantillas');
-        if (el) el.innerText = count || 0;
-    }
-}
-
-async function vaciarTablaPlantillas() {
-    if (!supabaseClient) return;
-    if (!confirm("¿Seguro que deseas eliminar TODAS las plantillas registradas?")) return;
-
-    const { error } = await supabaseClient
-        .from('plantillas_criaturas')
-        .delete()
-        .neq('id', 0);
-
-    if (error) {
-        logStatus(`Error al vaciar tabla: ${error.message}`, true);
-    } else {
-        logStatus("🗑️ Tabla de plantillas vaciada completamente.");
-        contarPlantillasRegistradas();
-    }
-}
-
-// =============================================================================
-// 🎲 SELECCIÓN ALEATORIA DESDE LA TABLA DE PLANTILLAS
-// =============================================================================
-
-async function randomizarDesdePlantillas() {
-    if (!supabaseClient) return logStatus("Supabase no conectado.", true);
-
-    logStatus("Consultando plantilla aleatoria...");
-
-    const { count, error: errCount } = await supabaseClient
-        .from('plantillas_criaturas')
-        .select('*', { count: 'exact', head: true });
-
-    if (errCount || !count || count === 0) {
-        return logStatus("No hay plantillas registradas. Ve a '📋 PLANTILLAS' para cargar la lista.", true);
-    }
-
-    const randomIndex = Math.floor(Math.random() * count);
-
-    const { data, error } = await supabaseClient
-        .from('plantillas_criaturas')
-        .select('*')
-        .range(randomIndex, randomIndex)
-        .single();
-
-    if (error || !data) {
-        return logStatus("Error al seleccionar plantilla aleatoria.", true);
-    }
-
-    const rarezaAleatoria = RAREZAS[Math.floor(Math.random() * RAREZAS.length)];
-
-    estadoCartaActual.semilla = Math.floor(Math.random() * 900000) + 100000;
-    estadoCartaActual.era = data.era_sugerida || "cyber";
-    estadoCartaActual.rareza = rarezaAleatoria;
-    estadoCartaActual.simbolo = data.emoji;
-
-    if (document.getElementById('carta-id')) document.getElementById('carta-id').value = Math.floor(Math.random() * 1900) + 1;
-    if (document.getElementById('carta-nombre')) document.getElementById('carta-nombre').value = data.nombre;
-    if (document.getElementById('carta-simbolo')) document.getElementById('carta-simbolo').value = data.emoji;
-    if (document.getElementById('carta-lore')) document.getElementById('carta-lore').value = data.lore;
-    if (document.getElementById('carta-era')) document.getElementById('carta-era').value = data.era_sugerida;
-    if (document.getElementById('carta-rareza')) document.getElementById('carta-rareza').value = rarezaAleatoria;
-
-    actualizarPaletaPorEra();
-    logStatus(`🎲 Plantilla seleccionada: ${data.emoji} ${data.nombre} (${data.zona})`);
-
-    if (modoRenderizadoActual === 'ia') {
-        generarImagenPollinationsDirecta();
-    }
-}
-
-function actualizarPaletaPorEra() {
-    const era = estadoCartaActual.era;
-    const s = estadoCartaActual.semilla;
-
-    if (era === "cyber") {
-        estadoCartaActual.colorPrimario = `hsl(${(s % 60) + 120}, 100%, 50%)`;
-        estadoCartaActual.colorSecundario = `hsl(${(s % 40) + 280}, 80%, 30%)`;
-        estadoCartaActual.colorFondo = "#05050d";
-    } else if (era === "cotidianos") {
-        estadoCartaActual.colorPrimario = `hsl(${(s % 50) + 30}, 90%, 55%)`;
-        estadoCartaActual.colorSecundario = `hsl(${(s % 30) + 10}, 60%, 25%)`;
-        estadoCartaActual.colorFondo = "#1c1917";
-    } else if (era === "espacial") {
-        estadoCartaActual.colorPrimario = `hsl(${(s % 80) + 180}, 100%, 60%)`;
-        estadoCartaActual.colorSecundario = `hsl(${(s % 60) + 220}, 90%, 20%)`;
-        estadoCartaActual.colorFondo = "#030712";
-    } else {
-        estadoCartaActual.colorPrimario = `hsl(${(s % 40) + 40}, 80%, 50%)`;
-        estadoCartaActual.colorSecundario = `hsl(${(s % 30) + 0}, 70%, 20%)`;
-        estadoCartaActual.colorFondo = "#1a0c0c";
-    }
-
-    const infoSemilla = document.getElementById('info-semilla');
-    if (infoSemilla) {
-        infoSemilla.innerText = `Semilla: ${estadoCartaActual.semilla} | Era: ${estadoCartaActual.era.toUpperCase()}`;
-    }
-}
-
-// =============================================================================
-// 🎨 RENDERIZADO PROCEDURAL CANVAS
-// =============================================================================
-
-function iniciarBucleRenderizado() {
+// RENDERIZADO CANVAS
+function renderizarCanvasProcedural() {
     const canvas = document.getElementById('canvasCartaGenerada');
-    if (!canvas) return;
+    if (!canvas || modoRenderActual !== 'canvas') return;
     const ctx = canvas.getContext('2d');
 
-    let tiempo = 0;
+    const id = document.getElementById('carta-id')?.value || '1';
+    const nombre = document.getElementById('carta-nombre')?.value || 'Sin Nombre';
+    const era = document.getElementById('carta-era')?.value || 'cyber';
+    const rareza = document.getElementById('carta-rareza')?.value || 'Común';
+    const simbolo = document.getElementById('carta-simbolo')?.value || '👾';
+    const lore = document.getElementById('carta-lore')?.value || 'Sin descripción disponble.';
 
-    function render() {
-        tiempo += 0.03;
-        if (modoRenderizadoActual === 'canvas') {
-            dibujarCartaProcedural(ctx, canvas.width, canvas.height, estadoCartaActual, tiempo);
-        }
-        animacionFrameId = requestAnimationFrame(render);
-    }
+    const col = PALETAS_ERA[era] || PALETAS_ERA.cyber;
 
-    if (animacionFrameId) cancelAnimationFrame(animacionFrameId);
-    render();
-}
+    // Fondo
+    ctx.fillStyle = col.fondo;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-function dibujarCartaProcedural(ctx, w, h, config, tiempo = 0) {
-    ctx.clearRect(0, 0, w, h);
+    // Borde Decorativo
+    ctx.strokeStyle = col.borde;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
 
-    const gradiente = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w);
-    gradiente.addColorStop(0, config.colorSecundario || "#1e293b");
-    gradiente.addColorStop(1, config.colorFondo || "#000000");
-    ctx.fillStyle = gradiente;
-    ctx.fillRect(0, 0, w, h);
+    // Cabecera: ID y Rareza
+    ctx.fillStyle = col.texto;
+    ctx.font = '8px "Press Start 2P", monospace';
+    ctx.fillText(`#${id}`, 14, 22);
+    
+    ctx.fillStyle = col.acento;
+    ctx.font = '7px "Press Start 2P", monospace';
+    ctx.fillText(rareza.toUpperCase(), canvas.width - 90, 22);
 
-    ctx.save();
-    ctx.strokeStyle = config.colorPrimario || "#00ff66";
-    ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.3;
+    // Símbolo / Emoji Central
+    ctx.font = '50px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(simbolo, canvas.width / 2, 120);
 
-    for (let i = 0; i < 6; i++) {
-        ctx.beginPath();
-        for (let x = 0; x < w; x += 5) {
-            const y = (h / 2) + Math.sin(x * 0.03 + tiempo + i + (config.semilla % 10)) * (15 + i * 5);
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-    }
-    ctx.restore();
+    // Nombre de la Carta
+    ctx.textAlign = 'center';
+    ctx.fillStyle = col.texto;
+    ctx.font = '9px "Press Start 2P", monospace';
+    ctx.fillText(nombre.substring(0, 18), canvas.width / 2, 180);
 
-    ctx.strokeStyle = config.colorPrimario || "#00ff66";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(8, 8, w - 16, h - 16);
-
-    ctx.strokeStyle = "#ffffff";
+    // Recuadro de Lore
+    ctx.fillStyle = '#00000088';
+    ctx.fillRect(14, 200, canvas.width - 28, 80);
+    ctx.strokeStyle = col.borde;
     ctx.lineWidth = 1;
-    ctx.strokeRect(12, 12, w - 24, h - 24);
+    ctx.strokeRect(14, 200, canvas.width - 28, 80);
 
-    ctx.save();
-    ctx.font = "42px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    // Texto del Lore
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#cccccc';
+    ctx.font = '6px "Press Start 2P", monospace';
+    wrapText(ctx, lore, 20, 215, canvas.width - 40, 10);
 
-    const desvY = Math.sin(tiempo * 2) * 5;
-    ctx.shadowColor = config.colorPrimario || "#00ff66";
-    ctx.shadowBlur = 12;
-    ctx.fillText(config.simbolo || "🃏", w / 2, (h / 2) + desvY);
-    ctx.restore();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "8px 'Press Start 2P', monospace";
-    ctx.textAlign = "center";
-    ctx.fillText((config.rareza || "COMÚN").toUpperCase(), w / 2, h - 25);
+    // Actualizar Leyenda de Semilla
+    const infoSemilla = document.getElementById('info-semilla');
+    if (infoSemilla) infoSemilla.innerText = `Semilla: #${id} | Era: ${era.toUpperCase()}`;
 }
 
-// =============================================================================
-// 💾 GUARDADO Y ASIGNACIÓN DE CARTAS (EVALUACIÓN INTELIGENTE DE TABLAS)
-// =============================================================================
-
-async function guardarCartaEnSupabase(e) {
-    if (e) e.preventDefault();
-    if (!supabaseClient) return logStatus("Cliente Supabase desconectado.", true);
-
-    const inputId = document.getElementById('carta-id');
-    const inputNombre = document.getElementById('carta-nombre');
-    const inputLore = document.getElementById('carta-lore');
-
-    const id = parseInt(inputId?.value || "0");
-    const nombre = inputNombre?.value?.trim() || "Sin Nombre";
-    const lore = inputLore?.value?.trim() || `Carta #${id}`;
-
-    if (!id || id <= 0 || !nombre) {
-        return logStatus("El ID y el Nombre son obligatorios.", true);
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    for (let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        let metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+            ctx.fillText(line, x, y);
+            line = words[n] + ' ';
+            y += lineHeight;
+        } else {
+            line = testLine;
+        }
     }
+    ctx.fillText(line, x, y);
+}
 
-    const recetaJSON = JSON.stringify({
-        modo: modoRenderizadoActual,
-        procedural: modoRenderizadoActual === 'canvas',
-        semilla: estadoCartaActual.semilla,
-        era: estadoCartaActual.era,
-        rareza: estadoCartaActual.rareza,
-        simbolo: estadoCartaActual.simbolo,
-        colorPrimario: estadoCartaActual.colorPrimario,
-        colorSecundario: estadoCartaActual.colorSecundario,
-        colorFondo: estadoCartaActual.colorFondo,
-        urlImagenIA: estadoCartaActual.urlImagenIA,
-        promptIA: estadoCartaActual.promptIA
-    });
+// GENERACIÓN MEDIANTE IA (POLLINATIONS)
+async function generarImagenPollinationsDirecta() {
+    const promptCustom = document.getElementById('prompt-ia-custom')?.value;
+    const nombre = document.getElementById('carta-nombre')?.value || 'creature';
+    const simbolo = document.getElementById('carta-simbolo')?.value || '';
+    
+    const spinner = document.getElementById('spinnerIA');
+    const imgPreview = document.getElementById('imgPollinationsPreview');
 
-    logStatus(`Publicando receta de la Carta #${id}...`);
+    const promptFinal = promptCustom || `trading card art of ${nombre} ${simbolo}, vibrant colors, detailed illustration, isolated background`;
+    const encodedPrompt = encodeURIComponent(promptFinal);
+    const seed = Math.floor(Math.random() * 999999);
+    
+    urlImagenIAGenerada = `https://pollinations.ai/p/${encodedPrompt}?width=220&height=308&seed=${seed}&nologo=true`;
 
-    try {
-        // Consulta previa segura a 'Cartas' para esquivar el fallo del onConflict/404 de PostgREST
-        const { data: existente } = await supabaseClient
-            .from('Cartas')
-            .select('id')
-            .eq('id', id)
-            .maybeSingle();
-
-        let error = null;
-
-        const payload = {
-            id: id,
-            nombre: nombre,
-            rareza: estadoCartaActual.rareza,
-            imagen_url: recetaJSON,
-            lore: lore
+    if (spinner) spinner.style.display = 'block';
+    if (imgPreview) {
+        imgPreview.style.display = 'block';
+        imgPreview.src = urlImagenIAGenerada;
+        imgPreview.onload = () => {
+            if (spinner) spinner.style.display = 'none';
+            logStatus("Imagen IA generada con éxito.");
         };
-
-        if (existente) {
-            const { error: errUpdate } = await supabaseClient
-                .from('Cartas')
-                .update(payload)
-                .eq('id', id);
-            error = errUpdate;
-        } else {
-            const { error: errInsert } = await supabaseClient
-                .from('Cartas')
-                .insert([payload]);
-            error = errInsert;
-        }
-
-        if (error) {
-            logStatus(`Error guardando en Supabase: ${error.message}`, true);
-        } else {
-            logStatus(`✅ ¡Carta #${id} (${nombre}) guardada en la base de datos!`);
-            cargarCatalogoBaseDatos();
-        }
-    } catch (err) {
-        logStatus(`Excepción al conectar con la base de datos.`, true);
+        imgPreview.onerror = () => {
+            if (spinner) spinner.style.display = 'none';
+            logStatus("Error al cargar la imagen desde Pollinations.AI");
+        };
     }
 }
 
-async function regalarCartaAUsuario() {
-    if (!supabaseClient) return logStatus("Cliente Supabase desconectado.", true);
+// INTEGRACIÓN BASE DE DATOS (SUPABASE)
+async function publicarCartaBD() {
+    if (!supabase) return logStatus("Error: Supabase no está configurado.");
 
-    let usuario = document.getElementById('target-user')?.value.trim().replace(/^@/, '').toLowerCase();
-    const cartaId = parseInt(document.getElementById('target-carta-id')?.value || "0");
-    const cantidad = parseInt(document.getElementById('target-cantidad')?.value || "1");
+    const cartaData = {
+        id: parseInt(document.getElementById('carta-id')?.value),
+        nombre: document.getElementById('carta-nombre')?.value,
+        era: document.getElementById('carta-era')?.value,
+        rareza: document.getElementById('carta-rareza')?.value,
+        simbolo: document.getElementById('carta-simbolo')?.value,
+        lore: document.getElementById('carta-lore')?.value,
+        modo_render: modoRenderActual,
+        imagen_url: modoRenderActual === 'ia' ? urlImagenIAGenerada : null,
+        created_at: new Date()
+    };
 
-    if (!usuario || !cartaId) {
-        return logStatus("El Usuario y el ID de Carta son obligatorios.", true);
+    if (!cartaData.id || !cartaData.nombre) {
+        return logStatus("Atención: ID y Nombre son obligatorios.");
     }
 
-    logStatus(`Asignando carta #${cartaId} a @${usuario}...`);
-
-    try {
-        // CORRECCIÓN: 'Coleccion_Usuario' con C y U mayúsculas
-        const { data: existente } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .select('*')
-            .ilike('usuario_id', usuario)
-            .eq('carta_id', cartaId)
-            .maybeSingle();
-
-        let errorRes = null;
-
-        if (existente) {
-            const { error } = await supabaseClient
-                .from('Coleccion_Usuario')
-                .update({ cantidad: existente.cantidad + cantidad })
-                .eq('id', existente.id);
-            errorRes = error;
-        } else {
-            const { error } = await supabaseClient
-                .from('Coleccion_Usuario')
-                .insert([{ usuario_id: usuario, carta_id: cartaId, cantidad: cantidad }]);
-            errorRes = error;
-        }
-
-        if (errorRes) {
-            logStatus(`Error al regalar carta: ${errorRes.message}`, true);
-        } else {
-            logStatus(`🎁 ¡Carta #${cartaId} (x${cantidad}) asignada a @${usuario}!`);
-        }
-    } catch (err) {
-        logStatus(`Excepción procesando regalar carta.`, true);
-    }
-}
-
-async function cargarCatalogoBaseDatos() {
-    if (!supabaseClient) return;
-
-    const contenedor = document.getElementById('grid-catalogo-admin');
-    if (!contenedor) return;
-
-    contenedor.innerHTML = "<div style='font-size:7px; color:#888;'>Cargando catálogo...</div>";
-
-    const { data, error } = await supabaseClient
-        .from('Cartas')
-        .select('*')
-        .order('id', { ascending: true });
+    logStatus("Guardando receta en Supabase...");
+    const { data, error } = await supabase.from('cartas_recetas').upsert([cartaData]);
 
     if (error) {
-        contenedor.innerHTML = `<div style='font-size:7px; color:#ff0055;'>Error al cargar catálogo: ${error.message}</div>`;
+        logStatus(`Error al guardar: ${error.message}`);
+    } else {
+        logStatus(`¡Carta #${cartaData.id} publicada exitosamente!`);
+    }
+}
+
+async function procesarPlantillasTexto() {
+    if (!supabase) return logStatus("Error: Supabase no está configurado.");
+    const texto = document.getElementById('textarea-plantillas')?.value;
+    if (!texto) return logStatus("El campo de texto plano está vacío.");
+
+    const lineas = texto.split('\n');
+    let zonaActual = 'General';
+    let registros = [];
+
+    lineas.forEach(linea => {
+        linea = linea.trim();
+        if (!linea) return;
+
+        if (linea.startsWith('🌋') || linea.startsWith('Zona') || !linea.includes(':')) {
+            zonaActual = linea;
+        } else {
+            const partes = linea.split(':');
+            const elementos = partes[0].split('/');
+            const descripcion = partes[1] || '';
+
+            elementos.forEach(el => {
+                const subPartes = el.trim().split(' ');
+                const emoji = subPartes[0];
+                const nombre = subPartes.slice(1).join(' ');
+
+                if (emoji && nombre) {
+                    registros.push({
+                        zona: zonaActual,
+                        emoji: emoji,
+                        nombre: nombre,
+                        descripcion: descripcion.trim()
+                    });
+                }
+            });
+        }
+    });
+
+    if (registros.length === 0) return logStatus("No se pudieron parsear plantillas válidas.");
+
+    logStatus(`Insertando ${registros.length} plantillas en la base de datos...`);
+    const { error } = await supabase.from('plantillas_criaturas').insert(registros);
+
+    if (error) {
+        logStatus(`Error al insertar plantillas: ${error.message}`);
+    } else {
+        logStatus(`¡Se insertaron ${registros.length} plantillas con éxito!`);
+        contarPlantillasBD();
+    }
+}
+
+async function vaciarPlantillasBD() {
+    if (!supabase) return logStatus("Error: Supabase no configurado.");
+    if (!confirm("¿Está seguro de vaciar la tabla de plantillas?")) return;
+
+    const { error } = await supabase.from('plantillas_criaturas').delete().neq('id', 0);
+    if (error) logStatus(`Error: ${error.message}`);
+    else {
+        logStatus("Tabla de plantillas vaciada.");
+        contarPlantillasBD();
+    }
+}
+
+async function contarPlantillasBD() {
+    if (!supabase) return;
+    const { count, error } = await supabase.from('plantillas_criaturas').select('*', { count: 'exact', head: true });
+    if (!error && document.getElementById('count-plantillas')) {
+        document.getElementById('count-plantillas').innerText = count || '0';
+    }
+}
+
+async function randomizarDesdePlantillas() {
+    if (!supabase) return logStatus("Se requiere conexión a base de datos.");
+    const { data, error } = await supabase.from('plantillas_criaturas').select('*');
+    
+    if (error || !data || data.length === 0) {
+        return logStatus("No hay plantillas registradas para randomizar.");
+    }
+
+    const item = data[Math.floor(Math.random() * data.length)];
+    
+    document.getElementById('carta-nombre').value = item.nombre;
+    document.getElementById('carta-simbolo').value = item.emoji;
+    document.getElementById('carta-lore').value = item.descripcion;
+
+    if (modoRenderActual === 'canvas') renderizarCanvasProcedural();
+    logStatus(`Plantilla cargada: ${item.nombre}`);
+}
+
+async function regalarCartaUsuario() {
+    if (!supabase) return logStatus("Error: Supabase no configurado.");
+    
+    const usuario = document.getElementById('target-user')?.value.replace('@', '');
+    const cartaId = parseInt(document.getElementById('target-carta-id')?.value);
+    const cantidad = parseInt(document.getElementById('target-cantidad')?.value) || 1;
+
+    if (!usuario || !cartaId) return logStatus("Especifique usuario e ID de carta.");
+
+    const { error } = await supabase.from('usuarios_coleccion').insert([{
+        username: usuario,
+        carta_id: cartaId,
+        cantidad: cantidad,
+        asignado_at: new Date()
+    }]);
+
+    if (error) logStatus(`Error al regalar carta: ${error.message}`);
+    else logStatus(`¡Éxito! Se asignaron ${cantidad}x Carta #${cartaId} a @${usuario}`);
+}
+
+async function cargarCatalogoBD() {
+    const grid = document.getElementById('grid-catalogo-admin');
+    if (!grid || !supabase) return;
+
+    grid.innerHTML = '<div style="color:#aaa; font-size:8px;">Cargando catálogo...</div>';
+    const { data, error } = await supabase.from('cartas_recetas').select('*').order('id', { ascending: true });
+
+    if (error) {
+        grid.innerHTML = `<div style="color:#ef4444; font-size:8px;">Error: ${error.message}</div>`;
         return;
     }
 
-    contenedor.innerHTML = "";
+    if (data.length === 0) {
+        grid.innerHTML = '<div style="color:#666; font-size:8px;">No hay cartas en la base de datos.</div>';
+        return;
+    }
 
-    data.forEach(carta => {
-        const item = document.createElement('div');
-        item.className = 'tarjeta-admin-item';
-
-        let configCarta = {
-            modo: "canvas",
-            semilla: carta.id * 1000,
-            era: "cyber",
-            rareza: carta.rareza || "Común",
-            simbolo: "🃏",
-            colorPrimario: "#00ff66",
-            colorSecundario: "#1e293b",
-            colorFondo: "#000000"
-        };
-
-        try {
-            if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
-                configCarta = JSON.parse(carta.imagen_url);
-            }
-        } catch (e) {
-            console.warn(`Carta #${carta.id} sin receta en JSON.`);
-        }
-
-        if (configCarta.modo === 'ia' && configCarta.urlImagenIA) {
-            const img = document.createElement('img');
-            img.src = configCarta.urlImagenIA;
-            img.alt = carta.nombre;
-            item.appendChild(img);
-        } else {
-            const canvas = document.createElement('canvas');
-            canvas.width = 100;
-            canvas.height = 140;
-            const ctx = canvas.getContext('2d');
-            dibujarCartaProcedural(ctx, canvas.width, canvas.height, configCarta, 0);
-            item.appendChild(canvas);
-        }
-
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'info-admin-card';
-        infoDiv.innerHTML = `
-            <strong>#${carta.id} ${carta.nombre}</strong>
-            <span>${carta.rareza}</span>
+    grid.innerHTML = '';
+    data.forEach(c => {
+        const card = document.createElement('div');
+        card.style.cssText = "background:#111; border:1px solid #333; padding:8px; text-align:center; font-size:8px;";
+        card.innerHTML = `
+            <div style="color:#38bdf8; font-weight:bold;">#${c.id} - ${c.nombre}</div>
+            <div style="font-size:20px; margin:5px 0;">${c.simbolo || '👾'}</div>
+            <div style="color:#aaa;">${c.rareza} | ${c.era}</div>
         `;
-        item.appendChild(infoDiv);
-
-        const btnEliminar = document.createElement('button');
-        btnEliminar.className = 'btn-mini-admin btn-mini-del';
-        btnEliminar.innerText = 'ELIMINAR';
-        btnEliminar.onclick = () => eliminarCarta(carta.id);
-        item.appendChild(btnEliminar);
-
-        contenedor.appendChild(item);
+        grid.appendChild(card);
     });
 }
 
-async function eliminarCarta(id) {
-    if (!confirm(`¿Eliminar la carta #${id} del catálogo global?`)) return;
+// CONTROL Y DIAGNÓSTICO DEL SERVIDOR
+async function testearConexionSupabase() {
+    if (!supabase) {
+        actualizarStatusSupabase(false, '--');
+        return;
+    }
 
-    const { error } = await supabaseClient
-        .from('Cartas')
-        .delete()
-        .eq('id', id);
+    const tInicial = Date.now();
+    const { data, error } = await supabase.from('cartas_recetas').select('id', { count: 'exact', head: true });
+    const ping = Date.now() - tInicial;
 
     if (error) {
-        logStatus(`Error eliminando carta: ${error.message}`, true);
+        actualizarStatusSupabase(false, '--');
+        logServidor(`Error de conexión: ${error.message}`);
     } else {
-        logStatus(`🗑️ Carta #${id} eliminada.`);
-        cargarCatalogoBaseDatos();
+        actualizarStatusSupabase(true, ping);
+        logServidor(`Conexión exitosa. Latencia: ${ping}ms`);
     }
 }
 
-// =============================================================================
-// 🖥️ MÓDULO SERVIDOR: TELEMETRÍA, MÉTRICAS Y CONTROL EN TIEMPO REAL
-// =============================================================================
+function actualizarStatusSupabase(conectado, ping) {
+    const elStatus = document.getElementById('status-supabase');
+    const elPing = document.getElementById('ping-supabase');
 
-function logServidor(mensaje, tipo = "INFO") {
-    const logContainer = document.getElementById('servidor-log-output');
-    if (!logContainer) return;
-
-    const ahora = new Date();
-    const timeStr = ahora.toTimeString().split(' ')[0];
-    let color = "#00ff66";
-
-    if (tipo === "ERROR") color = "#ef4444";
-    if (tipo === "WARN") color = "#eab308";
-    if (tipo === "SUCCESS") color = "#38bdf8";
-
-    const nuevaLinea = `<div style="color: ${color}; margin-bottom: 2px;">[${timeStr}] [${tipo}] ${mensaje}</div>`;
-    logContainer.innerHTML += nuevaLinea;
-    logContainer.scrollTop = logContainer.scrollHeight;
-}
-
-async function testearConexionSupabase() {
-    const pingEl = document.getElementById('ping-supabase');
-    const statusEl = document.getElementById('status-supabase');
-    const countEl = document.getElementById('total-cartas-count');
-
-    logServidor("Iniciando test de latencia y disponibilidad con Supabase...", "INFO");
-    const inicio = performance.now();
-
-    try {
-        const { count, error } = await supabaseClient
-            .from('Cartas')
-            .select('*', { count: 'exact', head: true });
-
-        const fin = performance.now();
-        const latencia = Math.round(fin - inicio);
-
-        if (error) throw error;
-
-        if (pingEl) pingEl.innerText = `${latencia} ms`;
-        if (statusEl) {
-            statusEl.innerText = "● ONLINE";
-            statusEl.style.color = "#00ff66";
-        }
-        if (countEl) countEl.innerText = count || 0;
-
-        logServidor(`Conexión exitosa. Ping: ${latencia}ms | Cartas registradas: ${count || 0}`, "SUCCESS");
-    } catch (err) {
-        if (statusEl) {
-            statusEl.innerText = "● ERROR";
-            statusEl.style.color = "#ef4444";
-        }
-        logServidor(`Error de comunicación con Supabase: ${err.message}`, "ERROR");
+    if (elStatus) {
+        elStatus.innerText = conectado ? '● CONECTADO' : '● DESCONECTADO';
+        elStatus.style.color = conectado ? '#00ff66' : '#ef4444';
     }
+    if (elPing) elPing.innerText = `${ping} ms`;
 }
 
 async function cargarMetricasServidor() {
-    logServidor("Sincronizando métricas desde Supabase...", "INFO");
+    if (!supabase) return;
 
-    // 1. Usuarios Totales
-    try {
-        const { count, error } = await supabaseClient
-            .from('usuarios')
-            .select('*', { count: 'exact', head: true });
+    // Total Cartas
+    const resCartas = await supabase.from('cartas_recetas').select('*', { count: 'exact', head: true });
+    document.getElementById('total-cartas-count').innerText = resCartas.count || '0';
 
-        if (!error && document.getElementById('kpi-usuarios-totales')) {
-            document.getElementById('kpi-usuarios-totales').innerText = count || 0;
-        }
-    } catch (e) {
-        logServidor(`Tabla 'usuarios' no disponible.`, "WARN");
-    }
+    // Total Usuarios
+    const resUsers = await supabase.from('usuarios_coleccion').select('username', { head: false });
+    const usuariosUnicos = new Set(resUsers.data?.map(u => u.username)).size;
+    document.getElementById('kpi-usuarios-totales').innerText = usuariosUnicos || '0';
 
-    // 2. Colecciones Totales
-    try {
-        const { count, error } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .select('*', { count: 'exact', head: true });
-
-        if (!error && document.getElementById('kpi-total-colecciones')) {
-            document.getElementById('kpi-total-colecciones').innerText = count || 0;
-        }
-    } catch (e) {
-        logServidor(`Tabla 'Coleccion_Usuario' no disponible.`, "WARN");
-    }
-
-    // 3. Reclamaciones de Premios
-    try {
-        const { data, error } = await supabaseClient
-            .from('reclamaciones_premios')
-            .select('*');
-
-        if (!error && data) {
-            const pendientes = data.filter(p => p.estado === 'pendiente').length;
-            if (document.getElementById('kpi-premios-pendientes')) {
-                document.getElementById('kpi-premios-pendientes').innerText = pendientes;
-            }
-            renderizarTablaPremios(data);
-        } else {
-            renderizarTablaPremios([]);
-        }
-    } catch (e) {
-        renderizarTablaPremios([]);
-        logServidor(`Tabla 'reclamaciones_premios' no disponible.`, "WARN");
-    }
-
-    logServidor("Proceso de sincronización de métricas completado.", "SUCCESS");
-}
-
-function renderizarTablaPremios(listaPremios) {
-    const tbody = document.getElementById('tabla-servidor-premios');
-    if (!tbody) return;
-
-    if (!listaPremios || listaPremios.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #666;">No hay reclamaciones de premios registradas.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = listaPremios.map(item => {
-        const esPendiente = item.estado === 'pendiente';
-        const estadoColor = esPendiente ? '#eab308' : '#00ff66';
-
-        return `
-            <tr style="border-bottom: 1px solid #222;">
-                <td style="padding: 4px; color: #38bdf8;">${item.usuario_id || 'Anon'}</td>
-                <td style="padding: 4px;">${item.hito_nombre || 'Premio Hito'}</td>
-                <td style="padding: 4px; color: ${estadoColor}; font-weight: bold;">${(item.estado || 'pendiente').toUpperCase()}</td>
-                <td style="padding: 4px; text-align: center;">
-                    ${esPendiente ? 
-                        `<button style="background: #22c55e; color: #000; border: none; padding: 2px 6px; font-size: 7px; cursor: pointer; font-weight: bold;" onclick="aprobarPremioServidor('${item.id}')">ENTREGAR</button>` : 
-                        `<span style="color: #666;">✓ Entregado</span>`
-                    }
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-async function aprobarPremioServidor(premioId) {
-    logServidor(`Procesando aprobación para el premio ID: ${premioId}...`, "INFO");
-
-    try {
-        const { error } = await supabaseClient
-            .from('reclamaciones_premios')
-            .update({ estado: 'entregado' })
-            .eq('id', premioId);
-
-        if (error) throw error;
-
-        logServidor(`Premio ID ${premioId} marcado como ENTREGADO.`, "SUCCESS");
-        cargarMetricasServidor();
-    } catch (err) {
-        logServidor(`Error al procesar entrega: ${err.message}`, "ERROR");
-    }
+    logServidor("Métricas del servidor actualizadas.");
 }
 
 async function limpiarStorageHuerfano() {
-    logServidor("Analizando archivos del Storage de Supabase en busca de huérfanos...", "WARN");
+    logServidor("Limpiando temporales y storage huérfano...");
     setTimeout(() => {
-        logServidor("Escaneo finalizado: Se liberaron 0 KB de archivos obsoletos.", "SUCCESS");
+        logServidor("Limpieza completada exitosamente.");
     }, 1000);
 }

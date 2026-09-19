@@ -24,8 +24,8 @@ body {
     padding: 20px;
     max-width: 520px;
     width: 100%;
-    box-shadow: 6px 6px 0px #092612;
-    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.25), 6px 6px 0px #092612;
+    border-radius: 6px;
 }
 
 .titulo-central {
@@ -34,7 +34,7 @@ body {
     text-align: center;
     margin-bottom: 15px;
     line-height: 1.5;
-    text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
 }
 
 .barra-pestanas {
@@ -52,16 +52,21 @@ body {
     font-size: 8px;
     padding: 10px 2px;
     cursor: pointer;
-    transition: background 0.1s, color 0.1s;
+    transition: all 0.2s ease;
     text-align: center;
 }
 
-.tab-btn:hover { color: #fff; background-color: #22222a; }
+.tab-btn:hover { 
+    color: #fff; 
+    background-color: #22222a; 
+    border-color: #00ff66;
+}
+
 .tab-btn.activo {
     background-color: #00ff66;
     color: #000000;
     font-weight: bold;
-    box-shadow: 2px 2px 0px #000;
+    box-shadow: 0 0 10px rgba(0, 255, 102, 0.5), 2px 2px 0px #000;
 }
 
 .contenido-pestana { display: none; }
@@ -75,6 +80,7 @@ body {
     border-bottom: 2px dashed #333;
     padding-bottom: 12px;
     line-height: 1.4;
+    text-shadow: 0 0 6px rgba(255, 204, 0, 0.3);
 }
 
 .form-grupo {
@@ -101,9 +107,13 @@ input[type="text"], input[type="number"], textarea, select {
     padding: 10px;
     outline: none;
     border-radius: 4px;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-input:focus, select:focus, textarea:focus { border-color: #00ff66; }
+input:focus, select:focus, textarea:focus { 
+    border-color: #00ff66; 
+    box-shadow: 0 0 8px rgba(0, 255, 102, 0.3);
+}
 
 .btn-admin-final {
     background-color: #00ff66;
@@ -117,11 +127,12 @@ input:focus, select:focus, textarea:focus { border-color: #00ff66; }
     cursor: pointer;
     box-shadow: 4px 4px 0px #092612;
     margin-top: 10px;
+    transition: all 0.2s ease;
 }
 
 .btn-admin-final:hover {
     background-color: #ffffff;
-    box-shadow: 4px 4px 0px #333333;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.4), 4px 4px 0px #333333;
 }
 
 /* =============================================================================
@@ -152,7 +163,7 @@ input:focus, select:focus, textarea:focus { border-color: #00ff66; }
     border: 3px solid #1e293b;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
     background-color: #000;
     position: relative;
 }
@@ -199,80 +210,115 @@ input:focus, select:focus, textarea:focus { border-color: #00ff66; }
     font-size: 7px;
     padding: 8px;
     cursor: pointer;
+    transition: all 0.2s;
 }
 
 .btn-modo-opt.activo {
     border-color: #38bdf8;
     color: #38bdf8;
     background: #082f49;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
 }
 
 /* =============================================================================
-📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (¡CORREGIDO!)
+📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (ELEGANT & NEON EFFECT)
 ============================================================================= */
 #grid-catalogo-admin {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-    max-height: 450px;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 14px;
+    max-height: 480px;
     overflow-y: auto;
-    padding-right: 8px;
+    padding: 6px;
     margin-top: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    border: 1px solid #1f2937;
 }
 
 #grid-catalogo-admin::-webkit-scrollbar { width: 6px; }
 #grid-catalogo-admin::-webkit-scrollbar-track { background: #0a0a0c; border-radius: 4px; }
-#grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00ff66; border-radius: 4px; }
+#grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00ff66; border-radius: 4px; box-shadow: 0 0 6px #00ff66; }
 
+/* 🎴 CARTA BASE CON DISEÑO ELEGANTE */
 .tarjeta-carta {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: #0d0d12;
+    border: 2px solid #1e293b;
+    border-radius: 8px;
+    padding: 8px;
     position: relative;
     overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .tarjeta-carta:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(1.02);
+    border-color: #00ff66;
+    box-shadow: 0 8px 20px rgba(0, 255, 102, 0.35), 0 0 10px rgba(0, 255, 102, 0.2);
     z-index: 10;
 }
 
-/* ✨ FONDO MÓVIL ANIMADO */
+/* ✨ FONDO DUAL DEGRADADO DINO/ANIMADO */
 .fondo-movil-animado {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(45deg, transparent 40%, rgba(255, 255, 255, 0.08) 50%, transparent 60%);
-    background-size: 200% 200%;
-    animation: fondoMovil 3s ease-in-out infinite;
-    z-index: 1;
-    pointer-events: none;
-}
-
-@keyframes fondoMovil {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* ✨ EFECTO BRILLO HOLOGRÁFICO */
-.efecto-brillo-holografico {
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
-    opacity: 0;
-    transition: opacity 0.3s;
+    background: linear-gradient(
+        135deg, 
+        rgba(255, 255, 255, 0) 30%, 
+        rgba(255, 255, 255, 0.08) 50%, 
+        rgba(255, 255, 255, 0) 70%
+    );
+    background-size: 200% 200%;
+    animation: animacionGlowHolografico 4s linear infinite;
     z-index: 1;
     pointer-events: none;
 }
 
-.tarjeta-carta:hover .efecto-brillo-holografico { opacity: 1; }
+@keyframes animacionGlowHolografico {
+    0% { transform: rotate(0deg) translate(-10%, -10%); }
+    50% { transform: rotate(180deg) translate(10%, 10%); }
+    100% { transform: rotate(360deg) translate(-10%, -10%); }
+}
 
+/* ✨ EFECTO DE RESPLANDOR HOLOGRÁFICO AL HACER HOVER */
+.efecto-brillo-holografico {
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent, 
+        rgba(0, 255, 102, 0.25), 
+        rgba(255, 255, 255, 0.4), 
+        rgba(0, 255, 102, 0.25), 
+        transparent
+    );
+    transform: skewX(-25deg);
+    transition: left 0.6s ease-in-out;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.tarjeta-carta:hover .efecto-brillo-holografico { 
+    left: 150%; 
+}
+
+/* 🏷️ BADGES DE RAREZA ESTRUCTURADOS */
 .badge-rareza {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-size: 7px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid currentColor;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    box-shadow: 0 0 5px currentColor;
+    display: inline-block;
 }
 
 /* =============================================================================

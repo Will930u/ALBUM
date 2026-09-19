@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     iniciarSuscripcionRealtimeAlbum();
 });
 
-// 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS
+// 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
 function cambiarPestana(idPestana) {
     document.querySelectorAll('.contenido-pestana').forEach(el => el.classList.remove('activa'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('activo'));
@@ -291,7 +291,7 @@ function dibujarMiniCanvasProcedural(canvas, carta) {
             const parsed = JSON.parse(carta.imagen_url);
             if (parsed.simbolo) simbolo = parsed.simbolo;
         } catch (e) {
-            // Manejo silencioso si la cadena JSON tiene un formato inválido
+            // Manejo silencioso
         }
     }
 
@@ -418,6 +418,7 @@ async function seleccionarPlantillaAleatoria() {
 
 // 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
 async function cargarMetricasServidor() {
+    logEstado("🔄 Comprobando estado del servidor Supabase...");
     const inicio = Date.now();
     try {
         const { count, error } = await supabaseClient
@@ -436,15 +437,22 @@ async function cargarMetricasServidor() {
             const statusEl = DOM.get('status-supabase');
             if (statusEl) statusEl.style.color = "#00ff66";
             
-            DOM.setText('total-cartas-count', count || 0);
+            DOM.setText('total-cartas-count', count !== null ? count : 0);
             DOM.setText('ping-supabase', `${latencia} ms`);
-            logEstado("🟢 Métricas de Servidor cargadas exitosamente.");
+            logEstado(`🟢 Servidor activo | Latencia: ${latencia}ms | Total Cartas: ${count || 0}`);
         }
     } catch (e) {
         DOM.setText('status-supabase', "● DESCONECTADO");
         const statusEl = DOM.get('status-supabase');
         if (statusEl) statusEl.style.color = "#ef4444";
-        logEstado(`❌ Falla en servidor: ${e.message}`);
+        logEstado(`❌ Falla crítica en servidor: ${e.message}`);
+    }
+}
+
+function limpiarLogServidor() {
+    const logServidor = DOM.get('servidor-log-output');
+    if (logServidor) {
+        logServidor.innerHTML = `[${new Date().toLocaleTimeString()}] 🧹 Consola de servidor limpiada.`;
     }
 }
 
@@ -460,11 +468,22 @@ function logEstado(mensaje) {
 }
 
 function configurarEventosUI() {
+    // Botones del Generador / Plantillas
     DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
     DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
+    
+    // Botones del Panel de Servidor y Catálogo
     DOM.get('btn-refrescar-servidor')?.addEventListener('click', cargarMetricasServidor);
+    DOM.get('btn-probar-conexion')?.addEventListener('click', cargarMetricasServidor);
+    DOM.get('btn-limpiar-log')?.addEventListener('click', limpiarLogServidor);
     DOM.get('btn-refrescar-catalogo')?.addEventListener('click', cargarCatalogoCartas);
 }
+
+// EXPONER FUNCIONES GLOBALMENTE PARA ATRIBUTOS ONCLICK DEL HTML
+window.cambiarPestana = cambiarPestana;
+window.cargarMetricasServidor = cargarMetricasServidor;
+window.limpiarLogServidor = limpiarLogServidor;
+window.cargarCatalogoCartas = cargarCatalogoCartas;

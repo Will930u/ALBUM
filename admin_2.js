@@ -241,70 +241,56 @@ async function cargarCatálogoCartas() {
 }
 
 // Función para renderizar una carta recuperada de la base de datos en el catálogo
+// Función para renderizar una carta recuperada de la base de datos (CORREGIDA)
 function renderizarCartaDesdeBD(carta) {
+    // 1. Normalización de Era y Rareza
     const eraClave = (carta.era || 'cyber').toString().toLowerCase().trim();
     const rarezaTexto = (carta.rareza || 'Común').toString().trim();
     const rarezaClase = `rareza-${rarezaTexto.toLowerCase()}`;
-    
+
+    // 2. Obtener paleta de colores según la Era
     const paleta = (typeof PALETAS_ERA !== 'undefined' && PALETAS_ERA[eraClave]) 
         ? PALETAS_ERA[eraClave] 
         : { fondo: '#1a0033', borde: '#00ff66', texto: '#ffffff', acento: '#00ff66' };
 
-    // Sanitizar y limpiar la imagen recibida de la base de datos
+    // 3. Procesamiento y saneamiento de la URL o Base64 de la imagen
     let imgSrc = '';
     if (carta.imagen_url) {
-        imgSrc = String(carta.imagen_url).trim().replace(/^['"{}]+|['"{}]+$/g, '');
+        // Limpiar la URL de caracteres no deseados
+        imgSrc = String(carta.imagen_url)
+            .trim()
+            .replace(/^['"{}]+|['"{}]+$/g, '')
+            .replace(/\s+/g, ''); // Eliminar espacios en blanco
+        
+        // Si es una URL relativa de Supabase Storage, convertir a URL completa
+        if (imgSrc.startsWith('/storage/v1/object/public/')) {
+            imgSrc = SUPABASE_URL + imgSrc;
+        }
     }
 
-    // Comprobación de validez de la fuente de la imagen
-    const tieneImagenValida = imgSrc.length > 10 && (
-        imgSrc.startsWith('http://') || 
-        imgSrc.startsWith('https://') || 
-        imgSrc.startsWith('data:image/')
-    );
+    // Comprobación de validez de imagen (HTTP/HTTPS o Data URI Base64)
+    const tieneImagenValida = imgSrc.length > 20 && 
+        (imgSrc.startsWith('http://') || 
+         imgSrc.startsWith('https://') || 
+         imgSrc.startsWith('data:image/'));
 
+    // 4. Renderizado del HTML con capas animadas y manejo de errores de imagen
     return `
         <div class="tarjeta-carta ${rarezaClase} era-${eraClave}" 
              data-id="${carta.id || ''}"
              data-era="${eraClave}" 
              data-rareza="${rarezaTexto}"
              style="background: ${paleta.fondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 12px ${paleta.acento}66; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
-            
             <!-- CAPAS DE EFECTOS MÓVILES Y HOLOGRÁFICOS -->
             <div class="fondo-movil-animado"></div>
             <div class="efecto-brillo-holografico"></div>
-
             <!-- ENCABEZADO -->
             <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px; position:relative; z-index:2;">
                 <span style="font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">#${carta.id || '?'} ${carta.nombre || 'Sin nombre'}</span>
                 <span class="badge-rareza" style="color:${paleta.acento}; font-weight:bold;">${rarezaTexto}</span>
             </div>
-
             <!-- CONTENEDOR VISUAL DE LA IMAGEN GUARDADA -->
-            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
-                ${tieneImagenValida 
-                    ? `<img src="${imgSrc}" 
-                            alt="${carta.nombre || 'Carta'}" 
-                            style="max-width:100%; max-height:100%; object-fit:contain; filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));" 
-                            onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';">
-                       <span style="font-size:36px; display:none;">${carta.simbolo || '👾'}</span>` 
-                    : `<span style="font-size:36px;">${carta.simbolo || '👾'}</span>`
-                }
-            </div>
-
-            <!-- DESCRIPCIÓN Y LORE -->
-            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; height:28px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000; margin-bottom:4px;">
-                "${carta.lore || 'Sin descripción disponible.'}"
-            </div>
-
-            <!-- PIE DE CARTA -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; font-weight:bold; position:relative; z-index:2; border-top:1px solid ${paleta.borde}33; padding-top:4px;">
-                <span>ATQ: ${carta.ataque || 0} | DEF: ${carta.defensa || 0}</span>
-                <span>${eraClave}</span>
-            </div>
-        </div>
-    `;
-}
+            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align
 
 // 8. GENERADOR CANVAS EN VIVO
 function escucharDibujoCanvas() {

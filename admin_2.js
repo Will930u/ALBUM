@@ -14,7 +14,8 @@ const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABAS
 // ESTADO GLOBAL
 const Estado = {
     modoRenderActual: 'canvas', // 'canvas' | 'ia'
-    canalRealtimeColeccion: null
+    canalRealtimeColeccion: null,
+    animacionCatalogoId: null
 };
 
 // PALETAS DE COLOR POR ERA / RAREZA
@@ -239,6 +240,11 @@ async function cargarCatalogoCartas() {
     const grid = DOM.get('grid-catalogo-admin');
     if (!grid) return;
 
+    if (Estado.animacionCatalogoId) {
+        cancelAnimationFrame(Estado.animacionCatalogoId);
+        Estado.animacionCatalogoId = null;
+    }
+
     grid.innerHTML = `<div style="color:#00ffcc; font-size:10px;">Cargando catálogo desde Supabase...</div>`;
 
     const { data: cartas, error } = await supabaseClient
@@ -258,13 +264,8 @@ async function cargarCatalogoCartas() {
 
     grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
 
-    // Dibuja canvas algorítmico si no es imagen fija
-    cartas.forEach(carta => {
-        const canvasEl = DOM.get(`canvas-cat-${carta.id}`);
-        if (canvasEl) {
-            dibujarMiniCanvasProcedural(canvasEl, carta);
-        }
-    });
+    // Iniciar bucle de animación para fondos en movimiento procedural
+    iniciarBucleAnimacionCatalogo(cartas);
 }
 
 function renderizarCartaDesdeBD(carta) {
@@ -301,7 +302,9 @@ function renderizarCartaDesdeBD(carta) {
     `;
 }
 
-function dibujarMiniCanvasProcedural(canvas, carta) {
+// DIBUJO ANIMADO CONTINUO DE FONDOS PROCEDURALES
+function animarFondoMiniCanvas(canvas, carta, tiempo) {
+    if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
     const rareza = (carta.rareza || 'Común').toLowerCase();
     const paleta = PALETAS_ERA[rareza] || PALETAS_ERA.cyber;
@@ -316,15 +319,69 @@ function dibujarMiniCanvasProcedural(canvas, carta) {
         }
     }
 
-    ctx.fillStyle = paleta.fondo;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // 1. Limpiar canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // 2. Fondo dinámico con degradado trigonométrico en movimiento
+    const t = tiempo * 0.002;
+    const gradiente = ctx.createLinearGradient(
+        (Math.sin(t) * 0.5 + 0.5) * width,
+        0,
+        (Math.cos(t) * 0.5 + 0.5) * width,
+        height
+    );
+    gradiente.addColorStop(0, paleta.fondo);
+    gradiente.addColorStop(0.5, paleta.acento + '33');
+    gradiente.addColorStop(1, '#000000');
+
+    ctx.fillStyle = gradiente;
+    ctx.fillRect(0, 0, width, height);
+
+    // 3. Rejilla algorítmicaCyberpunk en movimiento
+    ctx.strokeStyle = paleta.borde + '22';
+    ctx.lineWidth = 1;
+    const offsetGrid = (tiempo * 0.04) % 20;
+
+    for (let x = 0; x < width; x += 20) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+    for (let y = offsetGrid; y < height; y += 20) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+
+    // 4. Borde neón
     ctx.strokeStyle = paleta.borde;
     ctx.lineWidth = 2;
-    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+    ctx.strokeRect(3, 3, width - 6, height - 6);
+
+    // 5. Dibujar símbolo central con flotación suave
+    const offsetFlotacion = Math.sin(t * 2) * 3;
     ctx.font = "32px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(simbolo, canvas.width / 2, canvas.height / 2);
+    ctx.fillText(simbolo, width / 2, height / 2 + offsetFlotacion);
+}
+
+function iniciarBucleAnimacionCatalogo(cartas) {
+    function loop(tiempo) {
+        cartas.forEach(carta => {
+            const canvasEl = DOM.get(`canvas-cat-${carta.id}`);
+            if (canvasEl && canvasEl.style.display !== 'none') {
+                animarFondoMiniCanvas(canvasEl, carta, tiempo);
+            }
+        });
+        Estado.animacionCatalogoId = requestAnimationFrame(loop);
+    }
+    Estado.animacionCatalogoId = requestAnimationFrame(loop);
 }
 
 // 7. GENERADOR CANVAS EN VIVO

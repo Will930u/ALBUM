@@ -1,5 +1,5 @@
 // ==========================================
-// CONTROL DE PESTAÑAS (SPA)
+// CONTROL DE PESTAÑAS (SPA) - CORREGIDO
 // ==========================================
 function cambiarPestana(idTab) {
     // Desactivar todas las pestañas y botones
@@ -22,15 +22,14 @@ function cambiarPestana(idTab) {
         tabSeleccionada.style.display = 'block';
     }
 
-    // Resaltar botón activo según el evento o la función de origen
-    if (window.event && window.event.currentTarget) {
-        window.event.currentTarget.classList.add('activo');
+    // Resaltar botón de la pestaña activa de forma segura
+    const botonActivo = document.querySelector(`.tab-btn[onclick*="${idTab}"]`);
+    if (botonActivo) {
+        botonActivo.classList.add('activo');
     }
 }
 
-// Exponer globalmente
 window.cambiarPestana = cambiarPestana;
-
 // ==========================================
 // SELECTOR DE MODO DE RENDER
 // ==========================================
@@ -147,7 +146,7 @@ window.cargarMetricasServidor = cargarMetricasServidor;
 // INICIALIZACIÓN AL CARGAR LA PÁGINA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar pestaña por defecto
+    // Inicializar pestaña por defecto sin provocar error
     cambiarPestana('tab-crear');
     logEstado("Sistema e interfaz cargados correctamente.");
 });

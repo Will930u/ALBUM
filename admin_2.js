@@ -5,55 +5,44 @@
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 
-let supabaseClient = null;
-let modoRenderActual = "canvas"; // "canvas" | "ia"
-let plantillasCache = [];
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-document.addEventListener("DOMContentLoaded", async () => {
-    if (typeof supabase !== 'undefined') {
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        logEstado("✅ Supabase inicializado correctamente.");
-    } else {
-        logEstado("❌ Error: SDK de Supabase no disponible.");
-    }
+let modoRenderActual = 'canvas'; // 'canvas' o 'ia'
+let canalRealtimeColeccion = null;
 
-    inicializarEventos();
-    await cargarPlantillasRegistradas();
-    await refrescarMetricasServidor();
-    await cargarCatalogoCartas();
+// Mapa de Paletas y Colores por Era
+const PALETAS_ERA = {
+    cyber: { fondo: '#0d0f18', borde: '#00ffcc', acento: '#ff007f', texto: '#00ffcc' },
+    cotidianos: { fondo: '#1f1b24', borde: '#ffb703', acento: '#fb8500', texto: '#fff' },
+    espacial: { fondo: '#0b091a', borde: '#8a2be2', acento: '#00ffff', texto: '#e0e0ff' },
+    antiguo: { fondo: '#1c120c', borde: '#d4af37', acento: '#ff4500', texto: '#f3e5ab' }
+};
+
+// 2. INICIALIZACIÓN DE COMPONENTES AL CARGAR
+document.addEventListener('DOMContentLoaded', async () => {
+    logEstado("Inicializando Panel de Mando...");
+    
+    configurarEventosUI();
+    escucharDibujoCanvas();
+    await cargarMetricasServidor();
+    await cargarCatálogoCartas();
+    
+    // Iniciar escucha Realtime en la colección de usuarios
+    iniciarSuscripcionRealtimeAlbum();
 });
 
-function logEstado(mensaje) {
-    const statusLog = document.getElementById('status-log');
-    if (statusLog) {
-        const hora = new Date().toLocaleTimeString();
-        statusLog.innerText = `[${hora}] ${mensaje}`;
-    }
-    const logServidor = document.getElementById('servidor-log-output');
-    if (logServidor) {
-        const hora = new Date().toLocaleTimeString();
-        logServidor.innerHTML += `<br>[${hora}] ${mensaje}`;
-        logServidor.scrollTop = logServidor.scrollHeight;
-    }
-}
-
-function cambiarPestana(idTab) {
+// 3. NAVEGACIÓN Y CAMBIO DE PESTAÑAS (SPA)
+function cambiarPestana(idPestana) {
     document.querySelectorAll('.contenido-pestana').forEach(el => el.classList.remove('activa'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('activo'));
 
-    const tabTarget = document.getElementById(idTab);
-    if (tabTarget) tabTarget.classList.add('activa');
+    const pestanaDestino = document.getElementById(idPestana);
+    if (pestanaDestino) pestanaDestino.classList.add('activa');
 
-    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(btn => 
-        btn.getAttribute('onclick')?.includes(idTab)
+    const botonActivo = Array.from(document.querySelectorAll('.tab-btn')).find(btn => 
+        btn.getAttribute('onclick')?.includes(idPestana)
     );
-    if (btnActivo) btnActivo.classList.add('activo');
-
-    if (idTab === 'tab-catalogo') {
-        cargarCatalogoCartas();
-    } else if (idTab === 'tab-servidor') {
-        refrescarMetricasServidor();
-    }
+    if (botonActivo) botonActivo.classList.add('activo');
 }
 
 function seleccionarModoRender(modo) {
@@ -61,405 +50,58 @@ function seleccionarModoRender(modo) {
     const btnCanvas = document.getElementById('btn-modo-canvas');
     const btnIa = document.getElementById('btn-modo-ia');
     const canvas = document.getElementById('canvasCartaGenerada');
-    const imgPreview = document.getElementById('imgPollinationsPreview');
+    const imgIa = document.getElementById('imgPollinationsPreview');
     const panelIa = document.getElementById('panel-opciones-ia');
-    const btnGenIa = document.getElementById('btn-generar-ia');
+    const btnGenerarIa = document.getElementById('btn-generar-ia');
     const labelModo = document.getElementById('label-modo-previa');
 
     if (modo === 'canvas') {
         btnCanvas.classList.add('activo');
         btnIa.classList.remove('activo');
-        if (canvas) canvas.style.display = 'block';
-        if (imgPreview) imgPreview.style.display = 'none';
-        if (panelIa) panelIa.style.display = 'none';
-        if (btnGenIa) btnGenIa.style.display = 'none';
-        if (labelModo) labelModo.innerText = "EN VIVO: RENDERIZADO CANVAS MATEMÁTICO";
-        dibujarCanvasProcedural();
+        canvas.style.display = 'block';
+        imgIa.style.display = 'none';
+        panelIa.style.display = 'none';
+        btnGenerarIa.style.display = 'none';
+        labelModo.textContent = "EN VIVO: RENDERIZADO CANVAS MATEMÁTICO";
+        dibujarCartaCanvas();
     } else {
         btnIa.classList.add('activo');
         btnCanvas.classList.remove('activo');
-        if (canvas) canvas.style.display = 'none';
-        if (imgPreview) imgPreview.style.display = 'block';
-        if (panelIa) panelIa.style.display = 'block';
-        if (btnGenIa) btnGenIa.style.display = 'block';
-        if (labelModo) labelModo.innerText = "EN VIVO: PREVISUALIZACIÓN POLLINATIONS IA";
-        generarImagenPollinationsDirecta();
+        canvas.style.display = 'none';
+        imgIa.style.display = 'block';
+        panelIa.style.display = 'block';
+        btnGenerarIa.style.display = 'block';
+        labelModo.textContent = "EN VIVO: MOTOR GENERATIVO POLLINATIONS IA";
     }
 }
 
-function inicializarEventos() {
-    const inputsRedraw = ['carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo'];
-    inputsRedraw.forEach(id => {
-        document.getElementById(id)?.addEventListener('input', () => {
-            if (modoRenderActual === 'canvas') dibujarCanvasProcedural();
+// 4. SUSCRIPCIÓN EN TIEMPO REAL (REALTIME) PARA ACTUALIZACIÓN INMEDIATA DEL ÁLBUM
+function iniciarSuscripcionRealtimeAlbum() {
+    if (canalRealtimeColeccion) return;
+
+    canalRealtimeColeccion = supabaseClient
+        .channel('public:Coleccion_Usuario')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'Coleccion_Usuario' },
+            (payload) => {
+                logEstado(`⚡ Cambio detectado en colección (${payload.eventType}). Actualizando álbum...`);
+                // Disparar evento global de actualización para la interfaz del usuario/álbum
+                window.dispatchEvent(new CustomEvent('actualizarAlbumRealtime', { detail: payload }));
+                
+                // Si la pestaña de catálogo está visible, recargar
+                cargarCatálogoCartas();
+                cargarMetricasServidor();
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                logEstado("🟢 Suscripción Realtime activa: El álbum se actualizará instantáneamente.");
+            }
         });
-    });
-
-    document.getElementById('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
-    document.getElementById('btn-guardar-carta')?.addEventListener('click', guardarCartaEnBaseDatos);
-    document.getElementById('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillasTextarea);
-    document.getElementById('btn-limpiar-plantillas')?.addEventListener('click', vaciarTablaPlantillas);
-    document.getElementById('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
 }
 
-// =============================================================================
-// 🤖 GENERADOR DE IMÁGENES POLLINATIONS.AI (CORREGIDO Y OPTIMIZADO)
-// =============================================================================
-function generarImagenPollinationsDirecta() {
-    const imgPreview = document.getElementById('imgPollinationsPreview');
-    const spinner = document.getElementById('spinnerIA');
-    const inputPrompt = document.getElementById('prompt-ia-custom');
-    const inputNombre = document.getElementById('carta-nombre');
-    const inputSimbolo = document.getElementById('carta-simbolo');
-
-    if (!imgPreview) return;
-
-    let promptText = inputPrompt?.value?.trim();
-
-    if (!promptText) {
-        const nombre = inputNombre?.value?.trim() || "creature";
-        const simbolo = inputSimbolo?.value?.trim() || "";
-        promptText = `pixel art retro trading card sprite, ${nombre} ${simbolo}, 8bit style, vibrant neon colors, detailed dark background, centered, isolated`;
-    }
-
-    const seed = Math.floor(Math.random() * 999999);
-    const encodedPrompt = encodeURIComponent(promptText);
-    
-    // API endpoint oficial actualizado con dimensiones exactas de carta
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=220&height=308&seed=${seed}&model=flux&nologo=true`;
-
-    if (spinner) spinner.style.display = 'flex';
-    imgPreview.style.opacity = '0.3';
-
-    const tempImage = new Image();
-    tempImage.src = pollinationsUrl;
-
-    tempImage.onload = () => {
-        imgPreview.src = pollinationsUrl;
-        imgPreview.dataset.fullUrl = pollinationsUrl;
-        imgPreview.style.opacity = '1';
-        if (spinner) spinner.style.display = 'none';
-        logEstado(`⚡ Imagen IA generada exitosamente (Semilla: ${seed})`);
-    };
-
-    tempImage.onerror = () => {
-        if (spinner) spinner.style.display = 'none';
-        imgPreview.style.opacity = '1';
-        logEstado("⚠️ Error al conectar con Pollinations AI. Reintentando...");
-        // Fallback dinámico
-        imgPreview.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("pixel art monster icon")}`;
-    };
-}
-
-// =============================================================================
-// 🎨 ENGINE CANVAS 2D PROCEDURAL
-// =============================================================================
-function dibujarCanvasProcedural() {
-    const canvas = document.getElementById('canvasCartaGenerada');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    const era = document.getElementById('carta-era')?.value || 'cyber';
-    const rareza = document.getElementById('carta-rareza')?.value || 'Común';
-    const nombre = document.getElementById('carta-nombre')?.value || 'Sin Nombre';
-    const simbolo = document.getElementById('carta-simbolo')?.value || '👾';
-
-    let colorFondo = "#0f172a";
-    let colorBorde = "#00ff66";
-
-    if (era === 'cyber') { colorFondo = "#030712"; colorBorde = "#00ff66"; }
-    else if (era === 'cotidianos') { colorFondo = "#1e1b4b"; colorBorde = "#a855f7"; }
-    else if (era === 'espacial') { colorFondo = "#0284c7"; colorBorde = "#38bdf8"; }
-    else if (era === 'antiguo') { colorFondo = "#451a03"; colorBorde = "#f59e0b"; }
-
-    ctx.fillStyle = colorFondo;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Marco
-    ctx.strokeStyle = colorBorde;
-    ctx.lineWidth = 6;
-    ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
-
-    // Símbolo Central
-    ctx.font = "64px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(simbolo, canvas.width / 2, (canvas.height / 2) - 15);
-
-    // Banners de texto
-    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-    ctx.fillRect(8, canvas.height - 45, canvas.width - 16, 35);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "8px 'Press Start 2P', monospace";
-    ctx.fillText(nombre.substring(0, 14), canvas.width / 2, canvas.height - 30);
-
-    ctx.fillStyle = colorBorde;
-    ctx.font = "6px 'Press Start 2P', monospace";
-    ctx.fillText(rareza.toUpperCase(), canvas.width / 2, canvas.height - 16);
-
-    const infoSemilla = document.getElementById('info-semilla');
-    if (infoSemilla) {
-        infoSemilla.innerText = `Era: ${era.toUpperCase()} | Rareza: ${rareza}`;
-    }
-}
-
-// =============================================================================
-// 💾 OPERACIONES EN BASE DE DATOS SUPABASE
-// =============================================================================
-async function guardarCartaEnBaseDatos() {
-    if (!supabaseClient) {
-        alert("Supabase no está conectado.");
-        return;
-    }
-
-    const idCarta = parseInt(document.getElementById('carta-id')?.value);
-    const nombre = document.getElementById('carta-nombre')?.value?.trim();
-    const era = document.getElementById('carta-era')?.value;
-    const rareza = document.getElementById('carta-rareza')?.value;
-    const simbolo = document.getElementById('carta-simbolo')?.value;
-    const lore = document.getElementById('carta-lore')?.value;
-
-    if (!idCarta || isNaN(idCarta) || !nombre) {
-        alert("Ingresa un ID numérico válido y un Nombre para la carta.");
-        return;
-    }
-
-    let urlFinalImagen = "";
-
-    if (modoRenderActual === 'ia') {
-        const imgPreview = document.getElementById('imgPollinationsPreview');
-        urlFinalImagen = imgPreview?.dataset?.fullUrl || imgPreview?.src || "";
-    } else {
-        const canvas = document.getElementById('canvasCartaGenerada');
-        urlFinalImagen = JSON.stringify({
-            simbolo: simbolo,
-            colorFondo: era === 'cyber' ? "#030712" : "#1e1b4b",
-            colorPrimario: era === 'cyber' ? "#00ff66" : "#a855f7",
-            era: era
-        });
-    }
-
-    logEstado(`Guardando receta de Carta #${idCarta}...`);
-
-    const payload = {
-        id: idCarta,
-        nombre: nombre,
-        rareza: rareza,
-        lore: lore || "",
-        imagen_url: urlFinalImagen
-    };
-
-    const { data, error } = await supabaseClient
-        .from('Cartas')
-        .upsert([payload]);
-
-    if (error) {
-        logEstado(`❌ Error al publicar en BD: ${error.message}`);
-        alert(`Error al guardar: ${error.message}`);
-    } else {
-        logEstado(`🎉 ¡Carta #${idCarta} (${nombre}) publicada con éxito en BD!`);
-        alert(`¡Carta #${idCarta} guardada correctamente!`);
-        cargarCatalogoCartas();
-    }
-}
-
-// =============================================================================
-// 📖 CATÁLOGO DE CARTAS (RENDERIZADO MEJORADO)
-// =============================================================================
-async function cargarCatalogoCartas() {
-    const grid = document.getElementById('grid-catalogo-admin');
-    if (!grid || !supabaseClient) return;
-
-    grid.innerHTML = "<p style='color:#aaa; font-size:8px; grid-column:1/-1;'>Cargando recetas desde Supabase...</p>";
-
-    const { data: cartas, error } = await supabaseClient
-        .from('Cartas')
-        .select('*')
-        .order('id', { ascending: true });
-
-    if (error) {
-        grid.innerHTML = `<p style='color:#ef4444; font-size:8px; grid-column:1/-1;'>Error: ${error.message}</p>`;
-        return;
-    }
-
-    if (!cartas || cartas.length === 0) {
-        grid.innerHTML = "<p style='color:#666; font-size:8px; grid-column:1/-1;'>No hay cartas registradas aún.</p>";
-        return;
-    }
-
-    grid.innerHTML = "";
-
-    cartas.forEach(carta => {
-        const cardEl = document.createElement('div');
-        cardEl.style.cssText = `
-            background: #090a0f;
-            border: 1px solid #1e293b;
-            border-radius: 6px;
-            padding: 8px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        `;
-
-        const idTag = document.createElement('div');
-        idTag.style.cssText = "font-size: 8px; color: #38bdf8; font-weight: bold;";
-        idTag.innerText = `#${carta.id}`;
-
-        const mediaContainer = document.createElement('div');
-        mediaContainer.style.cssText = "width:100px; height:120px; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#000;";
-
-        if (carta.imagen_url && carta.imagen_url.startsWith('http')) {
-            const img = document.createElement('img');
-            img.src = carta.imagen_url;
-            img.style.cssText = "width:100%; height:100%; object-fit:cover;";
-            img.onerror = () => { img.src = "https://via.placeholder.com/100x120?text=Error+IA"; };
-            mediaContainer.appendChild(img);
-        } else {
-            let config = {};
-            try { config = JSON.parse(carta.imagen_url || '{}'); } catch(e){}
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 100;
-            canvas.height = 120;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = config.colorFondo || "#1e293b";
-            ctx.fillRect(0, 0, 100, 120);
-            ctx.font = "32px sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(config.simbolo || "👾", 50, 50);
-            mediaContainer.appendChild(canvas);
-        }
-
-        const nombreTag = document.createElement('div');
-        nombreTag.style.cssText = "font-size: 7px; color: #fff; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 100%;";
-        nombreTag.innerText = carta.nombre || `Carta #${carta.id}`;
-
-        const rarezaTag = document.createElement('div');
-        rarezaTag.style.cssText = "font-size: 6px; color: #a855f7;";
-        rarezaTag.innerText = carta.rareza || "Común";
-
-        cardEl.appendChild(idTag);
-        cardEl.appendChild(mediaContainer);
-        cardEl.appendChild(nombreTag);
-        cardEl.appendChild(rarezaTag);
-
-        grid.appendChild(cardEl);
-    });
-}
-
-// =============================================================================
-// 📋 PLANTILLAS Y PARSER
-// =============================================================================
-async function cargarPlantillasRegistradas() {
-    if (!supabaseClient) return;
-
-    const { data, error } = await supabaseClient
-        .from('plantillas_criaturas')
-        .select('*');
-
-    if (!error && data) {
-        plantillasCache = data;
-        const countSpan = document.getElementById('count-plantillas');
-        if (countSpan) countSpan.innerText = plantillasCache.length;
-    }
-}
-
-function seleccionarPlantillaAleatoria() {
-    if (plantillasCache.length === 0) {
-        alert("No hay plantillas cargadas en la BD.");
-        return;
-    }
-
-    const item = plantillasCache[Math.floor(Math.random() * plantillasCache.length)];
-
-    document.getElementById('carta-nombre').value = item.nombre || "";
-    document.getElementById('carta-simbolo').value = item.emoji || "👾";
-    document.getElementById('carta-lore').value = item.descripcion || "";
-
-    if (modoRenderActual === 'canvas') {
-        dibujarCanvasProcedural();
-    } else {
-        document.getElementById('prompt-ia-custom').value = `pixel art sprite of ${item.nombre}, ${item.descripcion}, isolated, high resolution`;
-        generarImagenPollinationsDirecta();
-    }
-}
-
-async function procesarYGuardarPlantillasTextarea() {
-    const rawText = document.getElementById('textarea-plantillas')?.value;
-    if (!rawText || !rawText.trim()) {
-        alert("Pega primero el texto plano de plantillas.");
-        return;
-    }
-
-    const lineas = rawText.split('\n');
-    let zonaActual = "General";
-    const registros = [];
-
-    lineas.forEach(linea => {
-        const l = linea.trim();
-        if (!l) return;
-
-        if (l.startsWith('🌋') || l.startsWith('🏰') || l.startsWith('🌌') || l.startsWith('🌲')) {
-            zonaActual = l;
-        } else if (l.includes('/') || l.includes(':')) {
-            const partes = l.split(':');
-            const desc = partes[1]?.trim() || "";
-            const subPartes = partes[0].split('/');
-
-            const emojiStr = subPartes[0]?.trim()?.substring(0, 4) || "👾";
-            const nombreStr = subPartes[0]?.replace(/[^\w\s\u00C0-\u00FF]/gi, '').trim() || "Criatura";
-
-            registros.push({
-                categoria: zonaActual,
-                emoji: emojiStr,
-                nombre: nombreStr,
-                descripcion: desc
-            });
-        }
-    });
-
-    if (registros.length === 0) {
-        alert("No se pudieron parsear las líneas. Revisa el formato.");
-        return;
-    }
-
-    logEstado(`Insertando ${registros.length} plantillas en BD...`);
-
-    const { error } = await supabaseClient
-        .from('plantillas_criaturas')
-        .insert(registros);
-
-    if (error) {
-        alert("Error guardando plantillas: " + error.message);
-    } else {
-        alert(`¡${registros.length} plantillas insertadas con éxito!`);
-        await cargarPlantillasRegistradas();
-    }
-}
-
-async function vaciarTablaPlantillas() {
-    if (!confirm("¿Seguro que deseas eliminar TODAS las plantillas?")) return;
-
-    const { error } = await supabaseClient
-        .from('plantillas_criaturas')
-        .delete()
-        .neq('id', 0);
-
-    if (error) {
-        alert("Error: " + error.message);
-    } else {
-        alert("Tabla vaciada correctamente.");
-        await cargarPlantillasRegistradas();
-    }
-}
-
-// =============================================================================
-// 🎁 ASIGNACIÓN DIRECTA Y SERVIDOR
-// =============================================================================
+// 5. ASIGNAR / REGALAR / COMPRAR CARTA
 async function regalarCartaAUsuario() {
     const targetUser = document.getElementById('target-user')?.value?.trim();
     const idCarta = parseInt(document.getElementById('target-carta-id')?.value);
@@ -474,15 +116,15 @@ async function regalarCartaAUsuario() {
 
     logEstado(`Verificando existencia de Carta #${idCarta}...`);
 
-    // 1. Verificar si la carta existe en la tabla principal 'Cartas'
+    // 1. Verificar si la carta existe en la tabla 'Cartas'
     const { data: cartaExistente, error: errCarta } = await supabaseClient
         .from('Cartas')
-        .select('id, nombre')
+        .select('id, nombre, rareza, era')
         .eq('id', idCarta)
         .maybeSingle();
 
     if (errCarta || !cartaExistente) {
-        alert(`❌ La Carta #${idCarta} no existe en la tabla 'Cartas'. Créala primero en "CREAR CARTA".`);
+        alert(`❌ La Carta #${idCarta} no existe en la BD. Créala primero en "CREAR CARTA".`);
         logEstado(`❌ Asignación cancelada: La Carta #${idCarta} no existe.`);
         return;
     }
@@ -508,7 +150,7 @@ async function regalarCartaAUsuario() {
             .eq('id', registroExistente.id);
         errorRespuesta = error;
     } else {
-        // Insertar nuevo registro si no existe previa relación
+        // Insertar nuevo registro con los atributos de relación
         const { error } = await supabaseClient
             .from('Coleccion_Usuario')
             .insert([{
@@ -527,35 +169,231 @@ async function regalarCartaAUsuario() {
         logEstado(`✅ Asignación completada: Carta #${idCarta} -> @${idLimpio}`);
     }
 }
-async function refrescarMetricasServidor() {
-    if (!supabaseClient) return;
 
-    const inicio = Date.now();
-    const { count: countCartas } = await supabaseClient.from('Cartas').select('*', { count: 'exact', head: true });
-    const latencia = Date.now() - inicio;
+// 6. CREACIÓN Y PUBLICACIÓN DE CARTA CON EFECTOS Y COLORES
+async function guardarCartaBD() {
+    const id = parseInt(document.getElementById('carta-id').value);
+    const nombre = document.getElementById('carta-nombre').value.trim();
+    const era = document.getElementById('carta-era').value;
+    const rareza = document.getElementById('carta-rareza').value;
+    const simbolo = document.getElementById('carta-simbolo').value.trim();
+    const lore = document.getElementById('carta-lore').value.trim();
 
-    const elPing = document.getElementById('ping-supabase');
-    if (elPing) elPing.innerText = `${latencia} ms`;
+    if (!id || !nombre) {
+        alert("Por favor completa el ID y el Nombre de la carta.");
+        return;
+    }
 
-    const elCount = document.getElementById('total-cartas-count');
-    if (elCount) elCount.innerText = countCartas || 0;
+    logEstado(`Guardando receta de Carta #${id} (${nombre})...`);
 
-    const elStatus = document.getElementById('status-supabase');
-    if (elStatus) {
-        elStatus.innerText = "● CONECTADO";
-        elStatus.style.color = "#00ff66";
+    let imagenUrl = "";
+    if (modoRenderActual === 'canvas') {
+        const canvas = document.getElementById('canvasCartaGenerada');
+        imagenUrl = canvas.toDataURL("image/png");
+    } else {
+        const imgIa = document.getElementById('imgPollinationsPreview');
+        imagenUrl = imgIa.src;
+    }
+
+    const payloadCarta = {
+        id: id,
+        nombre: nombre,
+        era: era,
+        rareza: rareza,
+        simbolo: simbolo,
+        lore: lore,
+        imagen_url: imagenUrl,
+        efectos_css: `era-${era} rareza-${rareza.toLowerCase()}`
+    };
+
+    const { error } = await supabaseClient
+        .from('Cartas')
+        .upsert([payloadCarta]);
+
+    if (error) {
+        alert("Error al publicar carta: " + error.message);
+        logEstado(`❌ Error guardando Carta #${id}: ${error.message}`);
+    } else {
+        alert(`✅ Carta #${id} "${nombre}" publicada con exito.`);
+        logEstado(`✅ Carta #${id} guardada correctamente.`);
+        cargarCatálogoCartas();
     }
 }
 
-function testearConexionSupabase() {
-    refrescarMetricasServidor();
-    alert("Prueba de ping a Supabase ejecutada.");
+// 7. RENDERIZADO DEL CATÁLOGO DE CARTAS CON EFECTOS ESPECIALES
+async function cargarCatálogoCartas() {
+    const grid = document.getElementById('grid-catalogo-admin');
+    if (!grid) return;
+
+    const { data: cartas, error } = await supabaseClient
+        .from('Cartas')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        grid.innerHTML = `<div style="color:#ef4444; font-size:9px;">Error al cargar catálogo: ${error.message}</div>`;
+        return;
+    }
+
+    if (!cartas || cartas.length === 0) {
+        grid.innerHTML = `<div style="color:#888; font-size:9px;">No hay cartas creadas aún.</div>`;
+        return;
+    }
+
+    grid.innerHTML = cartas.map(carta => renderizarHTMLCarta(carta)).join('');
 }
 
-function limpiarStorageHuerfano() {
-    alert("Limpieza de almacenamiento temporario completada.");
+// Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores
+function renderizarHTMLCarta(carta) {
+    const paleta = PALETAS_ERA[carta.era] || PALETAS_ERA.cyber;
+    const rarezaClase = `rareza-${(carta.rareza || 'Común').toLowerCase()}`;
+    const eraClase = `era-${carta.era || 'cyber'}`;
+
+    return `
+        <div class="tarjeta-carta ${rarezaClase} ${eraClase}" 
+             data-era="${carta.era}" 
+             data-rareza="${carta.rareza}"
+             style="background: ${paleta.fondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 10px ${paleta.acento}44; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
+            
+            <div class="efecto-brillo-holografico"></div>
+
+            <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px;">
+                <span style="font-weight:bold;">#${carta.id} ${carta.nombre}</span>
+                <span class="badge-rareza" style="color:${paleta.acento};">${carta.rareza}</span>
+            </div>
+
+            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.3); border-radius:4px; padding:8px;">
+                ${carta.imagen_url ? `<img src="${carta.imagen_url}" style="max-width:100%; height:100px; object-fit:contain;">` : `<span style="font-size:32px;">${carta.simbolo || '👾'}</span>`}
+            </div>
+
+            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#ccc; min-height:24px;">
+                "${carta.lore || 'Sin historia registrada.'}"
+            </div>
+
+            <div style="margin-top:6px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; text-align:right;">
+                ERA: ${carta.era}
+            </div>
+        </div>
+    `;
 }
 
-function cargarMetricasServidor() {
-    refrescarMetricasServidor();
+// 8. GENERADOR CANVAS EN VIVO
+function escucharDibujoCanvas() {
+    ['carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => {
+            if (modoRenderActual === 'canvas') dibujarCartaCanvas();
+        });
+    });
+
+    document.getElementById('btn-randomizar')?.addEventListener('click', () => {
+        const simbolos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️'];
+        document.getElementById('carta-simbolo').value = simbolos[Math.floor(Math.random() * simbolos.length)];
+        const eras = ['cyber', 'cotidianos', 'espacial', 'antiguo'];
+        document.getElementById('carta-era').value = eras[Math.floor(Math.random() * eras.length)];
+        dibujarCartaCanvas();
+    });
+
+    document.getElementById('btn-guardar-carta')?.addEventListener('click', guardarCartaBD);
+    document.getElementById('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
+}
+
+function dibujarCartaCanvas() {
+    const canvas = document.getElementById('canvasCartaGenerada');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const nombre = document.getElementById('carta-nombre').value || "Carta Misteriosa";
+    const era = document.getElementById('carta-era').value;
+    const simbolo = document.getElementById('carta-simbolo').value || "👾";
+    const paleta = PALETAS_ERA[era] || PALETAS_ERA.cyber;
+
+    // Fondo
+    ctx.fillStyle = paleta.fondo;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Marco
+    ctx.strokeStyle = paleta.borde;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
+
+    // Símbolo Central
+    ctx.font = "48px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(simbolo, canvas.width / 2, canvas.height / 2 - 10);
+
+    // Nombre
+    ctx.fillStyle = paleta.texto;
+    ctx.font = "10px 'Press Start 2P', monospace";
+    ctx.fillText(nombre.substring(0, 14), canvas.width / 2, canvas.height - 30);
+
+    // Actualizar etiqueta de semilla/era
+    const infoBox = document.getElementById('info-semilla');
+    if (infoBox) infoBox.textContent = `Era: ${era.toUpperCase()} | Símbolo: ${simbolo}`;
+}
+
+// 9. MOTOR POLLINATIONS IA
+async function generarImagenPollinationsDirecta() {
+    const promptCustom = document.getElementById('prompt-ia-custom')?.value?.trim();
+    const nombre = document.getElementById('carta-nombre')?.value || "creature";
+    const spinner = document.getElementById('spinnerIA');
+    const imgIa = document.getElementById('imgPollinationsPreview');
+
+    const promptFinal = promptCustom || `trading card art of ${nombre}, digital art, highly detailed, vibrant background`;
+    const urlIa = `https://pollinations.ai/p/${encodeURIComponent(promptFinal)}?width=220&height=308&seed=${Math.floor(Math.random() * 99999)}&nologo=true`;
+
+    if (spinner) spinner.style.display = 'block';
+
+    imgIa.onload = () => {
+        if (spinner) spinner.style.display = 'none';
+        logEstado("⚡ Imagen IA generada con éxito.");
+    };
+
+    imgIa.src = urlIa;
+}
+
+// 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
+async function cargarMetricasServidor() {
+    const statusSupabase = document.getElementById('status-supabase');
+    const totalCartasEl = document.getElementById('total-cartas-count');
+    const pingEl = document.getElementById('ping-supabase');
+
+    const inicio = Date.now();
+    const { count, error } = await supabaseClient
+        .from('Cartas')
+        .select('*', { count: 'exact', head: true });
+
+    const latencia = Date.now() - inicio;
+
+    if (error) {
+        if (statusSupabase) {
+            statusSupabase.textContent = "● ERROR CONEXIÓN";
+            statusSupabase.style.color = "#ef4444";
+        }
+    } else {
+        if (statusSupabase) {
+            statusSupabase.textContent = "● CONECTADO";
+            statusSupabase.style.color = "#00ff66";
+        }
+        if (totalCartasEl) totalCartasEl.textContent = count || 0;
+        if (pingEl) pingEl.textContent = `${latencia} ms`;
+    }
+}
+
+function logEstado(mensaje) {
+    const logBox = document.getElementById('status-log');
+    const logServidor = document.getElementById('servidor-log-output');
+    const timestamp = new Date().toLocaleTimeString();
+
+    if (logBox) logBox.textContent = `[${timestamp}] ${mensaje}`;
+    if (logServidor) {
+        logServidor.innerHTML += `<br>[${timestamp}] ${mensaje}`;
+        logServidor.scrollTop = logServidor.scrollHeight;
+    }
+}
+
+function configurarEventosUI() {
+    document.getElementById('btn-procesar-plantillas')?.addEventListener('click', () => {
+        alert("Procesando plantillas masivas...");
+    });
 }

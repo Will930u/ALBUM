@@ -1,7 +1,9 @@
 /* =============================================================================
- * 🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL
- * ============================================================================= */
-* {
+🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL
+============================================================================= */
+
+/* CORRECCIÓN 1: Faltaba el selector universal '*' */
+*, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -54,7 +56,7 @@ body {
     font-size: 8px;
     padding: 10px 2px;
     cursor: pointer;
-    transition: background 0.1s;
+    transition: background 0.1s, color 0.1s;
     text-align: center;
 }
 
@@ -98,8 +100,8 @@ label {
     line-height: 1.3;
 }
 
-input[type="text"], 
-input[type="number"], 
+input[type="text"],
+input[type="number"],
 textarea,
 select {
     width: 100%;
@@ -138,8 +140,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* =============================================================================
- * 👁️ VISTA PREVIA CANVAS ALGORÍTMICO Y POLLINATIONS IA
- * ============================================================================= */
+👁️ VISTA PREVIA CANVAS ALGORÍTMICO Y POLLINATIONS IA
+============================================================================= */
 .contenedor-vista-previa-canvas {
     background-color: #050508;
     border: 2px dashed #00ff66;
@@ -233,130 +235,101 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* =============================================================================
- * 📖 CATÁLOGO DE RECETAS Y CARTA REGISTRADAS
- * ============================================================================= */
-.grid-cartas-admin {
+ CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (SINCRONIZADO CON ADMIN_2.JS)
+============================================================================= */
+
+/* CORRECCIÓN 2: Cambiado de .grid-cartas-admin a #grid-catalogo-admin */
+#grid-catalogo-admin {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
-    max-height: 400px;
+    max-height: 450px;
     overflow-y: auto;
-    padding-right: 5px;
+    padding-right: 8px;
+    margin-top: 15px;
 }
 
-.tarjeta-admin-item {
-    background-color: #000;
-    border: 2px solid #333;
-    border-radius: 6px;
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
+/* Estilo personalizado para la barra de desplazamiento (Scroll) */
+#grid-catalogo-admin::-webkit-scrollbar {
+    width: 6px;
 }
-
-.tarjeta-admin-item canvas,
-.tarjeta-admin-item img {
-    width: 100px;
-    height: 140px;
+#grid-catalogo-admin::-webkit-scrollbar-track {
+    background: #0a0a0c;
     border-radius: 4px;
-    border: 1px solid #222;
-    object-fit: cover;
+}
+#grid-catalogo-admin::-webkit-scrollbar-thumb {
+    background: #00ff66;
+    border-radius: 4px;
 }
 
-.info-admin-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    text-align: center;
+/* CORRECCIÓN 3: Cambiado de .tarjeta-admin-item a .tarjeta-carta */
+.tarjeta-carta {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.info-admin-card strong {
-    font-size: 7px;
-    color: #00ff66;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 110px;
+.tarjeta-carta:hover {
+    transform: translateY(-4px);
+    z-index: 10;
 }
 
-.info-admin-card span {
-    font-size: 6px;
-    color: #eab308;
-}
-
-.btn-mini-admin {
-    border: none;
-    padding: 4px;
-    font-size: 7px;
-    font-family: inherit;
-    cursor: pointer;
-    border-radius: 3px;
-    font-weight: bold;
-}
-
-.btn-mini-drop { background-color: #eab308; color: #000; }
-.btn-mini-del { background-color: #ef4444; color: #fff; width: 100%; margin-top: 4px; }
-
-/* ==========================================================================
-   ESTILOS Y ANIMACIONES DE FONDOS MÓVILES PARA CARTAS
-   ========================================================================== */
-
-/* Fondo dinámico en movimiento */
+/* CORRECCIÓN 4: Añadidas las clases de animación que genera el JS */
 .fondo-movil-animado {
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
-    animation: moverFondo 6s linear infinite;
-    pointer-events: none;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%);
+    background-size: 200% 200%;
+    animation: fondoMovil 4s ease-in-out infinite;
     z-index: 1;
+    pointer-events: none;
 }
 
-/* Efecto Holográfico de Brillo */
+@keyframes fondoMovil {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 .efecto-brillo-holografico {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(115deg, transparent 20%, rgba(0, 255, 204, 0.15) 40%, rgba(255, 0, 127, 0.15) 60%, transparent 80%);
-    background-size: 200% 200%;
-    animation: brilloHolograma 4s ease infinite;
-    pointer-events: none;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
     z-index: 1;
+    pointer-events: none;
 }
 
-/* Variaciones por Era */
-.era-cyber {
-    background: radial-gradient(circle, #1a0033 0%, #0d0f18 100%) !important;
+.tarjeta-carta:hover .efecto-brillo-holografico {
+    opacity: 1;
 }
 
-.era-espacial {
-    background: radial-gradient(circle, #150d2a 0%, #0b091a 100%) !important;
+.badge-rareza {
+    background: rgba(0,0,0,0.4);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.era-antiguo {
-    background: radial-gradient(circle, #2a180d 0%, #1c120c 100%) !important;
+/* =============================================================================
+📊 LOGS Y ESTADO DEL SERVIDOR
+============================================================================= */
+#status-log, #servidor-log-output {
+    font-size: 7px;
+    color: #00ff66;
+    background: #000;
+    border: 1px solid #333;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+    max-height: 100px;
+    overflow-y: auto;
+    line-height: 1.5;
 }
 
-.era-cotidianos {
-    background: radial-gradient(circle, #2b2218 0%, #1f1b24 100%) !important;
-}
-
-/* Animaciones @keyframes */
-@keyframes moverFondo {
-    0% { transform: translate(-30%, -30%) rotate(0deg); }
-    50% { transform: translate(10%, 10%) rotate(180deg); }
-    100% { transform: translate(-30%, -30%) rotate(360deg); }
-}
-
-@keyframes brilloHolograma {
-    0% { background-position: 0% 0%; }
-    50% { background-position: 100% 100%; }
-    100% { background-position: 0% 0%; }
+#servidor-log-output {
+    color: #94a3b8;
+    font-family: monospace;
 }

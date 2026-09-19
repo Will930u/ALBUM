@@ -1,445 +1,500 @@
-// CONFIGURACIÓN DE SUPABASE (Pega tu URL y CLAVE real aquí)
+// =============================================================================
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN UNIFICADA POR USERNAME)
+// =============================================================================
+
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
+const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbyi8o0jE_x_xY/exec"; // URL de tu Webhook GAS
 
-// INICIALIZACIÓN CLIENTE SUPABASE (Aquí cambiamos "supabase" por "db")
-let db = null;
-if (window.supabase && typeof window.supabase.createClient === 'function') {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient = null;
+const tg = window.Telegram?.WebApp;
+
+if (tg) {
+    try { 
+        tg.expand(); 
+        tg.ready();
+    } catch (e) {}
 }
 
-// ESTADO GLOBAL DEL EDITOR
-let modoRenderActual = 'canvas'; // 'canvas' | 'ia'
-let urlImagenIAGenerada = '';
+let idUsuarioTelegram = ""; 
+let nombreUsuarioTelegram = "Jugador";
 
-// ESQUEMAS DE COLOR POR ERA
-const PALETAS_ERA = {
-    cyber: { fondo: '#0f172a', borde: '#00ff66', texto: '#38bdf8', acento: '#f43f5e' },
-    cotidianos: { fondo: '#1c1917', borde: '#f59e0b', texto: '#fbbf24', acento: '#10b981' },
-    espacial: { fondo: '#090d16', borde: '#818cf8', texto: '#c084fc', acento: '#38bdf8' },
-    antiguo: { fondo: '#1a0f07', borde: '#d97706', texto: '#fef08a', acento: '#dc2626' }
-};
+let paginaActual = 1;
+const cartasPorPagina = 25;
+const totalPaginas = 80;
 
-// INICIALIZACIÓN AL CARGAR EL DOM
-document.addEventListener('DOMContentLoaded', () => {
-    logStatus("Cargando componentes del panel de administración...");
-    inicializarEventos();
-    renderizarCanvasProcedural();
-    testearConexionSupabase();
-});
+let inventarioUsuarioCache = new Map();
 
-function logStatus(msg) {
-    const el = document.getElementById('status-log');
-    if (el) el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    logServidor(msg);
-}
+// Rangos Oficiales de Premios
+const RANGOS_PREMIOS = [
+    { nivel: 1, inicio: 1, fin: 500, nombre: "1er Premio ($200 Tasa BCV)" },
+    { nivel: 2, inicio: 501, fin: 1000, nombre: "2do Premio ($200 Tasa BCV)" },
+    { nivel: 3, inicio: 1001, fin: 1500, nombre: "3er Premio ($200 Tasa BCV)" },
+    { nivel: 4, inicio: 1501, fin: 2000, nombre: "4to Premio ($200 Tasa BCV)" }
+];
 
-function logServidor(msg) {
-    const logBox = document.getElementById('servidor-log-output');
-    if (logBox) {
-        logBox.innerHTML += `<br>[${new Date().toLocaleTimeString()}] ${msg}`;
-        logBox.scrollTop = logBox.scrollHeight;
-    }
-}
-
-// CONTROL DE PESTAÑAS (SPA)
-function cambiarPestana(tabId) {
-    document.querySelectorAll('.contenido-pestana').forEach(el => el.classList.remove('activa'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('activo'));
-
-    const tabTarget = document.getElementById(tabId);
-    if (tabTarget) tabTarget.classList.add('activa');
-
-    const btnActivo = Array.from(document.querySelectorAll('.tab-btn')).find(
-        btn => btn.getAttribute('onclick')?.includes(tabId)
-    );
-    if (btnActivo) btnActivo.classList.add('activo');
-
-    if (tabId === 'tab-catalogo') cargarCatalogoBD();
-    if (tabId === 'tab-servidor') cargarMetricasServidor();
-    if (tabId === 'tab-plantillas') contarPlantillasBD();
-}
-
-// CAMBIO DE MODO DE RENDER
-function seleccionarModoRender(modo) {
-    modoRenderActual = modo;
-    const btnCanvas = document.getElementById('btn-modo-canvas');
-    const btnIA = document.getElementById('btn-modo-ia');
-    const labelModo = document.getElementById('label-modo-previa');
-    const panelIA = document.getElementById('panel-opciones-ia');
-    const btnGenIA = document.getElementById('btn-generar-ia');
-    
-    const canvas = document.getElementById('canvasCartaGenerada');
-    const imgPreview = document.getElementById('imgPollinationsPreview');
-
-    if (modo === 'canvas') {
-        btnCanvas?.classList.add('activo');
-        btnIA?.classList.remove('activo');
-        if (labelModo) labelModo.innerText = 'EN VIVO: RENDERIZADO CANVAS MATEMÁTICO';
-        if (panelIA) panelIA.style.display = 'none';
-        if (btnGenIA) btnGenIA.style.display = 'none';
-        
-        if (canvas) canvas.style.display = 'block';
-        if (imgPreview) imgPreview.style.display = 'none';
-        renderizarCanvasProcedural();
+document.addEventListener("DOMContentLoaded", async () => {
+    if (typeof supabase !== 'undefined') {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     } else {
-        btnIA?.classList.add('activo');
-        btnCanvas?.classList.remove('activo');
-        if (labelModo) labelModo.innerText = 'EN VIVO: MOTOR GENERATIVO POLLINATIONS IA';
-        if (panelIA) panelIA.style.display = 'block';
-        if (btnGenIA) btnGenIA.style.display = 'inline-block';
-        
-        if (canvas) canvas.style.display = 'none';
-        if (imgPreview) imgPreview.style.display = 'block';
+        console.error("❌ El SDK de Supabase no está cargado en el HTML.");
     }
-}
 
-// INICIALIZADOR DE EVENTOS DE ENTRADA
-function inicializarEventos() {
-    ['carta-id', 'carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo', 'carta-lore'].forEach(id => {
-        document.getElementById(id)?.addEventListener('input', () => {
-            if (modoRenderActual === 'canvas') renderizarCanvasProcedural();
-        });
+    inicializarUsuarioTelegram();
+    
+    const elAno = document.getElementById('ano-actual');
+    if (elAno) elAno.innerText = new Date().getFullYear();
+
+    await cargarInventarioInicial();
+    activarAlbumEnTiempoReal();
+
+    document.getElementById('btn-anterior')?.addEventListener('click', () => {
+        if (paginaActual > 1) { 
+            paginaActual--; 
+            renderizarLibro(paginaActual); 
+        }
     });
 
-    document.getElementById('btn-guardar-carta')?.addEventListener('click', publicarCartaBD);
-    document.getElementById('btn-procesar-plantillas')?.addEventListener('click', procesarPlantillasTexto);
-    document.getElementById('btn-limpiar-plantillas')?.addEventListener('click', vaciarPlantillasBD);
-    document.getElementById('btn-regalar-carta')?.addEventListener('click', regalarCartaUsuario);
-    document.getElementById('btn-randomizar')?.addEventListener('click', randomizarDesdePlantillas);
-}
-
-// RENDERIZADO CANVAS 2D
-function renderizarCanvasProcedural() {
-    const canvas = document.getElementById('canvasCartaGenerada');
-    if (!canvas || modoRenderActual !== 'canvas') return;
-    const ctx = canvas.getContext('2d');
-
-    const id = document.getElementById('carta-id')?.value || '1';
-    const nombre = document.getElementById('carta-nombre')?.value || 'Sin Nombre';
-    const era = document.getElementById('carta-era')?.value || 'cyber';
-    const rareza = document.getElementById('carta-rareza')?.value || 'Común';
-    const simbolo = document.getElementById('carta-simbolo')?.value || '👾';
-    const lore = document.getElementById('carta-lore')?.value || 'Sin descripción disponible.';
-
-    const col = PALETAS_ERA[era] || PALETAS_ERA.cyber;
-
-    // Fondo
-    ctx.fillStyle = col.fondo;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Borde Decorativo
-    ctx.strokeStyle = col.borde;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
-
-    // Cabecera: ID y Rareza
-    ctx.fillStyle = col.texto;
-    ctx.font = '8px "Press Start 2P", monospace';
-    ctx.fillText(`#${id}`, 14, 22);
-    
-    ctx.fillStyle = col.acento;
-    ctx.font = '7px "Press Start 2P", monospace';
-    ctx.fillText(rareza.toUpperCase(), canvas.width - 90, 22);
-
-    // Símbolo / Emoji Central
-    ctx.font = '50px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(simbolo, canvas.width / 2, 120);
-
-    // Nombre de la Carta
-    ctx.textAlign = 'center';
-    ctx.fillStyle = col.texto;
-    ctx.font = '9px "Press Start 2P", monospace';
-    ctx.fillText(nombre.substring(0, 18), canvas.width / 2, 180);
-
-    // Recuadro de Lore
-    ctx.fillStyle = '#00000088';
-    ctx.fillRect(14, 200, canvas.width - 28, 80);
-    ctx.strokeStyle = col.borde;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(14, 200, canvas.width - 28, 80);
-
-    // Texto del Lore
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#cccccc';
-    ctx.font = '6px "Press Start 2P", monospace';
-    wrapText(ctx, lore, 20, 215, canvas.width - 40, 10);
-
-    // Actualizar Leyenda de Semilla
-    const infoSemilla = document.getElementById('info-semilla');
-    if (infoSemilla) infoSemilla.innerText = `Semilla: #${id} | Era: ${era.toUpperCase()}`;
-}
-
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-    const words = text.split(' ');
-    let line = '';
-    for (let n = 0; n < words.length; n++) {
-        let testLine = line + words[n] + ' ';
-        let metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && n > 0) {
-            ctx.fillText(line, x, y);
-            line = words[n] + ' ';
-            y += lineHeight;
-        } else {
-            line = testLine;
+    document.getElementById('btn-siguiente')?.addEventListener('click', () => {
+        if (paginaActual < totalPaginas) { 
+            paginaActual++; 
+            renderizarLibro(paginaActual); 
         }
-    }
-    ctx.fillText(line, x, y);
-}
+    });
 
-// GENERACIÓN DE IMAGEN IA (POLLINATIONS)
-async function generarImagenPollinationsDirecta() {
-    const promptCustom = document.getElementById('prompt-ia-custom')?.value;
-    const nombre = document.getElementById('carta-nombre')?.value || 'creature';
-    const simbolo = document.getElementById('carta-simbolo')?.value || '';
-    
-    const spinner = document.getElementById('spinnerIA');
-    const imgPreview = document.getElementById('imgPollinationsPreview');
+    document.getElementById('modal-visor')?.addEventListener('click', () => {
+        const visor = document.getElementById('modal-visor');
+        if (visor) visor.style.display = 'none';
+    });
+});
 
-    const promptFinal = promptCustom || `trading card art of ${nombre} ${simbolo}, vibrant colors, detailed illustration, isolated background`;
-    const encodedPrompt = encodeURIComponent(promptFinal);
-    const seed = Math.floor(Math.random() * 999999);
-    
-    urlImagenIAGenerada = `https://pollinations.ai/p/${encodedPrompt}?width=220&height=308&seed=${seed}&nologo=true`;
+function inicializarUsuarioTelegram() {
+    const uName = document.getElementById('user-username');
+    const fName = document.getElementById('user-fullname');
+    const avatar = document.getElementById('user-avatar');
 
-    if (spinner) spinner.style.display = 'block';
-    if (imgPreview) {
-        imgPreview.style.display = 'block';
-        imgPreview.src = urlImagenIAGenerada;
-        imgPreview.onload = () => {
-            if (spinner) spinner.style.display = 'none';
-            logStatus("Imagen IA generada con éxito.");
-        };
-        imgPreview.onerror = () => {
-            if (spinner) spinner.style.display = 'none';
-            logStatus("Error al cargar la imagen desde Pollinations.AI");
-        };
-    }
-}
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        
+        idUsuarioTelegram = user.username 
+            ? user.username.replace(/^@/, '').trim().toLowerCase() 
+            : (user.id ? user.id.toString().trim() : "utrera930");
 
-// INTEGRACIÓN CON BASE DE DATOS (SUPABASE)
-async function publicarCartaBD() {
-    if (!db) return logStatus("Error: Base de datos no conectada.");
+        nombreUsuarioTelegram = `${user.first_name || ''} ${user.last_name || ''}`.trim() || "Jugador";
 
-    const cartaData = {
-        id: parseInt(document.getElementById('carta-id')?.value),
-        nombre: document.getElementById('carta-nombre')?.value,
-        era: document.getElementById('carta-era')?.value,
-        rareza: document.getElementById('carta-rareza')?.value,
-        simbolo: document.getElementById('carta-simbolo')?.value,
-        lore: document.getElementById('carta-lore')?.value,
-        modo_render: modoRenderActual,
-        imagen_url: modoRenderActual === 'ia' ? urlImagenIAGenerada : null,
-        created_at: new Date()
-    };
-
-    if (!cartaData.id || !cartaData.nombre) {
-        return logStatus("Atención: ID y Nombre son obligatorios.");
-    }
-
-    logStatus("Guardando receta en la base de datos...");
-    const { data, error } = await db.from('cartas_recetas').upsert([cartaData]);
-
-    if (error) {
-        logStatus(`Error al guardar: ${error.message}`);
+        if (uName) uName.innerText = `@${user.username || idUsuarioTelegram}`;
+        if (fName) fName.innerText = nombreUsuarioTelegram;
+        if (avatar && user.photo_url) avatar.src = user.photo_url;
     } else {
-        logStatus(`¡Carta #${cartaData.id} publicada exitosamente!`);
+        idUsuarioTelegram = "utrera930";
+        nombreUsuarioTelegram = "William Utrera";
+
+        if (uName) uName.innerText = `@${idUsuarioTelegram}`;
+        if (fName) fName.innerText = nombreUsuarioTelegram;
     }
 }
 
-async function procesarPlantillasTexto() {
-    if (!db) return logStatus("Error: Base de datos no conectada.");
-    const texto = document.getElementById('textarea-plantillas')?.value;
-    if (!texto) return logStatus("El campo de texto plano está vacío.");
+async function cargarInventarioInicial() {
+    try {
+        if (!supabaseClient || !idUsuarioTelegram) return;
 
-    const lineas = texto.split('\n');
-    let zonaActual = 'General';
-    let registros = [];
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+        
+        let { data: coleccion, error: errColeccion } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .select('*')
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`);
 
-    lineas.forEach(linea => {
-        linea = linea.trim();
-        if (!linea) return;
+        if (errColeccion) {
+            console.error("❌ Error leyendo Coleccion_Usuario:", errColeccion.message);
+            return;
+        }
 
-        if (linea.startsWith('🌋') || linea.startsWith('Zona') || !linea.includes(':')) {
-            zonaActual = linea;
-        } else {
-            const partes = linea.split(':');
-            const elementos = partes[0].split('/');
-            const descripcion = partes[1] || '';
+        inventarioUsuarioCache.clear();
 
-            elementos.forEach(el => {
-                const subPartes = el.trim().split(' ');
-                const emoji = subPartes[0];
-                const nombre = subPartes.slice(1).join(' ');
+        if (coleccion && coleccion.length > 0) {
+            const idsCartas = coleccion.map(item => Number(item.carta_id)).filter(id => !isNaN(id));
 
-                if (emoji && nombre) {
-                    registros.push({
-                        zona: zonaActual,
-                        emoji: emoji,
-                        nombre: nombre,
-                        descripcion: descripcion.trim()
-                    });
+            const { data: datosCartas, error: errCartas } = await supabaseClient
+                .from('Cartas')
+                .select('*')
+                .in('id', idsCartas);
+
+            if (errCartas) console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
+
+            const mapaCartas = new Map();
+            if (datosCartas) {
+                datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
+            }
+
+            coleccion.forEach(item => {
+                if (item.carta_id !== undefined && item.carta_id !== null) {
+                    const idCartaNum = Number(item.carta_id);
+                    const cantidadNum = Number(item.cantidad) || 1;
+                    const previo = inventarioUsuarioCache.get(idCartaNum);
+                    const infoCarta = mapaCartas.get(idCartaNum);
+                    
+                    if (previo) {
+                        previo.cantidad += cantidadNum;
+                    } else {
+                        inventarioUsuarioCache.set(idCartaNum, { 
+                            carta_id: idCartaNum, 
+                            cantidad: cantidadNum,
+                            datosCarta: infoCarta || { id: idCartaNum, nombre: `Carta #${idCartaNum}` }
+                        });
+                    }
                 }
             });
         }
-    });
 
-    if (registros.length === 0) return logStatus("No se pudieron parsear plantillas válidas.");
+        renderizarLibro(paginaActual);
+        
+        // Verificación de hitos de álbum completados y consulta de pagos
+        await verificarProgresoHitosPremios();
+        await consultarEstadoPremiosYComprobantes();
 
-    logStatus(`Insertando ${registros.length} plantillas...`);
-    const { error } = await db.from('plantillas_criaturas').insert(registros);
-
-    if (error) {
-        logStatus(`Error al insertar plantillas: ${error.message}`);
-    } else {
-        logStatus(`¡Se insertaron ${registros.length} plantillas con éxito!`);
-        contarPlantillasBD();
+    } catch (err) {
+        console.error("Excepción en cargarInventarioInicial:", err);
     }
 }
 
-async function vaciarPlantillasBD() {
-    if (!db) return logStatus("Error: Base de datos no conectada.");
-    if (!confirm("¿Está seguro de vaciar la tabla de plantillas?")) return;
+// =============================================================================
+// 🏆 SISTEMA DE REVISIÓN Y RECLAMO DE PREMIOS POR RANGOS DE ÁLBUM
+// =============================================================================
+async function verificarProgresoHitosPremios() {
+    if (!supabaseClient || inventarioUsuarioCache.size === 0) return;
 
-    const { error } = await db.from('plantillas_criaturas').delete().neq('id', 0);
-    if (error) logStatus(`Error: ${error.message}`);
-    else {
-        logStatus("Tabla de plantillas vaciada.");
-        contarPlantillasBD();
+    try {
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+        // 1. Obtener los premios que el usuario ya reclamó anteriormente
+        const { data: reclamados, error } = await supabaseClient
+            .from('premios_ganados')
+            .select('nivel_premio')
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`);
+
+        if (error) {
+            console.error("Error verificando premios reclamados:", error.message);
+            return;
+        }
+
+        const nivelesReclamados = new Set(reclamados ? reclamados.map(r => Number(r.nivel_premio)) : []);
+
+        // 2. Verificar cada rango de álbum
+        for (const rango of RANGOS_PREMIOS) {
+            if (nivelesReclamados.has(rango.nivel)) continue; // Si ya fue reclamado, saltar
+
+            let incompleto = false;
+            for (let id = rango.inicio; id <= rango.fin; id++) {
+                if (!inventarioUsuarioCache.has(id)) {
+                    incompleto = true;
+                    break;
+                }
+            }
+
+            // Si posee TODAS las cartas correlativas del rango (#1 al #500, etc.)
+            if (!incompleto) {
+                desplegarModalGanadorPremio(rango);
+                break; // Muestra un modal a la vez
+            }
+        }
+    } catch (e) {
+        console.error("Error evaluando hitos de premios:", e);
     }
 }
 
-async function contarPlantillasBD() {
-    if (!db) return;
-    const { count, error } = await db.from('plantillas_criaturas').select('*', { count: 'exact', head: true });
-    if (!error && document.getElementById('count-plantillas')) {
-        document.getElementById('count-plantillas').innerText = count || '0';
-    }
+function desplegarModalGanadorPremio(rango) {
+    const modalPremio = document.getElementById('modal-ganador-premio');
+    if (!modalPremio) return;
+
+    document.getElementById('premio-titulo-nivel').innerText = rango.nombre;
+    document.getElementById('premio-rango-cartas').innerText = `Rango Completado: Barajita #${rango.inicio} a la #${rango.fin}`;
+    document.getElementById('input-premio-nivel').value = rango.nivel;
+
+    modalPremio.style.display = 'flex';
 }
 
-async function randomizarDesdePlantillas() {
-    if (!db) return logStatus("Se requiere conexión a base de datos.");
-    const { data, error } = await db.from('plantillas_criaturas').select('*');
-    
-    if (error || !data || data.length === 0) {
-        return logStatus("No hay plantillas registradas para randomizar.");
-    }
+async function enviarSolicitudPremio() {
+    const nivel = document.getElementById('input-premio-nivel').value;
+    const cedula = document.getElementById('input-premio-cedula').value.trim();
+    const telefono = document.getElementById('input-premio-telefono').value.trim();
+    const banco = document.getElementById('input-premio-banco').value.trim();
+    const btnEnviar = document.getElementById('btn-enviar-premio');
 
-    const item = data[Math.floor(Math.random() * data.length)];
-    
-    document.getElementById('carta-nombre').value = item.nombre;
-    document.getElementById('carta-simbolo').value = item.emoji;
-    document.getElementById('carta-lore').value = item.descripcion;
-
-    if (modoRenderActual === 'canvas') renderizarCanvasProcedural();
-    logStatus(`Plantilla cargada: ${item.nombre}`);
-}
-
-async function regalarCartaUsuario() {
-    if (!db) return logStatus("Error: Base de datos no conectada.");
-    
-    const usuario = document.getElementById('target-user')?.value.replace('@', '');
-    const cartaId = parseInt(document.getElementById('target-carta-id')?.value);
-    const cantidad = parseInt(document.getElementById('target-cantidad')?.value) || 1;
-
-    if (!usuario || !cartaId) return logStatus("Especifique usuario e ID de carta.");
-
-    const { error } = await db.from('usuarios_coleccion').insert([{
-        username: usuario,
-        carta_id: cartaId,
-        cantidad: cantidad,
-        asignado_at: new Date()
-    }]);
-
-    if (error) logStatus(`Error al regalar carta: ${error.message}`);
-    else logStatus(`¡Éxito! Se asignaron ${cantidad}x Carta #${cartaId} a @${usuario}`);
-}
-
-async function cargarCatalogoBD() {
-    const grid = document.getElementById('grid-catalogo-admin');
-    if (!grid) return;
-
-    if (!db) {
-        grid.innerHTML = '<div style="color:#eab308; font-size:8px;">Base de datos desconectada. Configure SUPABASE_URL en admin_2.js.</div>';
+    if (!cedula || !telefono || !banco) {
+        alert("Por favor completa todos tus datos bancarios (Cédula, Teléfono y Banco).");
         return;
     }
 
-    grid.innerHTML = '<div style="color:#aaa; font-size:8px;">Cargando catálogo...</div>';
-    const { data, error } = await db.from('cartas_recetas').select('*').order('id', { ascending: true });
+    try {
+        btnEnviar.disabled = true;
+        btnEnviar.innerText = "PROCESANDO...";
 
-    if (error) {
-        grid.innerHTML = `<div style="color:#ef4444; font-size:8px;">Error: ${error.message}</div>`;
+        const payload = {
+            action: "claim_milestone_reward",
+            usuarioId: idUsuarioTelegram,
+            nivelPremio: nivel,
+            cedula: cedula,
+            telefono: telefono,
+            banco: banco
+        };
+
+        const res = await fetch(GAS_BACKEND_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            alert("¡Felicitaciones! Tu información de pago se ha enviado correctamente a Telegram. Procesaremos tu premio a la brevedad.");
+            document.getElementById('modal-ganador-premio').style.display = 'none';
+            await cargarInventarioInicial();
+        } else {
+            alert("Atención: " + data.message);
+        }
+    } catch (e) {
+        alert("Error de comunicación: " + e.toString());
+    } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.innerText = "ENVIAR Y RECLAMAR PREMIO";
+    }
+}
+
+// =============================================================================
+// 📜 CONSULTA DE COMPROBANTE DE PAGO DESDE LA MINIAPP
+// =============================================================================
+async function consultarEstadoPremiosYComprobantes() {
+    try {
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+        const { data: premios, error } = await supabaseClient
+            .from('premios_ganados')
+            .select('*')
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`)
+            .eq('estado', 'pagado');
+
+        if (error || !premios || premios.length === 0) return;
+
+        // Mostrar el último premio pagado si no ha sido visto o está disponible
+        const ultimoPagado = premios[premios.length - 1];
+        if (ultimoPagado && ultimoPagado.referencia_pago) {
+            mostrarComprobantePagoMiniApp(ultimoPagado);
+        }
+    } catch (e) {
+        console.error("Error consultando comprobantes de pago:", e);
+    }
+}
+
+function mostrarComprobantePagoMiniApp(datosPremio) {
+    const modalComprobante = document.getElementById('modal-comprobante-pago');
+    if (!modalComprobante) return;
+
+    const rInfo = RANGOS_PREMIOS.find(r => r.nivel === Number(datosPremio.nivel_premio));
+    const nombrePremio = rInfo ? rInfo.nombre : `Premio Nivel #${datosPremio.nivel_premio}`;
+
+    document.getElementById('comp-nombre-premio').innerText = nombrePremio;
+    document.getElementById('comp-monto-bs').innerText = `${datosPremio.monto_bs || '0.00'} Bs.`;
+    document.getElementById('comp-referencia').innerText = datosPremio.referencia_pago || 'N/A';
+    document.getElementById('comp-fecha').innerText = datosPremio.fecha_pago ? new Date(datosPremio.fecha_pago).toLocaleString() : 'Recientemente';
+
+    // Para evitar que sea invasivo cada vez que abra la app, se guarda un flag de visualización en localStorage
+    const vistoKey = `premio_visto_${datosPremio.id}_${datosPremio.referencia_pago}`;
+    if (!localStorage.getItem(vistoKey)) {
+        modalComprobante.style.display = 'flex';
+        localStorage.setItem(vistoKey, "true");
+    }
+}
+
+function irAPaginaDeCarta(idCarta) {
+    const idNum = Number(idCarta);
+    if (!isNaN(idNum) && idNum > 0) {
+        const paginaDestino = Math.ceil(idNum / cartasPorPagina);
+        paginaActual = Math.min(Math.max(paginaDestino, 1), totalPaginas);
+        renderizarLibro(paginaActual);
+    }
+}
+
+function renderizarLibro(pagina) {
+    const grillaCartas = document.getElementById('grilla-cartas');
+    if (!grillaCartas) return;
+
+    const inicioRango = (pagina - 1) * cartasPorPagina + 1;
+    const finRango = pagina * cartasPorPagina;
+
+    const elPagina = document.getElementById('indicador-pagina');
+    if (elPagina) elPagina.innerText = `PÁGINA ${pagina}/${totalPaginas}`;
+
+    const poseidasTotales = inventarioUsuarioCache.size;
+    const elProgreso = document.getElementById('contador-progreso');
+    if (elProgreso) elProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
+
+    grillaCartas.innerHTML = "";
+
+    for (let idCarta = inicioRango; idCarta <= finRango; idCarta++) {
+        const slot = document.createElement('div');
+        slot.className = 'miniatura-slot';
+
+        const itemPoseido = inventarioUsuarioCache.get(Number(idCarta));
+
+        if (itemPoseido) {
+            slot.classList.add('poseida');
+
+            dibujarBarajitaAlgoritmicaSlot(slot, itemPoseido.datosCarta, idCarta);
+
+            if (itemPoseido.cantidad > 1) {
+                const badge = document.createElement('span');
+                badge.className = 'badge-cantidad';
+                badge.textContent = `x${itemPoseido.cantidad}`;
+                slot.appendChild(badge);
+            }
+
+            slot.addEventListener('click', (e) => {
+                e.stopPropagation();
+                desplegarVisor(itemPoseido.datosCarta, idCarta, itemPoseido.cantidad);
+            });
+        } else {
+            slot.innerText = idCarta;
+        }
+
+        grillaCartas.appendChild(slot);
+    }
+}
+
+function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
+    let config = {};
+    try {
+        config = typeof datosCarta?.imagen_url === 'string' 
+            ? JSON.parse(datosCarta.imagen_url) 
+            : (datosCarta?.imagen_url || {});
+    } catch (e) {
+        config = {};
+    }
+
+    if (typeof datosCarta?.imagen_url === 'string' && datosCarta.imagen_url.startsWith('data:image')) {
+        const img = document.createElement('img');
+        img.src = datosCarta.imagen_url;
+        img.className = 'img-slot-carta';
+        contenedor.appendChild(img);
         return;
     }
 
-    if (!data || data.length === 0) {
-        grid.innerHTML = '<div style="color:#666; font-size:8px;">No hay cartas en la base de datos.</div>';
-        return;
-    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 120;
+    canvas.height = 160;
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.borderRadius = "4px";
 
-    grid.innerHTML = '';
-    data.forEach(c => {
-        const card = document.createElement('div');
-        card.style.cssText = "background:#111; border:1px solid #333; padding:8px; text-align:center; font-size:8px;";
-        card.innerHTML = `
-            <div style="color:#38bdf8; font-weight:bold;">#${c.id} - ${c.nombre}</div>
-            <div style="font-size:20px; margin:5px 0;">${c.simbolo || '👾'}</div>
-            <div style="color:#aaa;">${c.rareza} | ${c.era}</div>
-        `;
-        grid.appendChild(card);
-    });
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = config.fondoColor || config.colorFondo || "#1e293b";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = "38px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(config.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 10);
+
+    ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#64748b";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.fillRect(5, canvas.height - 28, canvas.width - 10, 22);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "6px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    const nombreVisual = datosCarta?.nombre || `CARTA #${idCarta}`;
+    ctx.fillText(nombreVisual.substring(0, 10), canvas.width / 2, canvas.height - 14);
+
+    contenedor.appendChild(canvas);
 }
 
-// CONTROL Y DIAGNÓSTICO DEL SERVIDOR
-async function testearConexionSupabase() {
-    if (!db) {
-        actualizarStatusSupabase(false, '--');
-        return;
-    }
+function desplegarVisor(datosCarta, idCarta, cantidad) {
+    const modalVisor = document.getElementById('modal-visor');
+    const contenidoFrontal = document.getElementById('contenido-carta-frontal');
+    if (!modalVisor || !contenidoFrontal) return;
 
-    const tInicial = Date.now();
-    const { error } = await db.from('cartas_recetas').select('id', { count: 'exact', head: true });
-    const ping = Date.now() - tInicial;
+    const nombre = datosCarta?.nombre || `CARTA #${idCarta}`;
+    const rareza = datosCarta?.rareza || 'Común';
+    const lore = datosCarta?.lore || 'Sin descripción disponible.';
 
-    if (error) {
-        actualizarStatusSupabase(false, '--');
-        logServidor(`Error de conexión: ${error.message}`);
-    } else {
-        actualizarStatusSupabase(true, ping);
-        logServidor(`Conexión exitosa. Latencia: ${ping}ms`);
-    }
+    let config = {};
+    try {
+        config = typeof datosCarta?.imagen_url === 'string' ? JSON.parse(datosCarta.imagen_url) : (datosCarta?.imagen_url || {});
+    } catch(e){}
+
+    const colorFondo = config.fondoColor || config.colorFondo || '#0f172a';
+    const colorMarco = config.marcoColor || config.colorPrimario || '#00ff66';
+    const simbolo = config.simbolo || '👾';
+
+    contenidoFrontal.innerHTML = `
+        <div style="text-align:center;">
+            <h3 style="font-size:10px; color:#ffcc00; margin-bottom:8px;">${nombre.toUpperCase()}</h3>
+            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${colorFondo}; border:3px solid ${colorMarco}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:70px; box-shadow:0 0 10px ${colorMarco};">
+                ${simbolo}
+            </div>
+            <p style="font-size:7px; color:#38bdf8; margin-bottom:4px;">Rareza: ${rareza} | Copias: ${cantidad}</p>
+            <p style="font-size:6px; color:#aaa; margin-bottom:8px;">${lore}</p>
+            <p style="font-size:7px; color:#555;">#${String(idCarta).padStart(4, '0')}</p>
+        </div>
+    `;
+
+    modalVisor.style.display = 'flex';
 }
 
-function actualizarStatusSupabase(conectado, ping) {
-    const elStatus = document.getElementById('status-supabase');
-    const elPing = document.getElementById('ping-supabase');
+function activarAlbumEnTiempoReal() {
+    if (!supabaseClient) return;
 
-    if (elStatus) {
-        elStatus.innerText = conectado ? '● CONECTADO' : '● DESCONECTADO';
-        elStatus.style.color = conectado ? '#00ff66' : '#ef4444';
-    }
-    if (elPing) elPing.innerText = `${ping} ms`;
+    supabaseClient
+        .channel(`realtime-album-global`)
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'Coleccion_Usuario'
+            },
+            async (payload) => {
+                const nuevoRegistro = payload.new;
+                if (!nuevoRegistro) return;
+
+                const uId = String(nuevoRegistro.usuario_id || "").toLowerCase();
+                const usuarioLimpio = idUsuarioTelegram ? idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase() : "";
+
+                const esMio = uId === usuarioLimpio || uId === `@${usuarioLimpio}`;
+
+                if (esMio) {
+                    mostrarNotificacionCartaRecibida(nuevoRegistro);
+                    await cargarInventarioInicial();
+                    if (nuevoRegistro.carta_id) {
+                        irAPaginaDeCarta(nuevoRegistro.carta_id);
+                    }
+                }
+            }
+        )
+        .subscribe();
 }
 
-async function cargarMetricasServidor() {
-    if (!db) return;
+function mostrarNotificacionCartaRecibida(datosNuevos) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-notificacion';
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #00ff66;
+        color: #000;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(0,255,102,0.4);
+        z-index: 9999;
+    `;
+    toast.innerText = `🎉 ¡Has recibido una nueva carta! (ID: #${datosNuevos?.carta_id || ''})`;
+    document.body.appendChild(toast);
 
-    // Total Cartas
-    const resCartas = await db.from('cartas_recetas').select('*', { count: 'exact', head: true });
-    document.getElementById('total-cartas-count').innerText = resCartas.count || '0';
-
-    // Total Usuarios
-    const resUsers = await db.from('usuarios_coleccion').select('username');
-    const usuariosUnicos = new Set(resUsers.data?.map(u => u.username)).size;
-    document.getElementById('kpi-usuarios-totales').innerText = usuariosUnicos || '0';
-
-    logServidor("Métricas del servidor actualizadas.");
-}
-
-async function limpiarStorageHuerfano() {
-    logServidor("Limpiando temporales y storage huérfano...");
-    setTimeout(() => {
-        logServidor("Limpieza completada exitosamente.");
-    }, 1000);
+    setTimeout(() => toast.remove(), 4000);
 }

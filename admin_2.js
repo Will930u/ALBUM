@@ -303,7 +303,7 @@ function renderizarCartaDesdeBD(carta) {
     `;
 }
 
-// DIBUJO ANIMADO CONTINUO DE FONDOS PROCEDURALES
+// DIBUJO ANIMADO CONTINUO DE FONDOS PROCEDURALES (CATÁLOGO)
 function animarFondoMiniCanvas(canvas, carta, tiempo) {
     if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
@@ -315,9 +315,7 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
         try {
             const parsed = JSON.parse(carta.imagen_url);
             if (parsed.simbolo) simbolo = parsed.simbolo;
-        } catch (e) {
-            // Manejo silencioso
-        }
+        } catch (e) {}
     }
 
     const width = canvas.width;
@@ -326,7 +324,7 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     // 1. Limpiar canvas
     ctx.clearRect(0, 0, width, height);
 
-    // 2. Fondo dinámico con degradado trigonométrico en movimiento
+    // 2. Fondo dinámico
     const t = tiempo * 0.002;
     const gradiente = ctx.createLinearGradient(
         (Math.sin(t) * 0.5 + 0.5) * width,
@@ -341,23 +339,18 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     ctx.fillStyle = gradiente;
     ctx.fillRect(0, 0, width, height);
 
-    // 3. Rejilla algorítmica Cyberpunk en movimiento
-    ctx.strokeStyle = paleta.borde + '22';
-    ctx.lineWidth = 1;
-    const offsetGrid = (tiempo * 0.04) % 20;
+    // 3. REJILLA MATRIX / PUNTOS FLOTANTES (PARTÍCULAS DE NODOS)
+    ctx.fillStyle = paleta.borde;
+    const size = 16;
 
-    for (let x = 0; x < width; x += 20) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
+    for (let x = 8; x < width; x += size) {
+        for (let y = 8; y < height; y += size) {
+            let alpha = Math.sin((x * 0.05 + y * 0.05 + tiempo * 0.003)) * 0.4 + 0.5;
+            ctx.globalAlpha = alpha;
+            ctx.fillRect(x - 1, y - 1, 2.5, 2.5);
+        }
     }
-    for (let y = offsetGrid; y < height; y += 20) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-    }
+    ctx.globalAlpha = 1.0;
 
     // 4. Borde neón
     ctx.strokeStyle = paleta.borde;
@@ -404,6 +397,7 @@ function escucharDibujoCanvas() {
     DOM.get('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
 }
 
+// GENERADOR CANVAS EN VIVO ANIMADO (CREADOR DE BARAJITAS)
 function dibujarCartaCanvas() {
     const canvas = DOM.get('canvasCartaGenerada');
     if (!canvas) return;
@@ -425,7 +419,7 @@ function dibujarCartaCanvas() {
 
         ctx.clearRect(0, 0, width, height);
 
-        // Fondo animado en vivo
+        // 1. Fondo animado en vivo
         const t = tiempo * 0.002;
         const gradiente = ctx.createLinearGradient(
             (Math.sin(t) * 0.5 + 0.5) * width,
@@ -440,37 +434,32 @@ function dibujarCartaCanvas() {
         ctx.fillStyle = gradiente;
         ctx.fillRect(0, 0, width, height);
 
-        // RejillaCyberpunk animada
-        ctx.strokeStyle = paleta.borde + '22';
-        ctx.lineWidth = 1;
-        const offsetGrid = (tiempo * 0.04) % 20;
+        // 2. REJILLA MATRIX / PUNTOS FLOTANTES (PARTÍCULAS DE NODOS)
+        ctx.fillStyle = paleta.borde;
+        const size = 18;
 
-        for (let x = 0; x < width; x += 20) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-            ctx.stroke();
+        for (let x = 10; x < width; x += size) {
+            for (let y = 10; y < height; y += size) {
+                let alpha = Math.sin((x * 0.05 + y * 0.05 + tiempo * 0.003)) * 0.4 + 0.5;
+                ctx.globalAlpha = alpha;
+                ctx.fillRect(x - 1, y - 1, 3, 3);
+            }
         }
-        for (let y = offsetGrid; y < height; y += 20) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-        }
+        ctx.globalAlpha = 1.0;
 
-        // Borde exterior
+        // 3. Borde exterior
         ctx.strokeStyle = paleta.borde;
         ctx.lineWidth = 4;
         ctx.strokeRect(6, 6, width - 12, height - 12);
 
-        // Símbolo central flotante
+        // 4. Símbolo central flotante
         const offsetFlotacion = Math.sin(t * 2) * 4;
         ctx.font = "48px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(simbolo, width / 2, height / 2 - 10 + offsetFlotacion);
 
-        // Nombre de la carta
+        // 5. Nombre de la carta
         ctx.fillStyle = paleta.texto;
         ctx.font = "10px 'Press Start 2P', monospace";
         ctx.fillText(nombre.substring(0, 14), width / 2, height - 30);

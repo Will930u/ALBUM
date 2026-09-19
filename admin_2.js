@@ -1,13 +1,11 @@
-// CONFIGURACIÓN DE SUPABASE
+// CONFIGURACIÓN DE SUPABASE (Pega tu URL y CLAVE real aquí)
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 
-// INICIALIZACIÓN CLIENTE SUPABASE
-let supabase = null;
+// INICIALIZACIÓN CLIENTE SUPABASE (Aquí cambiamos "supabase" por "db")
+let db = null;
 if (window.supabase && typeof window.supabase.createClient === 'function') {
-    if (SUPABASE_URL !== "https://tu-proyecto.supabase.co") {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 // ESTADO GLOBAL DEL EDITOR
@@ -22,7 +20,7 @@ const PALETAS_ERA = {
     antiguo: { fondo: '#1a0f07', borde: '#d97706', texto: '#fef08a', acento: '#dc2626' }
 };
 
-// INICIALIZACIÓN AL Cargar EL DOM
+// INICIALIZACIÓN AL CARGAR EL DOM
 document.addEventListener('DOMContentLoaded', () => {
     logStatus("Cargando componentes del panel de administración...");
     inicializarEventos();
@@ -222,7 +220,7 @@ async function generarImagenPollinationsDirecta() {
 
 // INTEGRACIÓN CON BASE DE DATOS (SUPABASE)
 async function publicarCartaBD() {
-    if (!supabase) return logStatus("Error: Supabase no está configurado.");
+    if (!db) return logStatus("Error: Base de datos no conectada.");
 
     const cartaData = {
         id: parseInt(document.getElementById('carta-id')?.value),
@@ -240,8 +238,8 @@ async function publicarCartaBD() {
         return logStatus("Atención: ID y Nombre son obligatorios.");
     }
 
-    logStatus("Guardando receta en Supabase...");
-    const { data, error } = await supabase.from('cartas_recetas').upsert([cartaData]);
+    logStatus("Guardando receta en la base de datos...");
+    const { data, error } = await db.from('cartas_recetas').upsert([cartaData]);
 
     if (error) {
         logStatus(`Error al guardar: ${error.message}`);
@@ -251,7 +249,7 @@ async function publicarCartaBD() {
 }
 
 async function procesarPlantillasTexto() {
-    if (!supabase) return logStatus("Error: Supabase no está configurado.");
+    if (!db) return logStatus("Error: Base de datos no conectada.");
     const texto = document.getElementById('textarea-plantillas')?.value;
     if (!texto) return logStatus("El campo de texto plano está vacío.");
 
@@ -289,8 +287,8 @@ async function procesarPlantillasTexto() {
 
     if (registros.length === 0) return logStatus("No se pudieron parsear plantillas válidas.");
 
-    logStatus(`Insertando ${registros.length} plantillas en la base de datos...`);
-    const { error } = await supabase.from('plantillas_criaturas').insert(registros);
+    logStatus(`Insertando ${registros.length} plantillas...`);
+    const { error } = await db.from('plantillas_criaturas').insert(registros);
 
     if (error) {
         logStatus(`Error al insertar plantillas: ${error.message}`);
@@ -301,10 +299,10 @@ async function procesarPlantillasTexto() {
 }
 
 async function vaciarPlantillasBD() {
-    if (!supabase) return logStatus("Error: Supabase no configurado.");
+    if (!db) return logStatus("Error: Base de datos no conectada.");
     if (!confirm("¿Está seguro de vaciar la tabla de plantillas?")) return;
 
-    const { error } = await supabase.from('plantillas_criaturas').delete().neq('id', 0);
+    const { error } = await db.from('plantillas_criaturas').delete().neq('id', 0);
     if (error) logStatus(`Error: ${error.message}`);
     else {
         logStatus("Tabla de plantillas vaciada.");
@@ -313,16 +311,16 @@ async function vaciarPlantillasBD() {
 }
 
 async function contarPlantillasBD() {
-    if (!supabase) return;
-    const { count, error } = await supabase.from('plantillas_criaturas').select('*', { count: 'exact', head: true });
+    if (!db) return;
+    const { count, error } = await db.from('plantillas_criaturas').select('*', { count: 'exact', head: true });
     if (!error && document.getElementById('count-plantillas')) {
         document.getElementById('count-plantillas').innerText = count || '0';
     }
 }
 
 async function randomizarDesdePlantillas() {
-    if (!supabase) return logStatus("Se requiere conexión a base de datos.");
-    const { data, error } = await supabase.from('plantillas_criaturas').select('*');
+    if (!db) return logStatus("Se requiere conexión a base de datos.");
+    const { data, error } = await db.from('plantillas_criaturas').select('*');
     
     if (error || !data || data.length === 0) {
         return logStatus("No hay plantillas registradas para randomizar.");
@@ -339,7 +337,7 @@ async function randomizarDesdePlantillas() {
 }
 
 async function regalarCartaUsuario() {
-    if (!supabase) return logStatus("Error: Supabase no configurado.");
+    if (!db) return logStatus("Error: Base de datos no conectada.");
     
     const usuario = document.getElementById('target-user')?.value.replace('@', '');
     const cartaId = parseInt(document.getElementById('target-carta-id')?.value);
@@ -347,7 +345,7 @@ async function regalarCartaUsuario() {
 
     if (!usuario || !cartaId) return logStatus("Especifique usuario e ID de carta.");
 
-    const { error } = await supabase.from('usuarios_coleccion').insert([{
+    const { error } = await db.from('usuarios_coleccion').insert([{
         username: usuario,
         carta_id: cartaId,
         cantidad: cantidad,
@@ -362,13 +360,13 @@ async function cargarCatalogoBD() {
     const grid = document.getElementById('grid-catalogo-admin');
     if (!grid) return;
 
-    if (!supabase) {
+    if (!db) {
         grid.innerHTML = '<div style="color:#eab308; font-size:8px;">Base de datos desconectada. Configure SUPABASE_URL en admin_2.js.</div>';
         return;
     }
 
     grid.innerHTML = '<div style="color:#aaa; font-size:8px;">Cargando catálogo...</div>';
-    const { data, error } = await supabase.from('cartas_recetas').select('*').order('id', { ascending: true });
+    const { data, error } = await db.from('cartas_recetas').select('*').order('id', { ascending: true });
 
     if (error) {
         grid.innerHTML = `<div style="color:#ef4444; font-size:8px;">Error: ${error.message}</div>`;
@@ -395,13 +393,13 @@ async function cargarCatalogoBD() {
 
 // CONTROL Y DIAGNÓSTICO DEL SERVIDOR
 async function testearConexionSupabase() {
-    if (!supabase) {
+    if (!db) {
         actualizarStatusSupabase(false, '--');
         return;
     }
 
     const tInicial = Date.now();
-    const { error } = await supabase.from('cartas_recetas').select('id', { count: 'exact', head: true });
+    const { error } = await db.from('cartas_recetas').select('id', { count: 'exact', head: true });
     const ping = Date.now() - tInicial;
 
     if (error) {
@@ -425,14 +423,14 @@ function actualizarStatusSupabase(conectado, ping) {
 }
 
 async function cargarMetricasServidor() {
-    if (!supabase) return;
+    if (!db) return;
 
     // Total Cartas
-    const resCartas = await supabase.from('cartas_recetas').select('*', { count: 'exact', head: true });
+    const resCartas = await db.from('cartas_recetas').select('*', { count: 'exact', head: true });
     document.getElementById('total-cartas-count').innerText = resCartas.count || '0';
 
     // Total Usuarios
-    const resUsers = await supabase.from('usuarios_coleccion').select('username');
+    const resUsers = await db.from('usuarios_coleccion').select('username');
     const usuariosUnicos = new Set(resUsers.data?.map(u => u.username)).size;
     document.getElementById('kpi-usuarios-totales').innerText = usuariosUnicos || '0';
 

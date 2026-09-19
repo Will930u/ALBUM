@@ -1,8 +1,6 @@
 /* =============================================================================
 🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL
 ============================================================================= */
-
-/* CORRECCIÓN 1: Faltaba el selector universal '*' */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -235,10 +233,10 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* =============================================================================
- CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (SINCRONIZADO CON ADMIN_2.JS)
+📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS
 ============================================================================= */
 
-/* CORRECCIÓN 2: Cambiado de .grid-cartas-admin a #grid-catalogo-admin */
+/* Grid del catálogo */
 #grid-catalogo-admin {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -249,7 +247,7 @@ input:focus, select:focus, textarea:focus {
     margin-top: 15px;
 }
 
-/* Estilo personalizado para la barra de desplazamiento (Scroll) */
+/* Scrollbar personalizado */
 #grid-catalogo-admin::-webkit-scrollbar {
     width: 6px;
 }
@@ -262,9 +260,11 @@ input:focus, select:focus, textarea:focus {
     border-radius: 4px;
 }
 
-/* CORRECCIÓN 3: Cambiado de .tarjeta-admin-item a .tarjeta-carta */
+/* Tarjeta de carta */
 .tarjeta-carta {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .tarjeta-carta:hover {
@@ -272,28 +272,49 @@ input:focus, select:focus, textarea:focus {
     z-index: 10;
 }
 
-/* CORRECCIÓN 4: Añadidas las clases de animación que genera el JS */
+/*  FONDO MÓVIL ANIMADO */
 .fondo-movil-animado {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.08) 50%,
+        transparent 60%
+    );
     background-size: 200% 200%;
-    animation: fondoMovil 4s ease-in-out infinite;
+    animation: fondoMovil 3s ease-in-out infinite;
     z-index: 1;
     pointer-events: none;
 }
 
 @keyframes fondoMovil {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
+/* ✨ EFECTO BRILLO HOLOGRÁFICO */
 .efecto-brillo-holografico {
     position: absolute;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.2) 0%,
+        transparent 60%
+    );
     opacity: 0;
     transition: opacity 0.3s;
     z-index: 1;
@@ -304,8 +325,9 @@ input:focus, select:focus, textarea:focus {
     opacity: 1;
 }
 
+/* Badge de rareza */
 .badge-rareza {
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     padding: 2px 4px;
     border-radius: 3px;
     font-size: 7px;

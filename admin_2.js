@@ -86,10 +86,8 @@ function iniciarSuscripcionRealtimeAlbum() {
             { event: '*', schema: 'public', table: 'Coleccion_Usuario' },
             (payload) => {
                 logEstado(`⚡ Cambio detectado en colección (${payload.eventType}). Actualizando álbum...`);
-                // Disparar evento global de actualización para la interfaz del usuario/álbum
                 window.dispatchEvent(new CustomEvent('actualizarAlbumRealtime', { detail: payload }));
                 
-                // Si la pestaña de catálogo está visible, recargar
                 cargarCatálogoCartas();
                 cargarMetricasServidor();
             }
@@ -116,7 +114,6 @@ async function regalarCartaAUsuario() {
 
     logEstado(`Verificando existencia de Carta #${idCarta}...`);
 
-    // 1. Verificar si la carta existe en la tabla 'Cartas'
     const { data: cartaExistente, error: errCarta } = await supabaseClient
         .from('Cartas')
         .select('id, nombre, rareza, era')
@@ -131,7 +128,6 @@ async function regalarCartaAUsuario() {
 
     logEstado(`Procesando Carta #${idCarta} (${cartaExistente.nombre}) x${cantidadAñadir} para @${idLimpio}...`);
 
-    // 2. Verificar si el usuario ya posee la carta en 'Coleccion_Usuario'
     const { data: registroExistente, error: errConsulta } = await supabaseClient
         .from('Coleccion_Usuario')
         .select('id, cantidad')
@@ -142,7 +138,6 @@ async function regalarCartaAUsuario() {
     let errorRespuesta = null;
 
     if (registroExistente) {
-        // Incrementar la cantidad si ya existe
         const nuevaCantidad = (Number(registroExistente.cantidad) || 0) + cantidadAñadir;
         const { error } = await supabaseClient
             .from('Coleccion_Usuario')
@@ -150,7 +145,6 @@ async function regalarCartaAUsuario() {
             .eq('id', registroExistente.id);
         errorRespuesta = error;
     } else {
-        // Insertar nuevo registro con los atributos de relación
         const { error } = await supabaseClient
             .from('Coleccion_Usuario')
             .insert([{
@@ -170,8 +164,7 @@ async function regalarCartaAUsuario() {
     }
 }
 
-// 6. CREACIÓN Y PUBLICACIÓN DE CARTA CON EFECTOS Y COLORES
-// CREACIÓN Y PUBLICACIÓN DE CARTA LIMPIANDO CADENAS DE IMAGEN
+// 6. CREACIÓN Y PUBLICACIÓN DE CARTA LIMPIANDO CADENAS DE IMAGEN
 async function guardarCartaBD() {
     const id = parseInt(document.getElementById('carta-id').value);
     const nombre = document.getElementById('carta-nombre').value.trim();
@@ -197,7 +190,7 @@ async function guardarCartaBD() {
     }
 
     // Limpiar caracteres no deseados en la URL
-    imagenUrl = imagenUrl.replace(/^\{|\}$/g, '').trim();
+    imagenUrl = imagenUrl.replace(/^['"{}]+|['"{}]+$/g, '').trim();
 
     const payloadCarta = {
         id: id,
@@ -244,33 +237,32 @@ async function cargarCatálogoCartas() {
         return;
     }
 
-    // Corregido: Se utiliza la función definida renderizarCartaDesdeBD
     grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
 }
 
-// Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores
-// Función para renderizar una carta recuperada de la base de datos
+// Función para renderizar una carta recuperada de la base de datos en el catálogo
 function renderizarCartaDesdeBD(carta) {
-    // 1. Normalización de Era y Rareza
     const eraClave = (carta.era || 'cyber').toString().toLowerCase().trim();
     const rarezaTexto = (carta.rareza || 'Común').toString().trim();
     const rarezaClase = `rareza-${rarezaTexto.toLowerCase()}`;
     
-    // 2. Obtener paleta de colores según la Era
     const paleta = (typeof PALETAS_ERA !== 'undefined' && PALETAS_ERA[eraClave]) 
         ? PALETAS_ERA[eraClave] 
         : { fondo: '#1a0033', borde: '#00ff66', texto: '#ffffff', acento: '#00ff66' };
 
-    // 3. Procesamiento y saneamiento de la URL o Base64 de la imagen
+    // Sanitizar y limpiar la imagen recibida de la base de datos
     let imgSrc = '';
     if (carta.imagen_url) {
         imgSrc = String(carta.imagen_url).trim().replace(/^['"{}]+|['"{}]+$/g, '');
     }
 
-    // Comprobación de validez de imagen (HTTP/HTTPS o Data URI Base64)
-    const tieneImagenValida = imgSrc.length > 20 && (imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:image/'));
+    // Comprobación de validez de la fuente de la imagen
+    const tieneImagenValida = imgSrc.length > 10 && (
+        imgSrc.startsWith('http://') || 
+        imgSrc.startsWith('https://') || 
+        imgSrc.startsWith('data:image/')
+    );
 
-    // 4. Renderizado del HTML con capas animadas y manejo de errores de imagen
     return `
         <div class="tarjeta-carta ${rarezaClase} era-${eraClave}" 
              data-id="${carta.id || ''}"
@@ -294,7 +286,7 @@ function renderizarCartaDesdeBD(carta) {
                     ? `<img src="${imgSrc}" 
                             alt="${carta.nombre || 'Carta'}" 
                             style="max-width:100%; max-height:100%; object-fit:contain; filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));" 
-                            onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';">
                        <span style="font-size:36px; display:none;">${carta.simbolo || '👾'}</span>` 
                     : `<span style="font-size:36px;">${carta.simbolo || '👾'}</span>`
                 }

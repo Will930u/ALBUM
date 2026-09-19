@@ -249,52 +249,66 @@ async function cargarCatálogoCartas() {
 
 // Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores
 // Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores (CORREGIDA)
-function renderizarHTMLCarta(carta) {
-    // 1. Normalizar Era para asegurar coincidencias con CSS y Paletas
+// Función para renderizar una carta recuperada de la base de datos
+function renderizarCartaDesdeBD(carta) {
+    // 1. Normalización de Era y Rareza
     const eraClave = (carta.era || 'cyber').toString().toLowerCase().trim();
-    const paleta = PALETAS_ERA[eraClave] || PALETAS_ERA.cyber;
+    const rarezaTexto = (carta.rareza || 'Común').toString().trim();
+    const rarezaClase = `rareza-${rarezaTexto.toLowerCase()}`;
     
-    // 2. Normalizar Rareza
-    const rarezaTexto = carta.rareza || 'Común';
-    const rarezaClase = `rareza-${rarezaTexto.toLowerCase().trim()}`;
+    // 2. Obtener paleta de colores según la Era
+    const paleta = (typeof PALETAS_ERA !== 'undefined' && PALETAS_ERA[eraClave]) 
+        ? PALETAS_ERA[eraClave] 
+        : { fondo: '#1a0033', borde: '#00ff66', texto: '#ffffff', acento: '#00ff66' };
 
-    // 3. Limpiar y validar la URL de la imagen (Soporta Base64 y HTTP/HTTPS)
-    let imgSrc = (carta.imagen_url || '').toString().trim();
-    imgSrc = imgSrc.replace(/^\{|\}$/g, ''); // Elimina llaves residuales si existen
+    // 3. Procesamiento y saneamiento de la URL o Base64 de la imagen
+    let imgSrc = '';
+    if (carta.imagen_url) {
+        imgSrc = String(carta.imagen_url).trim().replace(/^['"{}]+|['"{}]+$/g, '');
+    }
 
-    const tieneImagen = imgSrc.length > 10 && (imgSrc.startsWith('http') || imgSrc.startsWith('data:image'));
+    // Comprobación de validez de imagen (HTTP/HTTPS o Data URI Base64)
+    const tieneImagenValida = imgSrc.length > 20 && (imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:image/'));
 
+    // 4. Renderizado del HTML con capas animadas y manejo de errores de imagen
     return `
         <div class="tarjeta-carta ${rarezaClase} era-${eraClave}" 
+             data-id="${carta.id || ''}"
              data-era="${eraClave}" 
              data-rareza="${rarezaTexto}"
              style="background: ${paleta.fondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 12px ${paleta.acento}66; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
             
-            <!-- CAPA DE FONDO ANIMADO Y BRILLO HOLOGRÁFICO -->
+            <!-- CAPAS DE EFECTOS MÓVILES Y HOLOGRÁFICOS -->
             <div class="fondo-movil-animado"></div>
             <div class="efecto-brillo-holografico"></div>
 
             <!-- ENCABEZADO -->
             <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px; position:relative; z-index:2;">
-                <span style="font-weight:bold;">#${carta.id || '?'} ${carta.nombre || 'Sin nombre'}</span>
+                <span style="font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">#${carta.id || '?'} ${carta.nombre || 'Sin nombre'}</span>
                 <span class="badge-rareza" style="color:${paleta.acento}; font-weight:bold;">${rarezaTexto}</span>
             </div>
 
-            <!-- CONTENEDOR DE IMAGEN / SYMBOLO -->
-            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.4); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:6px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2;">
-                ${tieneImagen 
-                    ? `<img src="${imgSrc}" alt="${carta.nombre}" style="max-width:100%; max-height:100px; object-fit:contain; filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));" onerror="this.onerror=null; this.parentNode.innerHTML='<span style=\\'font-size:36px;\\'>${carta.simbolo || '👾'}</span>';">` 
-                    : `<span style="font-size:36px;">${carta.simbolo || '👾'}</span>`}
+            <!-- CONTENEDOR VISUAL DE LA IMAGEN GUARDADA -->
+            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
+                ${tieneImagenValida 
+                    ? `<img src="${imgSrc}" 
+                            alt="${carta.nombre || 'Carta'}" 
+                            style="max-width:100%; max-height:100%; object-fit:contain; filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));" 
+                            onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                       <span style="font-size:36px; display:none;">${carta.simbolo || '👾'}</span>` 
+                    : `<span style="font-size:36px;">${carta.simbolo || '👾'}</span>`
+                }
             </div>
 
-            <!-- LORE -->
-            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; min-height:24px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000;">
-                "${carta.lore || 'Sin historia registrada.'}"
+            <!-- DESCRIPCIÓN Y LORE -->
+            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; height:28px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000; margin-bottom:4px;">
+                "${carta.lore || 'Sin descripción disponible.'}"
             </div>
 
             <!-- PIE DE CARTA -->
-            <div style="margin-top:6px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; text-align:right; font-weight:bold; position:relative; z-index:2;">
-                ERA: ${eraClave.toUpperCase()}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; font-weight:bold; position:relative; z-index:2; border-top:1px solid ${paleta.borde}33; padding-top:4px;">
+                <span>ATQ: ${carta.ataque || 0} | DEF: ${carta.defensa || 0}</span>
+                <span>${eraClave}</span>
             </div>
         </div>
     `;

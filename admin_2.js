@@ -431,6 +431,12 @@ async function cargarMetricasServidor() {
         const { count: countUsuarios, error: errUsuarios } = await supabaseClient
             .from('usuarios')
             .select('*', { count: 'exact', head: true });
+        
+        if (errUsuarios) {
+            console.error("Error al contar usuarios:", errUsuarios);
+        } else {
+            console.log("Usuarios en Supabase:", countUsuarios);
+        }
 
         // 3. Consultar Premios Pendientes (Tabla 'reclamaciones_premios' o 'pagos_pendientes')
         const { count: countPremios, error: errPremios } = await supabaseClient

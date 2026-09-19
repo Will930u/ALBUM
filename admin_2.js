@@ -15,7 +15,8 @@ const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABAS
 const Estado = {
     modoRenderActual: 'canvas', // 'canvas' | 'ia'
     canalRealtimeColeccion: null,
-    animacionCatalogoId: null
+    animacionCatalogoId: null,
+    animacionPreviewId: null
 };
 
 // PALETAS DE COLOR POR ERA / RAREZA
@@ -340,7 +341,7 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     ctx.fillStyle = gradiente;
     ctx.fillRect(0, 0, width, height);
 
-    // 3. Rejilla algorítmicaCyberpunk en movimiento
+    // 3. Rejilla algorítmica Cyberpunk en movimiento
     ctx.strokeStyle = paleta.borde + '22';
     ctx.lineWidth = 1;
     const offsetGrid = (tiempo * 0.04) % 20;
@@ -384,7 +385,7 @@ function iniciarBucleAnimacionCatalogo(cartas) {
     Estado.animacionCatalogoId = requestAnimationFrame(loop);
 }
 
-// 7. GENERADOR CANVAS EN VIVO
+// 7. GENERADOR CANVAS EN VIVO ANIMADO
 function escucharDibujoCanvas() {
     ['carta-nombre', 'carta-rareza', 'carta-simbolo'].forEach(id => {
         DOM.get(id)?.addEventListener('input', () => {
@@ -406,29 +407,82 @@ function escucharDibujoCanvas() {
 function dibujarCartaCanvas() {
     const canvas = DOM.get('canvasCartaGenerada');
     if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const nombre = DOM.get('carta-nombre')?.value || "Carta Misteriosa";
-    const simbolo = DOM.get('carta-simbolo')?.value || "👾";
-    const rareza = DOM.get('carta-rareza')?.value || "Común";
-    const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
 
-    ctx.fillStyle = paleta.fondo;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = paleta.borde;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
-    
-    ctx.font = "48px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(simbolo, canvas.width / 2, canvas.height / 2 - 10);
-    
-    ctx.fillStyle = paleta.texto;
-    ctx.font = "10px 'Press Start 2P', monospace";
-    ctx.fillText(nombre.substring(0, 14), canvas.width / 2, canvas.height - 30);
-    
-    DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Símbolo: ${simbolo}`);
+    if (Estado.animacionPreviewId) {
+        cancelAnimationFrame(Estado.animacionPreviewId);
+        Estado.animacionPreviewId = null;
+    }
+
+    function loopPreview(tiempo) {
+        const ctx = canvas.getContext('2d');
+        const nombre = DOM.get('carta-nombre')?.value || "Carta Misteriosa";
+        const simbolo = DOM.get('carta-simbolo')?.value || "👾";
+        const rareza = DOM.get('carta-rareza')?.value || "Común";
+        const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
+
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Fondo animado en vivo
+        const t = tiempo * 0.002;
+        const gradiente = ctx.createLinearGradient(
+            (Math.sin(t) * 0.5 + 0.5) * width,
+            0,
+            (Math.cos(t) * 0.5 + 0.5) * width,
+            height
+        );
+        gradiente.addColorStop(0, paleta.fondo);
+        gradiente.addColorStop(0.5, paleta.acento + '33');
+        gradiente.addColorStop(1, '#000000');
+
+        ctx.fillStyle = gradiente;
+        ctx.fillRect(0, 0, width, height);
+
+        // RejillaCyberpunk animada
+        ctx.strokeStyle = paleta.borde + '22';
+        ctx.lineWidth = 1;
+        const offsetGrid = (tiempo * 0.04) % 20;
+
+        for (let x = 0; x < width; x += 20) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        for (let y = offsetGrid; y < height; y += 20) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+
+        // Borde exterior
+        ctx.strokeStyle = paleta.borde;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(6, 6, width - 12, height - 12);
+
+        // Símbolo central flotante
+        const offsetFlotacion = Math.sin(t * 2) * 4;
+        ctx.font = "48px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(simbolo, width / 2, height / 2 - 10 + offsetFlotacion);
+
+        // Nombre de la carta
+        ctx.fillStyle = paleta.texto;
+        ctx.font = "10px 'Press Start 2P', monospace";
+        ctx.fillText(nombre.substring(0, 14), width / 2, height - 30);
+
+        DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Símbolo: ${simbolo}`);
+
+        if (Estado.modoRenderActual === 'canvas') {
+            Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
+        }
+    }
+
+    Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
 }
 
 // 8. MOTOR POLLINATIONS IA

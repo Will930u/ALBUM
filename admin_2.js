@@ -244,39 +244,52 @@ async function cargarCatálogoCartas() {
 }
 
 // Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores
+// Función Generadora del Maquetado con Efectos, Borde y Paleta de Colores (CORREGIDA)
 function renderizarHTMLCarta(carta) {
-    const paleta = PALETAS_ERA[carta.era] || PALETAS_ERA.cyber;
-    const rarezaClase = `rareza-${(carta.rareza || 'Común').toLowerCase()}`;
-    const eraClase = `era-${carta.era || 'cyber'}`;
+    // Normalizar la 'era' para evitar UNDEFINED
+    const eraClave = (carta.era || 'cyber').toLowerCase().trim();
+    const paleta = PALETAS_ERA[eraClave] || PALETAS_ERA.cyber;
+    
+    // Normalizar rareza
+    const rarezaTexto = carta.rareza || 'Común';
+    const rarezaClase = `rareza-${rarezaTexto.toLowerCase()}`;
+
+    // Limpieza de la URL para evitar errores %7B o comillas sueltas
+    let imgSrc = (carta.imagen_url || '').toString().trim();
+    imgSrc = imgSrc.replace(/^\{|\}$/g, ''); // Elimina llaves si quedaron guardadas en la BD
+
+    // Validar si existe una URL de imagen limpia
+    const tieneImagen = imgSrc.length > 5 && (imgSrc.startsWith('http') || imgSrc.startsWith('data:image'));
 
     return `
-        <div class="tarjeta-carta ${rarezaClase} ${eraClase}" 
-             data-era="${carta.era}" 
-             data-rareza="${carta.rareza}"
+        <div class="tarjeta-carta ${rarezaClase} era-${eraClave}" 
+             data-era="${eraClave}" 
+             data-rareza="${rarezaTexto}"
              style="background: ${paleta.fondo}; border: 2px solid ${paleta.borde}; color: ${paleta.texto}; box-shadow: 0 0 10px ${paleta.acento}44; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;">
             
             <div class="efecto-brillo-holografico"></div>
 
             <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px;">
-                <span style="font-weight:bold;">#${carta.id} ${carta.nombre}</span>
-                <span class="badge-rareza" style="color:${paleta.acento};">${carta.rareza}</span>
+                <span style="font-weight:bold;">#${carta.id || '?'} ${carta.nombre || 'Sin nombre'}</span>
+                <span class="badge-rareza" style="color:${paleta.acento};">${rarezaTexto}</span>
             </div>
 
-            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.3); border-radius:4px; padding:8px;">
-                ${carta.imagen_url ? `<img src="${carta.imagen_url}" style="max-width:100%; height:100px; object-fit:contain;">` : `<span style="font-size:32px;">${carta.simbolo || '👾'}</span>`}
+            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.3); border-radius:4px; padding:8px; height:110px; display:flex; align-items:center; justify-content:center;">
+                ${tieneImagen 
+                    ? `<img src="${imgSrc}" alt="${carta.nombre}" style="max-width:100%; max-height:100px; object-fit:contain;" onerror="this.onerror=null; this.parentNode.innerHTML='<span style=\\'font-size:32px;\\'>${carta.simbolo || '👾'}</span>';">` 
+                    : `<span style="font-size:32px;">${carta.simbolo || '👾'}</span>`}
             </div>
 
-            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#ccc; min-height:24px;">
+            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#ccc; min-height:24px; overflow:hidden;">
                 "${carta.lore || 'Sin historia registrada.'}"
             </div>
 
             <div style="margin-top:6px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; text-align:right;">
-                ERA: ${carta.era}
+                ERA: ${eraClave.toUpperCase()}
             </div>
         </div>
     `;
 }
-
 // 8. GENERADOR CANVAS EN VIVO
 function escucharDibujoCanvas() {
     ['carta-nombre', 'carta-era', 'carta-rareza', 'carta-simbolo'].forEach(id => {

@@ -171,11 +171,12 @@ async function regalarCartaAUsuario() {
 }
 
 // 6. CREACIÓN Y PUBLICACIÓN DE CARTA CON EFECTOS Y COLORES
+// CREACIÓN Y PUBLICACIÓN DE CARTA LIMPIANDO CADENAS DE IMAGEN
 async function guardarCartaBD() {
     const id = parseInt(document.getElementById('carta-id').value);
     const nombre = document.getElementById('carta-nombre').value.trim();
-    const era = document.getElementById('carta-era').value;
-    const rareza = document.getElementById('carta-rareza').value;
+    const era = document.getElementById('carta-era').value.toLowerCase().trim();
+    const rareza = document.getElementById('carta-rareza').value.trim();
     const simbolo = document.getElementById('carta-simbolo').value.trim();
     const lore = document.getElementById('carta-lore').value.trim();
 
@@ -194,6 +195,9 @@ async function guardarCartaBD() {
         const imgIa = document.getElementById('imgPollinationsPreview');
         imagenUrl = imgIa.src;
     }
+
+    // Limpiar caracteres no deseados en la URL
+    imagenUrl = imagenUrl.replace(/^\{|\}$/g, '').trim();
 
     const payloadCarta = {
         id: id,
@@ -214,7 +218,7 @@ async function guardarCartaBD() {
         alert("Error al publicar carta: " + error.message);
         logEstado(`❌ Error guardando Carta #${id}: ${error.message}`);
     } else {
-        alert(`✅ Carta #${id} "${nombre}" publicada con exito.`);
+        alert(`✅ Carta #${id} "${nombre}" publicada con éxito.`);
         logEstado(`✅ Carta #${id} guardada correctamente.`);
         cargarCatálogoCartas();
     }

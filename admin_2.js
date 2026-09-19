@@ -474,7 +474,7 @@ async function regalarCartaAUsuario() {
 
     logEstado(`Verificando existencia de Carta #${idCarta}...`);
 
-    // 1. Validar que la carta exista en la tabla principal 'Cartas'
+    // 1. Verificar si la carta existe en la tabla principal 'Cartas'
     const { data: cartaExistente, error: errCarta } = await supabaseClient
         .from('Cartas')
         .select('id, nombre')
@@ -482,33 +482,33 @@ async function regalarCartaAUsuario() {
         .maybeSingle();
 
     if (errCarta || !cartaExistente) {
-        alert(`❌ La Carta #${idCarta} no existe publicada en la base de datos. Debes crearla en la pestaña "CREAR CARTA" antes de regalarla.`);
-        logEstado(`❌ Asignación abortada: La Carta #${idCarta} no existe.`);
+        alert(`❌ La Carta #${idCarta} no existe en la tabla 'Cartas'. Créala primero en "CREAR CARTA".`);
+        logEstado(`❌ Asignación cancelada: La Carta #${idCarta} no existe.`);
         return;
     }
 
-    logEstado(`Entregando Carta #${idCarta} (${cartaExistente.nombre}) x${cantidadAñadir} a @${idLimpio}...`);
+    logEstado(`Procesando Carta #${idCarta} (${cartaExistente.nombre}) x${cantidadAñadir} para @${idLimpio}...`);
 
-    // 2. Consultar si el usuario ya posee esta carta en su colección
-    const { data: registroPrevio, error: errConsulta } = await supabaseClient
+    // 2. Verificar si el usuario ya posee la carta en 'Coleccion_Usuario'
+    const { data: registroExistente, error: errConsulta } = await supabaseClient
         .from('Coleccion_Usuario')
         .select('id, cantidad')
         .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`)
         .eq('carta_id', idCarta)
         .maybeSingle();
 
-    let errorOperacion = null;
+    let errorRespuesta = null;
 
-    if (registroPrevio) {
-        // Si ya la posee, se incrementa la cantidad
-        const nuevaCantidad = (Number(registroPrevio.cantidad) || 0) + cantidadAñadir;
+    if (registroExistente) {
+        // Incrementar la cantidad si ya existe
+        const nuevaCantidad = (Number(registroExistente.cantidad) || 0) + cantidadAñadir;
         const { error } = await supabaseClient
             .from('Coleccion_Usuario')
             .update({ cantidad: nuevaCantidad })
-            .eq('id', registroPrevio.id);
-        errorOperacion = error;
+            .eq('id', registroExistente.id);
+        errorRespuesta = error;
     } else {
-        // Si no la posee, se inserta el nuevo registro
+        // Insertar nuevo registro si no existe previa relación
         const { error } = await supabaseClient
             .from('Coleccion_Usuario')
             .insert([{
@@ -516,15 +516,15 @@ async function regalarCartaAUsuario() {
                 carta_id: idCarta,
                 cantidad: cantidadAñadir
             }]);
-        errorOperacion = error;
+        errorRespuesta = error;
     }
 
-    if (errorOperacion) {
-        alert("Error al entregar la carta: " + errorOperacion.message);
-        logEstado(`❌ Error entregando carta: ${errorOperacion.message}`);
+    if (errorRespuesta) {
+        alert("Error al asignar carta: " + errorRespuesta.message);
+        logEstado(`❌ Error en Supabase: ${errorRespuesta.message}`);
     } else {
-        alert(`🎉 ¡Carta #${idCarta} (${cartaExistente.nombre}) entregada exitosamente a @${idLimpio}!`);
-        logEstado(`✅ Asignación completada: Carta #${idCarta} entregada a @${idLimpio}.`);
+        alert(`🎉 Carta #${idCarta} (${cartaExistente.nombre}) entregada exitosamente a @${idLimpio}.`);
+        logEstado(`✅ Asignación completada: Carta #${idCarta} -> @${idLimpio}`);
     }
 }
 async function refrescarMetricasServidor() {

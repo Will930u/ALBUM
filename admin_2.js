@@ -463,32 +463,70 @@ async function vaciarTablaPlantillas() {
 async function regalarCartaAUsuario() {
     const targetUser = document.getElementById('target-user')?.value?.trim();
     const idCarta = parseInt(document.getElementById('target-carta-id')?.value);
-    const cantidad = parseInt(document.getElementById('target-cantidad')?.value) || 1;
+    const cantidadAñadir = parseInt(document.getElementById('target-cantidad')?.value) || 1;
 
-    if (!targetUser || !idCarta) {
-        alert("Ingresa un usuario válido y el ID de la carta.");
+    if (!targetUser || !idCarta || isNaN(idCarta)) {
+        alert("Ingresa un usuario válido y un ID numérico de carta.");
         return;
     }
 
     const idLimpio = targetUser.replace(/^@/, '').trim().toLowerCase();
 
-    logEstado(`Entregando Carta #${idCarta} x${cantidad} a @${idLimpio}...`);
+    logEstado(`Verificando existencia de Carta #${idCarta}...`);
 
-    const { data, error } = await supabaseClient
+    // 1. Validar que la carta exista en la tabla principal 'Cartas'
+    const { data: cartaExistente, error: errCarta } = await supabaseClient
+        .from('Cartas')
+        .select('id, nombre')
+        .eq('id', idCarta)
+        .maybeSingle();
+
+    if (errCarta || !cartaExistente) {
+        alert(`❌ La Carta #${idCarta} no existe publicada en la base de datos. Debes crearla en la pestaña "CREAR CARTA" antes de regalarla.`);
+        logEstado(`❌ Asignación abortada: La Carta #${idCarta} no existe.`);
+        return;
+    }
+
+    logEstado(`Entregando Carta #${idCarta} (${cartaExistente.nombre}) x${cantidadAñadir} a @${idLimpio}...`);
+
+    // 2. Consultar si el usuario ya posee esta carta en su colección
+    const { data: registroPrevio, error: errConsulta } = await supabaseClient
         .from('Coleccion_Usuario')
-        .insert([{
-            usuario_id: idLimpio,
-            carta_id: idCarta,
-            cantidad: cantidad
-        }]);
+        .select('id, cantidad')
+        .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`)
+        .eq('carta_id', idCarta)
+        .maybeSingle();
 
-    if (error) {
-        alert("Error entregando carta: " + error.message);
+    let errorOperacion = null;
+
+    if (registroPrevio) {
+        // Si ya la posee, se incrementa la cantidad
+        const nuevaCantidad = (Number(registroPrevio.cantidad) || 0) + cantidadAñadir;
+        const { error } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .update({ cantidad: nuevaCantidad })
+            .eq('id', registroPrevio.id);
+        errorOperacion = error;
     } else {
-        alert(`¡Carta #${idCarta} entregada exitosamente a @${idLimpio}!`);
+        // Si no la posee, se inserta el nuevo registro
+        const { error } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .insert([{
+                usuario_id: idLimpio,
+                carta_id: idCarta,
+                cantidad: cantidadAñadir
+            }]);
+        errorOperacion = error;
+    }
+
+    if (errorOperacion) {
+        alert("Error al entregar la carta: " + errorOperacion.message);
+        logEstado(`❌ Error entregando carta: ${errorOperacion.message}`);
+    } else {
+        alert(`🎉 ¡Carta #${idCarta} (${cartaExistente.nombre}) entregada exitosamente a @${idLimpio}!`);
+        logEstado(`✅ Asignación completada: Carta #${idCarta} entregada a @${idLimpio}.`);
     }
 }
-
 async function refrescarMetricasServidor() {
     if (!supabaseClient) return;
 

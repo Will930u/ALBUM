@@ -39,6 +39,7 @@ const DOM = {
 document.addEventListener('DOMContentLoaded', async () => {
     logEstado("Inicializando Panel de Mando...");
     configurarEventosUI();
+    escucharDibujoCanvas();
 
     // 🔄 Obtener la última pestaña guardada (o 'tab-crear' si es la primera vez)
     const pestanaGuardada = localStorage.getItem('admin_pestana_activa') || 'tab-crear';
@@ -51,6 +52,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         cargarMetricasServidor(),
         cargarCatalogoCartas()
     ]);
+    
+    iniciarSuscripcionRealtimeAlbum();
 });
 
 // 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
@@ -409,29 +412,48 @@ async function procesarYGuardarPlantillas() {
 }
 
 async function seleccionarPlantillaAleatoria() {
-    logEstado("Consultando plantillas_criaturas...");
+    logEstado("🎲 Generando plantilla aleatoria...");
+    
+    const PLANTILLAS_FALLBACK = [
+        { nombre: "Ciber Dragón", rareza: "Cyber", simbolo: "🐲", lore: "Aparece en las redes cuánticas de neón." },
+        { nombre: "Búho Sabio", rareza: "Cotidiano", simbolo: "🦉", lore: "Guardián silencioso de la biblioteca." },
+        { nombre: "Alien Ancestral", rareza: "Espacial", simbolo: "👽", lore: "Viajero interestelar de galaxias lejanas." },
+        { nombre: "Mago Arcano", rareza: "Antiguo", simbolo: "🔮", lore: "Dominador de las artes místicas antiguas." },
+        { nombre: "Robot Centinela", rareza: "Cyber", simbolo: "🤖", lore: "Unidad automatizada de defensa militar." },
+        { nombre: "Fénix Radiante", rareza: "Espacial", simbolo: "🔥", lore: "Nacido del núcleo ardiente de una estrella." },
+        { nombre: "Escarabajo Solar", rareza: "Antiguo", simbolo: "🪲", lore: "Reliquia sagrada enterrada en la arena." },
+        { nombre: "Gato Espectral", rareza: "Cotidiano", simbolo: "🐱", lore: "Camina entre el plano físico y el de las sombras." }
+    ];
+
+    let plantillaElegida = null;
+
     try {
         const { data, error } = await supabaseClient
             .from('plantillas_criaturas')
-            .select('*')
-            .limit(1);
+            .select('*');
         
-        if (error || !data || data.length === 0) {
-            alert("No se encontraron plantillas en la base de datos.");
-            return;
+        if (!error && data && data.length > 0) {
+            const indiceRandom = Math.floor(Math.random() * data.length);
+            plantillaElegida = data[indiceRandom];
         }
-        
-        const plantilla = data[0];
-        DOM.setValue('carta-nombre', plantilla.nombre || "Criatura Aleatoria");
-        DOM.setValue('carta-rareza', plantilla.rareza || "Común");
-        DOM.setValue('carta-simbolo', plantilla.simbolo || "👾");
-        DOM.setValue('carta-lore', plantilla.lore || "Generado desde plantilla.");
-        
-        dibujarCartaCanvas();
-        logEstado("✅ Plantilla aleatoria cargada en el formulario.");
     } catch (e) {
-        logEstado(`❌ Error al obtener plantilla: ${e.message}`);
+        console.warn("No se cargaron plantillas de BD, usando fallback local:", e.message);
     }
+
+    if (!plantillaElegida) {
+        const indiceRandom = Math.floor(Math.random() * PLANTILLAS_FALLBACK.length);
+        plantillaElegida = PLANTILLAS_FALLBACK[indiceRandom];
+    }
+
+    const idAleatorio = Math.floor(Math.random() * 8999) + 1000;
+    DOM.setValue('carta-id', idAleatorio);
+    DOM.setValue('carta-nombre', plantillaElegida.nombre || "Criatura Aleatoria");
+    DOM.setValue('carta-rareza', plantillaElegida.rareza || "Cotidiano");
+    DOM.setValue('carta-simbolo', plantillaElegida.simbolo || "👾");
+    DOM.setValue('carta-lore', plantillaElegida.lore || "Generado desde plantilla aleatoria.");
+
+    dibujarCartaCanvas();
+    logEstado(`✅ Plantilla "${plantillaElegida.nombre}" cargada en el formulario (ID #${idAleatorio}).`);
 }
 
 // 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
@@ -440,22 +462,18 @@ async function cargarMetricasServidor() {
     const inicio = Date.now();
     
     try {
-        // 1. Consultar Total de Cartas
         const { count: countCartas, error: errCartas } = await supabaseClient
             .from('Cartas')
             .select('*', { count: 'exact', head: true });
 
-        // 2. Consultar Usuarios Registrados (Verificar si la tabla es 'usuarios' o 'perfiles')
         const { count: countUsuarios, error: errUsuarios } = await supabaseClient
             .from('usuarios')
             .select('*', { count: 'exact', head: true });
 
-        // 3. Consultar Premios Pendientes (Verificar 'reclamaciones_premios' o 'premios_ganados')
         const { count: countPremios, error: errPremios } = await supabaseClient
             .from('reclamaciones_premios')
             .select('*', { count: 'exact', head: true });
 
-        // 4. Consultar Colecciones Activas
         const { count: countColecciones, error: errColecciones } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*', { count: 'exact', head: true });
@@ -466,7 +484,6 @@ async function cargarMetricasServidor() {
         if (errPremios) console.error("Error Supabase (premios):", errPremios.message);
         if (errColecciones) console.error("Error Supabase (colecciones):", errColecciones.message);
 
-        // Inyectar datos en el DOM
         DOM.setText('total-cartas-count', countCartas ?? 0);
         DOM.setText('ping-supabase', `${latencia} ms`);
         DOM.setText('kpi-usuarios-totales', countUsuarios ?? 0);
@@ -478,45 +495,6 @@ async function cargarMetricasServidor() {
         logEstado(`❌ Error procesando métricas: ${e.message}`);
     }
 }
-
-function limpiarLogServidor() {
-    const logServidor = DOM.get('servidor-log-output');
-    if (logServidor) {
-        logServidor.innerHTML = `[${new Date().toLocaleTimeString()}] 🧹 Consola de servidor limpiada.`;
-    }
-}
-
-function logEstado(mensaje) {
-    const timestamp = new Date().toLocaleTimeString();
-    DOM.setText('status-log', `[${timestamp}] ${mensaje}`);
-    
-    const logServidor = DOM.get('servidor-log-output');
-    if (logServidor) {
-        logServidor.innerHTML += `<br>[${timestamp}] ${mensaje}`;
-        logServidor.scrollTop = logServidor.scrollHeight;
-    }
-}
-
-function configurarEventosUI() {
-    // Botones del Generador / Plantillas
-    DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
-    DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
-    DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
-    DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
-    DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
-    
-    // Botones del Panel de Servidor y Catálogo
-    DOM.get('btn-refrescar-servidor')?.addEventListener('click', cargarMetricasServidor);
-    DOM.get('btn-probar-conexion')?.addEventListener('click', cargarMetricasServidor);
-    DOM.get('btn-limpiar-log')?.addEventListener('click', limpiarLogServidor);
-    DOM.get('btn-refrescar-catalogo')?.addEventListener('click', cargarCatalogoCartas);
-}
-
-// EXPONER FUNCIONES GLOBALMENTE PARA ATRIBUTOS ONCLICK DEL HTML
-window.cambiarPestana = cambiarPestana;
-window.cargarMetricasServidor = cargarMetricasServidor;
-window.limpiarLogServidor = limpiarLogServidor;
-window.cargarCatalogoCartas = cargarCatalogoCartas;
 
 // =============================================================================
 // FUNCIÓN AUXILIAR: TESTEAR CONEXIÓN CON SUPABASE
@@ -550,3 +528,44 @@ async function testearConexionSupabase() {
         logEstado(`❌ Error crítico al probar conexión: ${e.message}`);
     }
 }
+
+function limpiarLogServidor() {
+    const logServidor = DOM.get('servidor-log-output');
+    if (logServidor) {
+        logServidor.innerHTML = `[${new Date().toLocaleTimeString()}] 🧹 Consola de servidor limpiada.`;
+    }
+}
+
+function logEstado(mensaje) {
+    const timestamp = new Date().toLocaleTimeString();
+    DOM.setText('status-log', `[${timestamp}] ${mensaje}`);
+    
+    const logServidor = DOM.get('servidor-log-output');
+    if (logServidor) {
+        logServidor.innerHTML += `<br>[${timestamp}] ${mensaje}`;
+        logServidor.scrollTop = logServidor.scrollHeight;
+    }
+}
+
+function configurarEventosUI() {
+    // Botones del Generador / Plantillas
+    DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
+    DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
+    DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
+    DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
+    DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
+    
+    // Botones del Panel de Servidor y Catálogo
+    DOM.get('btn-refrescar-servidor')?.addEventListener('click', cargarMetricasServidor);
+    DOM.get('btn-probar-conexion')?.addEventListener('click', testearConexionSupabase);
+    DOM.get('btn-limpiar-log')?.addEventListener('click', limpiarLogServidor);
+    DOM.get('btn-refrescar-catalogo')?.addEventListener('click', cargarCatalogoCartas);
+}
+
+// EXPONER FUNCIONES GLOBALMENTE PARA ATRIBUTOS ONCLICK DEL HTML
+window.cambiarPestana = cambiarPestana;
+window.cargarMetricasServidor = cargarMetricasServidor;
+window.limpiarLogServidor = limpiarLogServidor;
+window.cargarCatalogoCartas = cargarCatalogoCartas;
+window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
+window.testearConexionSupabase = testearConexionSupabase;

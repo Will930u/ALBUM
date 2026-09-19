@@ -484,6 +484,11 @@ async function cargarMetricasServidor() {
         if (errPremios) console.error("Error Supabase (premios):", errPremios.message);
         if (errColecciones) console.error("Error Supabase (colecciones):", errColecciones.message);
 
+        // Actualizar estado de conexión a CONECTADO
+        DOM.setText('status-supabase', "● CONECTADO");
+        const statusEl = DOM.get('status-supabase');
+        if (statusEl) statusEl.style.color = "#00ff66";
+
         DOM.setText('total-cartas-count', countCartas ?? 0);
         DOM.setText('ping-supabase', `${latencia} ms`);
         DOM.setText('kpi-usuarios-totales', countUsuarios ?? 0);
@@ -492,6 +497,9 @@ async function cargarMetricasServidor() {
 
         logEstado(`🟢 Servidor activo | usuarios: ${countUsuarios ?? 0}`);
     } catch (e) {
+        DOM.setText('status-supabase', "● DESCONECTADO");
+        const statusEl = DOM.get('status-supabase');
+        if (statusEl) statusEl.style.color = "#ef4444";
         logEstado(`❌ Error procesando métricas: ${e.message}`);
     }
 }

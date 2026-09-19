@@ -1,5 +1,5 @@
 /* =============================================================================
-🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL
+🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL (TEMA AZUL ELEGANTE)
 ============================================================================= */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -8,8 +8,8 @@
 }
 
 body {
-    background-color: #08080a;
-    color: #ffffff;
+    background-color: #030712;
+    color: #f0f9ff;
     font-family: 'Press Start 2P', monospace;
     padding: 20px 10px;
     display: flex;
@@ -19,22 +19,22 @@ body {
 }
 
 .contenedor-central {
-    background-color: #121216;
-    border: 4px solid #00ff66;
+    background-color: #0b1329;
+    border: 3px solid #00d2ff;
     padding: 20px;
     max-width: 520px;
     width: 100%;
-    box-shadow: 0 0 20px rgba(0, 255, 102, 0.25), 6px 6px 0px #092612;
-    border-radius: 6px;
+    box-shadow: 0 0 25px rgba(0, 210, 255, 0.25), 6px 6px 0px #031b33;
+    border-radius: 8px;
 }
 
 .titulo-central {
     font-size: 11px;
-    color: #00ff66;
+    color: #00d2ff;
     text-align: center;
     margin-bottom: 15px;
     line-height: 1.5;
-    text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+    text-shadow: 0 0 10px rgba(0, 210, 255, 0.7);
 }
 
 .barra-pestanas {
@@ -45,28 +45,30 @@ body {
 
 .tab-btn {
     flex: 1;
-    background-color: #1a1a1f;
-    color: #888888;
-    border: 2px solid #000;
+    background-color: #0f172a;
+    color: #64748b;
+    border: 2px solid #031b33;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
     padding: 10px 2px;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    border-radius: 4px;
 }
 
 .tab-btn:hover { 
-    color: #fff; 
-    background-color: #22222a; 
-    border-color: #00ff66;
+    color: #e0f2fe; 
+    background-color: #1e293b; 
+    border-color: #00d2ff;
 }
 
 .tab-btn.activo {
-    background-color: #00ff66;
-    color: #000000;
+    background-color: #00d2ff;
+    color: #030712;
     font-weight: bold;
-    box-shadow: 0 0 10px rgba(0, 255, 102, 0.5), 2px 2px 0px #000;
+    box-shadow: 0 0 12px rgba(0, 210, 255, 0.6), 2px 2px 0px #031b33;
+    border-color: #38bdf8;
 }
 
 .contenido-pestana { display: none; }
@@ -74,13 +76,13 @@ body {
 
 .subtitulo-admin {
     font-size: 8px;
-    color: #ffcc00;
+    color: #38bdf8;
     text-align: center;
     margin-bottom: 15px;
-    border-bottom: 2px dashed #333;
+    border-bottom: 2px dashed #1e293b;
     padding-bottom: 12px;
     line-height: 1.4;
-    text-shadow: 0 0 6px rgba(255, 204, 0, 0.3);
+    text-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
 
 .form-grupo {
@@ -92,16 +94,16 @@ body {
 
 label {
     font-size: 8px;
-    color: #38bdf8;
+    color: #7dd3fc;
     margin-bottom: 6px;
     line-height: 1.3;
 }
 
 input[type="text"], input[type="number"], textarea, select {
     width: 100%;
-    background-color: #000000;
-    border: 2px solid #333333;
-    color: #ffffff;
+    background-color: #020617;
+    border: 2px solid #1e293b;
+    color: #f0f9ff;
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
     padding: 10px;
@@ -111,36 +113,37 @@ input[type="text"], input[type="number"], textarea, select {
 }
 
 input:focus, select:focus, textarea:focus { 
-    border-color: #00ff66; 
-    box-shadow: 0 0 8px rgba(0, 255, 102, 0.3);
+    border-color: #00d2ff; 
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
 }
 
 .btn-admin-final {
-    background-color: #00ff66;
-    color: #000000;
-    border: 3px solid #000000;
+    background-color: #00d2ff;
+    color: #020617;
+    border: 3px solid #031b33;
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
     font-weight: bold;
     padding: 14px;
     width: 100%;
     cursor: pointer;
-    box-shadow: 4px 4px 0px #092612;
+    box-shadow: 4px 4px 0px #031b33;
     margin-top: 10px;
+    border-radius: 4px;
     transition: all 0.2s ease;
 }
 
 .btn-admin-final:hover {
-    background-color: #ffffff;
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.4), 4px 4px 0px #333333;
+    background-color: #e0f2fe;
+    box-shadow: 0 0 16px rgba(224, 242, 254, 0.5), 4px 4px 0px #0f172a;
 }
 
 /* =============================================================================
 👁️ VISTA PREVIA CANVAS ALGORÍTMICO Y POLLINATIONS IA
 ============================================================================= */
 .contenedor-vista-previa-canvas {
-    background-color: #050508;
-    border: 2px dashed #00ff66;
+    background-color: #020617;
+    border: 2px dashed #00d2ff;
     padding: 15px;
     display: flex;
     flex-direction: column;
@@ -152,7 +155,7 @@ input:focus, select:focus, textarea:focus {
 
 .label-previa {
     font-size: 7px;
-    color: #00ff66;
+    color: #00d2ff;
     margin-bottom: 12px;
     text-align: center;
 }
@@ -160,11 +163,11 @@ input:focus, select:focus, textarea:focus {
 .canvas-wrapper {
     width: 220px;
     height: 308px;
-    border: 3px solid #1e293b;
+    border: 3px solid #1e3a8a;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
-    background-color: #000;
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.35);
+    background-color: #020617;
     position: relative;
 }
 
@@ -179,11 +182,12 @@ input:focus, select:focus, textarea:focus {
     font-size: 8px;
     color: #38bdf8;
     text-align: center;
-    background: rgba(0,0,0,0.85);
+    background: rgba(2, 6, 23, 0.9);
     padding: 10px;
     border: 1px solid #38bdf8;
     border-radius: 4px;
     z-index: 10;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 .info-semilla-box {
@@ -203,25 +207,26 @@ input:focus, select:focus, textarea:focus {
 
 .btn-modo-opt {
     flex: 1;
-    background: #000;
-    border: 1px solid #333;
-    color: #888;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #64748b;
     font-family: inherit;
     font-size: 7px;
     padding: 8px;
     cursor: pointer;
+    border-radius: 4px;
     transition: all 0.2s;
 }
 
 .btn-modo-opt.activo {
     border-color: #38bdf8;
-    color: #38bdf8;
-    background: #082f49;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    color: #e0f2fe;
+    background: #075985;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 
 /* =============================================================================
-📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (ELEGANT & NEON EFFECT)
+📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (ELEGANT BLUE NEON)
 ============================================================================= */
 #grid-catalogo-admin {
     display: grid;
@@ -231,25 +236,25 @@ input:focus, select:focus, textarea:focus {
     overflow-y: auto;
     padding: 6px;
     margin-top: 15px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(2, 6, 23, 0.6);
     border-radius: 6px;
-    border: 1px solid #1f2937;
+    border: 1px solid #1e293b;
 }
 
 #grid-catalogo-admin::-webkit-scrollbar { width: 6px; }
-#grid-catalogo-admin::-webkit-scrollbar-track { background: #0a0a0c; border-radius: 4px; }
-#grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00ff66; border-radius: 4px; box-shadow: 0 0 6px #00ff66; }
+#grid-catalogo-admin::-webkit-scrollbar-track { background: #020617; border-radius: 4px; }
+#grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00d2ff; border-radius: 4px; box-shadow: 0 0 6px #00d2ff; }
 
 /* 🎴 CARTA BASE CON DISEÑO ELEGANTE */
 .tarjeta-carta {
-    background: #0d0d12;
-    border: 2px solid #1e293b;
+    background: #070e20;
+    border: 2px solid #1e3a8a;
     border-radius: 8px;
     padding: 8px;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -257,21 +262,21 @@ input:focus, select:focus, textarea:focus {
 
 .tarjeta-carta:hover {
     transform: translateY(-6px) scale(1.02);
-    border-color: #00ff66;
-    box-shadow: 0 8px 20px rgba(0, 255, 102, 0.35), 0 0 10px rgba(0, 255, 102, 0.2);
+    border-color: #00d2ff;
+    box-shadow: 0 8px 22px rgba(0, 210, 255, 0.4), 0 0 12px rgba(0, 210, 255, 0.25);
     z-index: 10;
 }
 
-/* ✨ FONDO DUAL DEGRADADO DINO/ANIMADO */
+/* ✨ FONDO DUAL DEGRADADO DINO/ANIMADO EN TONO AZUL */
 .fondo-movil-animado {
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
     background: linear-gradient(
         135deg, 
-        rgba(255, 255, 255, 0) 30%, 
-        rgba(255, 255, 255, 0.08) 50%, 
-        rgba(255, 255, 255, 0) 70%
+        rgba(0, 210, 255, 0) 30%, 
+        rgba(0, 210, 255, 0.12) 50%, 
+        rgba(0, 210, 255, 0) 70%
     );
     background-size: 200% 200%;
     animation: animacionGlowHolografico 4s linear infinite;
@@ -293,9 +298,9 @@ input:focus, select:focus, textarea:focus {
     background: linear-gradient(
         90deg, 
         transparent, 
-        rgba(0, 255, 102, 0.25), 
-        rgba(255, 255, 255, 0.4), 
-        rgba(0, 255, 102, 0.25), 
+        rgba(0, 210, 255, 0.3), 
+        rgba(224, 242, 254, 0.5), 
+        rgba(0, 210, 255, 0.3), 
         transparent
     );
     transform: skewX(-25deg);
@@ -310,14 +315,14 @@ input:focus, select:focus, textarea:focus {
 
 /* 🏷️ BADGES DE RAREZA ESTRUCTURADOS */
 .badge-rareza {
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(2, 6, 23, 0.85);
     border: 1px solid currentColor;
     padding: 3px 6px;
     border-radius: 4px;
     font-size: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 0 5px currentColor;
+    box-shadow: 0 0 6px currentColor;
     display: inline-block;
 }
 
@@ -326,9 +331,9 @@ input:focus, select:focus, textarea:focus {
 ============================================================================= */
 #status-log, #servidor-log-output {
     font-size: 7px;
-    color: #00ff66;
-    background: #000;
-    border: 1px solid #333;
+    color: #00d2ff;
+    background: #020617;
+    border: 1px solid #1e293b;
     padding: 8px;
     border-radius: 4px;
     margin-top: 10px;
@@ -337,4 +342,4 @@ input:focus, select:focus, textarea:focus {
     line-height: 1.5;
 }
 
-#servidor-log-output { color: #94a3b8; font-family: monospace; }
+#servidor-log-output { color: #cbd5e1; font-family: monospace; }

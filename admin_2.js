@@ -517,39 +517,3 @@ window.cambiarPestana = cambiarPestana;
 window.cargarMetricasServidor = cargarMetricasServidor;
 window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
-
-}
-
-// =============================================================================
-// FUNCIÓN AUXILIAR: TESTEAR CONEXIÓN CON SUPABASE
-// =============================================================================
-async function testearConexionSupabase() {
-    logEstado("🔄 Testeando conexión directa con Supabase...");
-    const inicio = Date.now();
-    try {
-        const { error } = await supabaseClient
-            .from('Cartas')
-            .select('id', { count: 'exact', head: true });
-
-        const latencia = Date.now() - inicio;
-
-        if (error) {
-            DOM.setText('status-supabase', "● DESCONECTADO");
-            const statusEl = DOM.get('status-supabase');
-            if (statusEl) statusEl.style.color = "#ef4444";
-            logEstado(`❌ Fallo en test de conexión: ${error.message}`);
-        } else {
-            DOM.setText('status-supabase', "● CONECTADO");
-            const statusEl = DOM.get('status-supabase');
-            if (statusEl) statusEl.style.color = "#00ff66";
-            DOM.setText('ping-supabase', `${latencia} ms`);
-            logEstado(`🟢 Test exitoso | Latencia: ${latencia}ms`);
-        }
-    } catch (e) {
-        DOM.setText('status-supabase', "● DESCONECTADO");
-        const statusEl = DOM.get('status-supabase');
-        if (statusEl) statusEl.style.color = "#ef4444";
-        logEstado(`❌ Error crítico al probar conexión: ${e.message}`);
-    }
-}
-

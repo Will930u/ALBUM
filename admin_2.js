@@ -48,17 +48,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
+// 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
 function cambiarPestana(idPestana) {
+    if (!idPestana) return;
+
+    // Ocultar todas las pestañas y quitar estado activo a botones
     document.querySelectorAll('.contenido-pestana').forEach(el => el.classList.remove('activa'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('activo'));
     
+    // Activar el panel destino
     const pestanaDestino = DOM.get(idPestana);
     if (pestanaDestino) pestanaDestino.classList.add('activa');
     
+    // Marcar el botón activo correspondiente
     const botonActivo = Array.from(document.querySelectorAll('.tab-btn')).find(btn => 
         btn.getAttribute('onclick')?.includes(idPestana)
     );
     if (botonActivo) botonActivo.classList.add('activo');
+
+    // 💾 GUARDAR PESTAÑA EN LOCALSTORAGE PARA MANTENER ESTADO AL REFRESCAR
+    try {
+        localStorage.setItem('admin_pestana_activa', idPestana);
+    } catch (e) {
+        console.warn("No se pudo guardar la pestaña en localStorage:", e);
+    }
 }
 
 function seleccionarModoRender(modo) {

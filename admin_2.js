@@ -16,7 +16,8 @@ const Estado = {
     modoRenderActual: 'canvas', // 'canvas' | 'ia'
     canalRealtimeColeccion: null,
     animacionCatalogoId: null,
-    animacionPreviewId: null
+    animacionPreviewId: null,
+    cartaPreviewActual: null
 };
 
 // PALETAS DE COLOR POR ERA / RAREZA
@@ -199,62 +200,7 @@ async function regalarCartaAUsuario() {
     }
 }
 
-// 5. CREACIÓN Y PUBLICACIÓN DE CARTA
-async function guardarCartaBD() {
-    const inputId = DOM.findInput(['carta-id', 'id-carta', 'input-carta-id']);
-    const inputNombre = DOM.findInput(['carta-nombre', 'nombre-carta', 'input-carta-nombre']);
-    const inputRareza = DOM.findInput(['carta-rareza', 'rareza-carta', 'select-rareza']);
-    const inputTipo = DOM.findInput(['carta-tipo', 'tipo-carta', 'carta-era', 'select-era']);
-    const inputLore = DOM.findInput(['carta-lore', 'lore-carta', 'textarea-lore']);
-    const inputSimbolo = DOM.findInput(['carta-simbolo', 'simbolo-carta']);
-
-    const id = parseInt(inputId?.value, 10);
-    const nombre = inputNombre?.value?.trim();
-    const rareza = inputRareza?.value?.trim() || 'Común';
-    const tipo = inputTipo?.value?.trim() || 'Algorítmica Canvas';
-    const lore = inputLore?.value?.trim() || '';
-    const simbolo = inputSimbolo?.value?.trim() || '👾';
-
-    if (!id || !nombre) {
-        alert("Por favor completa el ID y el Nombre de la carta.");
-        return;
-    }
-
-    logEstado(`Guardando receta de Carta #${id} (${nombre})...`);
-    let imagenUrlData = "";
-
-    if (Estado.modoRenderActual === 'canvas') {
-        const canvas = DOM.get('canvasCartaGenerada');
-        imagenUrlData = canvas 
-            ? canvas.toDataURL("image/png") 
-            : JSON.stringify({ modo: "canvas", procedural: true, simbolo: simbolo, nombre: nombre });
-    } else {
-        const imgIa = DOM.get('imgPollinationsPreview');
-        imagenUrlData = imgIa ? imgIa.src : "";
-    }
-
-    const payloadCarta = {
-        id: id,
-        nombre: nombre,
-        rareza: rareza,
-        tipo: tipo,
-        lore: lore,
-        imagen_url: imagenUrlData
-    };
-
-    const { error } = await supabaseClient.from('Cartas').upsert([payloadCarta]);
-
-    if (error) {
-        alert("Error al publicar carta: " + error.message);
-    } else {
-        alert(`✅ Carta #${id} "${nombre}" publicada con éxito.`);
-        logEstado(`✅ Carta #${id} guardada correctamente.`);
-        await cargarCatalogoCartas();
-        await cargarMetricasServidor();
-    }
-}
-
-// 6. RENDERIZADO DEL CATÁLOGO
+// 5. RENDERIZADO DEL CATÁLOGO
 async function cargarCatalogoCartas() {
     const grid = DOM.get('grid-catalogo-admin');
     if (!grid) return;
@@ -388,20 +334,10 @@ function iniciarBucleAnimacionCatalogo(cartas) {
     Estado.animacionCatalogoId = requestAnimationFrame(loop);
 }
 
-// 7. GENERADOR CANVAS EN VIVO ANIMADO
+// 6. GENERADOR CANVAS EN VIVO ANIMADO
 function escucharDibujoCanvas() {
-    ['carta-nombre', 'carta-rareza', 'carta-simbolo', 'nombre-carta', 'rareza-carta', 'simbolo-carta'].forEach(id => {
-        const el = DOM.get(id);
-        if (el) {
-            el.addEventListener('input', () => {
-                if (Estado.modoRenderActual === 'canvas') dibujarCartaCanvas();
-            });
-        }
-    });
-
     DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
-    DOM.get('btn-guardar-carta')?.addEventListener('click', guardarCartaBD);
     DOM.get('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
 }
 
@@ -416,13 +352,15 @@ function dibujarCartaCanvas() {
 
     function loopPreview(tiempo) {
         const ctx = canvas.getContext('2d');
-        const inputNombre = DOM.findInput(['carta-nombre', 'nombre-carta']);
-        const inputSimbolo = DOM.findInput(['carta-simbolo', 'simbolo-carta']);
-        const inputRareza = DOM.findInput(['carta-rareza', 'rareza-carta', 'select-rareza']);
+        const carta = Estado.cartaPreviewActual || {
+            nombre: "Carta Misteriosa",
+            simbolo: "👾",
+            rareza: "Común"
+        };
 
-        const nombre = inputNombre?.value || "Carta Misteriosa";
-        const simbolo = inputSimbolo?.value || "👾";
-        const rareza = inputRareza?.value || "Común";
+        const nombre = carta.nombre || "Carta Misteriosa";
+        const simbolo = carta.simbolo || "👾";
+        const rareza = carta.rareza || "Común";
         const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
 
         const width = canvas.width;
@@ -480,11 +418,10 @@ function dibujarCartaCanvas() {
     Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
 }
 
-// 8. MOTOR POLLINATIONS IA
+// 7. MOTOR POLLINATIONS IA
 async function generarImagenPollinationsDirecta() {
     const promptCustom = DOM.get('prompt-ia-custom')?.value?.trim();
-    const inputNombre = DOM.findInput(['carta-nombre', 'nombre-carta']);
-    const nombre = inputNombre?.value || "creature";
+    const nombre = Estado.cartaPreviewActual?.nombre || "creature";
     const imgIa = DOM.get('imgPollinationsPreview');
     
     const promptFinal = promptCustom || `trading card art of ${nombre}, digital art, highly detailed, vibrant background`;
@@ -506,9 +443,9 @@ async function generarImagenPollinationsDirecta() {
     }
 }
 
-// 9. PARSER E IMPORTACIÓN DE PLANTILLAS
+// 8. PARSER E IMPORTACIÓN DE PLANTILLAS
 async function procesarYGuardarPlantillas() {
-    const textoArea = DOM.get('texto-plantillas-masivo');
+    const textoArea = DOM.get('textarea-plantillas');
     if (!textoArea || !textoArea.value.trim()) {
         alert("Pega el texto de las plantillas en el área de texto primero.");
         return;
@@ -522,144 +459,134 @@ async function procesarYGuardarPlantillas() {
 // 🎲 RANDOMIZADOR AVANZADO DE PLANTILLAS Y AUTOCONTEO SUPABASE (1 A 2000)
 // =============================================================================
 
-// ACTUALIZADOR DINÁMICO DE ETIQUETA/TÍTULO ID DE CARTA (X a 2000)
 function actualizarTextoTituloId(cantidadActualBD) {
     const textoFormateado = `ID DE CARTA (${cantidadActualBD} a 2000):`;
-
-    const labelId = DOM.get('label-carta-id') || DOM.get('title-carta-id');
+    const labelId = DOM.get('label-carta-id');
     if (labelId) {
         labelId.textContent = textoFormateado;
-        return;
-    }
-
-    const elementos = document.querySelectorAll('label, h1, h2, h3, h4, span, div, p');
-    for (let el of elementos) {
-        if (el.children.length === 0 && el.textContent.includes('ID DE CARTA')) {
-            el.textContent = textoFormateado;
-            break;
-        }
     }
 }
 
 async function seleccionarPlantillaAleatoria() {
-    logEstado("🎲 Consultando Supabase y rellenando aleatoriamente todos los cuadros...");
-
-    let proximoIdLibre = 1;
-    let totalCreadas = 0;
+    logEstado("🎲 Consultando plantillas en Supabase...");
 
     try {
-        const { data: cartasExistentes, error } = await supabaseClient
+        // 1. Obtener cartas existentes
+        const { data: cartasExistentes, error: errCartas } = await supabaseClient
             .from('Cartas')
-            .select('id')
-            .gte('id', 1)
-            .lte('id', 2000);
+            .select('id, nombre');
 
-        if (!error && cartasExistentes) {
-            const idsOcupados = new Set(cartasExistentes.map(c => Number(c.id)));
-            totalCreadas = idsOcupados.size;
+        if (errCartas) {
+            alert("Error consultando Cartas: " + errCartas.message);
+            return;
+        }
 
-            for (let i = 1; i <= 2000; i++) {
-                if (!idsOcupados.has(i)) {
-                    proximoIdLibre = i;
-                    break;
-                }
+        const idsOcupados = new Set(cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : []);
+        const nombresExistentes = new Set(cartasExistentes ? cartasExistentes.map(c => c.nombre?.toLowerCase().trim()) : []);
+
+        let proximoIdLibre = null;
+        for (let i = 1; i <= 2000; i++) {
+            if (!idsOcupados.has(i)) {
+                proximoIdLibre = i;
+                break;
             }
         }
+
+        if (!proximoIdLibre) {
+            alert("Se ha alcanzado el límite máximo de 2000 cartas creadas.");
+            return;
+        }
+
+        // 2. Consultar plantillas disponibles desde plantilla_criaturas
+        const { data: plantillas, error: errPlantillas } = await supabaseClient
+            .from('plantilla_criaturas')
+            .select('*');
+
+        if (errPlantillas) {
+            alert("Error leyendo plantilla_criaturas: " + errPlantillas.message);
+            return;
+        }
+
+        if (!plantillas || plantillas.length === 0) {
+            alert("No hay plantillas disponibles en la tabla plantilla_criaturas.");
+            return;
+        }
+
+        // Filtrar plantillas no usadas
+        const plantillasDisponibles = plantillas.filter(p => !nombresExistentes.has(p.nombre?.toLowerCase().trim()));
+
+        if (plantillasDisponibles.length === 0) {
+            alert("Todas las plantillas de plantilla_criaturas ya han sido registradas como cartas.");
+            return;
+        }
+
+        // 3. Seleccionar plantilla al azar
+        const plantillaElegida = plantillasDisponibles[Math.floor(Math.random() * plantillasDisponibles.length)];
+
+        // Visualizar en Canvas
+        Estado.cartaPreviewActual = {
+            nombre: plantillaElegida.nombre || "Criatura",
+            simbolo: plantillaElegida.simbolo || "👾",
+            rareza: plantillaElegida.rareza || "Común"
+        };
+        dibujarCartaCanvas();
+
+        // 4. Guardar instantáneamente en la base de datos
+        const canvas = DOM.get('canvasCartaGenerada');
+        const imagenUrlData = canvas ? canvas.toDataURL("image/png") : "";
+
+        const payloadCarta = {
+            id: proximoIdLibre,
+            nombre: plantillaElegida.nombre,
+            rareza: plantillaElegida.rareza || 'Común',
+            tipo: plantillaElegida.tipo || 'Algorítmica Canvas',
+            lore: plantillaElegida.lore || plantillaElegida.descripcion || '',
+            imagen_url: imagenUrlData
+        };
+
+        const { error: errInsert } = await supabaseClient
+            .from('Cartas')
+            .insert([payloadCarta]);
+
+        if (errInsert) {
+            alert("Error al guardar la carta en Supabase: " + errInsert.message);
+            return;
+        }
+
+        // Actualizar UI
+        const nuevoTotal = idsOcupados.size + 1;
+        DOM.setValue(['carta-id', 'id-carta'], proximoIdLibre);
+        actualizarTextoTituloId(nuevoTotal);
+        DOM.setText('total-cartas-count', nuevoTotal);
+
+        logEstado(`✅ Carta #${proximoIdLibre} "${plantillaElegida.nombre}" guardada automáticamente desde plantilla.`);
+        await cargarCatalogoCartas();
+        await cargarMetricasServidor();
+
     } catch (e) {
-        console.warn("Fallo al obtener IDs de Supabase:", e.message);
-        proximoIdLibre = Math.floor(Math.random() * 2000) + 1;
+        logEstado(`❌ Error procesando plantilla aleatoria: ${e.message}`);
     }
-
-    actualizarTextoTituloId(totalCreadas);
-    DOM.setText('total-cartas-count', totalCreadas);
-
-    // DICCIONARIOS DE GENERACIÓN AUTOMÁTICA
-    const prefijosNombre = [
-        "Ciber", "Guardián", "Espectro", "Centinela", "Titán", "Mago", "Fénix", "Sombra",
-        "Señor", "Héroe", "Dragón", "Búho", "Alien", "Escarabajo", "Gato", "Nómada", "Oráculo",
-        "Vanguardia", "Cazador", "Caminante", "Sacerdote", "Automátón", "Astral", "Crono"
-    ];
-    const nucleosNombre = [
-        "Místico", "Neón", "Arcano", "Espacial", "Solar", "Espectral", "Néctar", "Ancestral",
-        "Cuántico", "Radiante", "Salvaje", "Digital", "Tenebroso", "Estelar", "Oscuro",
-        "Pixel", "Cósmico", "Sintético", "Eterno", "Cibernético", "Olvido", "Infinito"
-    ];
-    const sufijosNombre = [
-        "del Abismo", "de Neón", "del Cosmos", "de la Sombra", "Supremo", "Alfa", "Prime",
-        "del Milenio", "de Luz", "de Acero", "del Vacío", "Ancestral", "v2.0", "de Cristal",
-        "de Fuego", "del Viento", "Eterno", "Prototipo", "del Caos"
-    ];
-
-    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const nombreAleatorio = `${pick(prefijosNombre)} ${pick(nucleosNombre)} ${pick(sufijosNombre)}`;
-
-    const erasCategorias = ["Cyberpunk / Neón", "Cotidianos / Retro", "Cosmos / Estelar", "Místico / Arcana"];
-    const eraElegida = pick(erasCategorias);
-
-    const randRareza = Math.random() * 100;
-    let rarezaAsignada = "Común";
-    if (randRareza > 95) rarezaAsignada = "Legendaria";
-    else if (randRareza > 80) rarezaAsignada = "Épica";
-    else if (randRareza > 50) rarezaAsignada = "Rara";
-
-    const iniciosLore = [
-        "Originado en las profundidades del sector neón,",
-        "Descubierto durante una excavación espacial,",
-        "Forjado en el núcleo de una estrella extinta,",
-        "Antigua deidad atrapada en una red cibernética,",
-        "Entidad programada para proteger el equilibrio del reino,",
-        "Un mito olvidado que volvió a emerger de las sombras,"
-    ];
-    const desarrollosLore = [
-        "posee el control absoluto sobre la energía de su entorno y",
-        "utiliza tecnología cuántica avanzada para canalizar su poder,",
-        "patrulla los límites del espacio conocido mientras",
-        "aguarda pacientemente el momento de desplegar su verdadero poder,",
-        "desafía las leyes de la física en cada manifestación,"
-    ];
-    const finalesLore = [
-        "nadie ha logrado descifrar su código original.",
-        "convirtiéndose en una leyenda para los coleccionistas.",
-        "marcando el inicio de una nueva era cibernética.",
-        "dejando una ráfaga de resplandor tras su paso.",
-        "revelando secretos ocultos del universo digital."
-    ];
-
-    const loreAleatorio = `${pick(iniciosLore)} ${pick(desarrollosLore)} ${pick(finalesLore)}`;
-    const simbolosValidos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
-    const simboloAleatorio = pick(simbolosValidos);
-
-    // RELLENAR RECURSIVAMENTE TODOS LOS CUADROS Y CAMPOS POSIBLES
-    DOM.setValue(['carta-id', 'id-carta', 'input-carta-id'], proximoIdLibre);
-    DOM.setValue(['carta-nombre', 'nombre-carta', 'input-carta-nombre'], nombreAleatorio);
-    DOM.setValue(['carta-rareza', 'rareza-carta', 'select-rareza'], rarezaAsignada);
-    DOM.setValue(['carta-simbolo', 'simbolo-carta'], simboloAleatorio);
-    DOM.setValue(['carta-lore', 'lore-carta', 'textarea-lore'], loreAleatorio);
-    DOM.setValue(['carta-tipo', 'tipo-carta', 'carta-era', 'select-era'], eraElegida);
-
-    dibujarCartaCanvas();
-    logEstado(`✅ Cuadros rellenados aleatoriamente: ID #${proximoIdLibre} | ${nombreAleatorio}`);
 }
 
-// 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
+// 9. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
 async function cargarMetricasServidor() {
     logEstado("🔄 Comprobando métricas del servidor Supabase...");
     const inicio = Date.now();
     
     try {
-        const { count: countCartas, error: errCartas } = await supabaseClient
+        const { count: countCartas } = await supabaseClient
             .from('Cartas')
             .select('*', { count: 'exact', head: true });
 
-        const { count: countUsuarios, error: errUsuarios } = await supabaseClient
+        const { count: countUsuarios } = await supabaseClient
             .from('usuarios')
             .select('*', { count: 'exact', head: true });
 
-        const { count: countPremios, error: errPremios } = await supabaseClient
+        const { count: countPremios } = await supabaseClient
             .from('reclamaciones_premios')
             .select('*', { count: 'exact', head: true });
 
-        const { count: countColecciones, error: errColecciones } = await supabaseClient
+        const { count: countColecciones } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('*', { count: 'exact', head: true });
 
@@ -696,9 +623,9 @@ async function cargarMetricasServidor() {
             }
         }
 
-        const inputId = DOM.findInput(['carta-id', 'id-carta', 'input-carta-id']);
-        if (inputId && (!inputId.value || inputId.value === "0")) {
-            DOM.setValue(['carta-id', 'id-carta', 'input-carta-id'], primerIdLibre);
+        const inputId = DOM.findInput(['carta-id', 'id-carta']);
+        if (inputId) {
+            DOM.setValue(['carta-id', 'id-carta'], primerIdLibre);
         }
 
         logEstado(`🟢 Servidor activo | Cartas en BD: ${creadasReales}/2000 | Próximo ID disponible: #${primerIdLibre}`);
@@ -761,7 +688,6 @@ function logEstado(mensaje) {
 
 function configurarEventosUI() {
     DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
-    DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));

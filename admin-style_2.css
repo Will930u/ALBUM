@@ -1,5 +1,5 @@
 /* =============================================================================
-🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL (TEMA AZUL ELEGANTE)
+🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS COMPLETOS
 ============================================================================= */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -8,8 +8,8 @@
 }
 
 body {
-    background-color: #030712;
-    color: #f0f9ff;
+    background-color: #08080a;
+    color: #ffffff;
     font-family: 'Press Start 2P', monospace;
     padding: 20px 10px;
     display: flex;
@@ -19,24 +19,25 @@ body {
 }
 
 .contenedor-central {
-    background-color: #0b1329;
-    border: 3px solid #00d2ff;
+    background-color: #121216;
+    border: 4px solid #00ff66;
     padding: 20px;
     max-width: 520px;
     width: 100%;
-    box-shadow: 0 0 25px rgba(0, 210, 255, 0.25), 6px 6px 0px #031b33;
-    border-radius: 8px;
+    box-shadow: 6px 6px 0px #092612;
+    border-radius: 4px;
 }
 
 .titulo-central {
     font-size: 11px;
-    color: #00d2ff;
+    color: #00ff66;
     text-align: center;
     margin-bottom: 15px;
     line-height: 1.5;
-    text-shadow: 0 0 10px rgba(0, 210, 255, 0.7);
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
 }
 
+/* BARRA DE PESTAÑAS */
 .barra-pestanas {
     display: flex;
     gap: 6px;
@@ -45,30 +46,27 @@ body {
 
 .tab-btn {
     flex: 1;
-    background-color: #0f172a;
-    color: #64748b;
-    border: 2px solid #031b33;
+    background-color: #1a1a1f;
+    color: #888888;
+    border: 2px solid #000;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
     padding: 10px 2px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.1s, color 0.1s;
     text-align: center;
-    border-radius: 4px;
 }
 
-.tab-btn:hover { 
-    color: #e0f2fe; 
-    background-color: #1e293b; 
-    border-color: #00d2ff;
+.tab-btn:hover {
+    color: #fff;
+    background-color: #22222a;
 }
 
 .tab-btn.activo {
-    background-color: #00d2ff;
-    color: #030712;
+    background-color: #00ff66;
+    color: #000000;
     font-weight: bold;
-    box-shadow: 0 0 12px rgba(0, 210, 255, 0.6), 2px 2px 0px #031b33;
-    border-color: #38bdf8;
+    box-shadow: 2px 2px 0px #000;
 }
 
 .contenido-pestana { display: none; }
@@ -76,15 +74,15 @@ body {
 
 .subtitulo-admin {
     font-size: 8px;
-    color: #38bdf8;
+    color: #ffcc00;
     text-align: center;
     margin-bottom: 15px;
-    border-bottom: 2px dashed #1e293b;
+    border-bottom: 2px dashed #333;
     padding-bottom: 12px;
     line-height: 1.4;
-    text-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
 
+/* FORMULARIOS */
 .form-grupo {
     display: flex;
     flex-direction: column;
@@ -94,56 +92,54 @@ body {
 
 label {
     font-size: 8px;
-    color: #7dd3fc;
+    color: #38bdf8;
     margin-bottom: 6px;
     line-height: 1.3;
 }
 
-input[type="text"], input[type="number"], textarea, select {
+input[type="text"],
+input[type="number"],
+textarea,
+select {
     width: 100%;
-    background-color: #020617;
-    border: 2px solid #1e293b;
-    color: #f0f9ff;
+    background-color: #000000;
+    border: 2px solid #333333;
+    color: #ffffff;
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
     padding: 10px;
     outline: none;
     border-radius: 4px;
-    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-input:focus, select:focus, textarea:focus { 
-    border-color: #00d2ff; 
-    box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+input:focus, select:focus, textarea:focus {
+    border-color: #00ff66;
 }
 
+/* BOTONES */
 .btn-admin-final {
-    background-color: #00d2ff;
-    color: #020617;
-    border: 3px solid #031b33;
+    background-color: #00ff66;
+    color: #000000;
+    border: 3px solid #000000;
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
     font-weight: bold;
     padding: 14px;
     width: 100%;
     cursor: pointer;
-    box-shadow: 4px 4px 0px #031b33;
+    box-shadow: 4px 4px 0px #092612;
     margin-top: 10px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
 }
 
 .btn-admin-final:hover {
-    background-color: #e0f2fe;
-    box-shadow: 0 0 16px rgba(224, 242, 254, 0.5), 4px 4px 0px #0f172a;
+    background-color: #ffffff;
+    box-shadow: 4px 4px 0px #333333;
 }
 
-/* =============================================================================
-👁️ VISTA PREVIA CANVAS ALGORÍTMICO Y POLLINATIONS IA
-============================================================================= */
+/* VISTA PREVIA CANVAS */
 .contenedor-vista-previa-canvas {
-    background-color: #020617;
-    border: 2px dashed #00d2ff;
+    background-color: #050508;
+    border: 2px dashed #00ff66;
     padding: 15px;
     display: flex;
     flex-direction: column;
@@ -155,7 +151,7 @@ input:focus, select:focus, textarea:focus {
 
 .label-previa {
     font-size: 7px;
-    color: #00d2ff;
+    color: #00ff66;
     margin-bottom: 12px;
     text-align: center;
 }
@@ -163,31 +159,41 @@ input:focus, select:focus, textarea:focus {
 .canvas-wrapper {
     width: 220px;
     height: 308px;
-    border: 3px solid #1e3a8a;
+    border: 3px solid #1e293b;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.35);
-    background-color: #020617;
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
+    background-color: #000;
     position: relative;
 }
 
-#canvasCartaGenerada { width: 100%; height: 100%; display: block; }
-.img-pollinations-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
+#canvasCartaGenerada {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.img-pollinations-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
 
 .spinner-ia {
     display: none;
     position: absolute;
-    top: 50%; left: 50%;
+    top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
     font-size: 8px;
     color: #38bdf8;
     text-align: center;
-    background: rgba(2, 6, 23, 0.9);
+    background: rgba(0,0,0,0.85);
     padding: 10px;
     border: 1px solid #38bdf8;
     border-radius: 4px;
     z-index: 10;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 .info-semilla-box {
@@ -198,6 +204,7 @@ input:focus, select:focus, textarea:focus {
     text-align: center;
 }
 
+/* SELECTOR MODO RENDER */
 .selector-modo-render {
     display: flex;
     width: 100%;
@@ -207,139 +214,134 @@ input:focus, select:focus, textarea:focus {
 
 .btn-modo-opt {
     flex: 1;
-    background: #020617;
-    border: 1px solid #1e293b;
-    color: #64748b;
+    background: #000;
+    border: 1px solid #333;
+    color: #888;
     font-family: inherit;
     font-size: 7px;
     padding: 8px;
     cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
 }
 
 .btn-modo-opt.activo {
     border-color: #38bdf8;
-    color: #e0f2fe;
-    background: #075985;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    color: #38bdf8;
+    background: #082f49;
 }
 
-/* =============================================================================
-📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (ELEGANT BLUE NEON)
-============================================================================= */
-#grid-catalogo-admin {
+/* CATÁLOGO */
+.grid-catalogo-admin {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-    gap: 14px;
-    max-height: 480px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    max-height: 450px;
     overflow-y: auto;
-    padding: 6px;
+    padding-right: 8px;
     margin-top: 15px;
-    background: rgba(2, 6, 23, 0.6);
-    border-radius: 6px;
-    border: 1px solid #1e293b;
 }
 
-#grid-catalogo-admin::-webkit-scrollbar { width: 6px; }
-#grid-catalogo-admin::-webkit-scrollbar-track { background: #020617; border-radius: 4px; }
-#grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00d2ff; border-radius: 4px; box-shadow: 0 0 6px #00d2ff; }
+.grid-catalogo-admin::-webkit-scrollbar { width: 6px; }
+.grid-catalogo-admin::-webkit-scrollbar-track { background: #0a0a0c; border-radius: 4px; }
+.grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00ff66; border-radius: 4px; }
 
-/* 🎴 CARTA BASE CON DISEÑO ELEGANTE */
 .tarjeta-carta {
-    background: #070e20;
-    border: 2px solid #1e3a8a;
-    border-radius: 8px;
-    padding: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
 }
 
 .tarjeta-carta:hover {
-    transform: translateY(-6px) scale(1.02);
-    border-color: #00d2ff;
-    box-shadow: 0 8px 22px rgba(0, 210, 255, 0.4), 0 0 12px rgba(0, 210, 255, 0.25);
+    transform: translateY(-4px);
     z-index: 10;
 }
 
-/* ✨ FONDO DUAL DEGRADADO DINO/ANIMADO EN TONO AZUL */
+/* FONDO MÓVIL ANIMADO */
 .fondo-movil-animado {
     position: absolute;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: linear-gradient(
-        135deg, 
-        rgba(0, 210, 255, 0) 30%, 
-        rgba(0, 210, 255, 0.12) 50%, 
-        rgba(0, 210, 255, 0) 70%
-    );
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255, 255, 255, 0.08) 50%, transparent 60%);
     background-size: 200% 200%;
-    animation: animacionGlowHolografico 4s linear infinite;
+    animation: fondoMovil 3s ease-in-out infinite;
     z-index: 1;
     pointer-events: none;
 }
 
-@keyframes animacionGlowHolografico {
-    0% { transform: rotate(0deg) translate(-10%, -10%); }
-    50% { transform: rotate(180deg) translate(10%, 10%); }
-    100% { transform: rotate(360deg) translate(-10%, -10%); }
+@keyframes fondoMovil {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
-/* ✨ EFECTO DE RESPLANDOR HOLOGRÁFICO AL HACER HOVER */
+/* EFECTO BRILLO HOLOGRÁFICO */
 .efecto-brillo-holografico {
     position: absolute;
-    top: 0; left: -100%;
-    width: 60%; height: 100%;
-    background: linear-gradient(
-        90deg, 
-        transparent, 
-        rgba(0, 210, 255, 0.3), 
-        rgba(224, 242, 254, 0.5), 
-        rgba(0, 210, 255, 0.3), 
-        transparent
-    );
-    transform: skewX(-25deg);
-    transition: left 0.6s ease-in-out;
-    z-index: 2;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 1;
     pointer-events: none;
 }
 
-.tarjeta-carta:hover .efecto-brillo-holografico { 
-    left: 150%; 
-}
+.tarjeta-carta:hover .efecto-brillo-holografico { opacity: 1; }
 
-/* 🏷️ BADGES DE RAREZA ESTRUCTURADOS */
 .badge-rareza {
-    background: rgba(2, 6, 23, 0.85);
-    border: 1px solid currentColor;
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 7px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 0 6px currentColor;
-    display: inline-block;
 }
 
-/* =============================================================================
-📊 LOGS Y ESTADO DEL SERVIDOR
-============================================================================= */
-#status-log, #servidor-log-output {
+/* MÉTRICAS DEL SERVIDOR */
+.metricas-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.metrica-box {
+    background: #000;
+    border: 1px solid #333;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metrica-label {
+    font-size: 6px;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+
+.metrica-valor {
+    font-size: 9px;
+    color: #00ff66;
+    font-weight: bold;
+}
+
+/* LOGS */
+.log-servidor, .status-log {
     font-size: 7px;
-    color: #00d2ff;
-    background: #020617;
-    border: 1px solid #1e293b;
+    color: #00ff66;
+    background: #000;
+    border: 1px solid #333;
     padding: 8px;
     border-radius: 4px;
     margin-top: 10px;
-    max-height: 100px;
+    max-height: 120px;
     overflow-y: auto;
     line-height: 1.5;
+    font-family: monospace;
 }
 
-#servidor-log-output { color: #cbd5e1; font-family: monospace; }
+.status-log {
+    color: #94a3b8;
+    max-height: 60px;
+}

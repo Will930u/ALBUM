@@ -520,22 +520,16 @@ async function seleccionarPlantillaAleatoria() {
             return;
         }
 
-        // 3. Seleccionar plantilla al azar y extraer un emoji aleatorio
+        // 3. Seleccionar plantilla al azar
         const plantillaElegida = plantillasDisponibles[Math.floor(Math.random() * plantillasDisponibles.length)];
 
-        // Obtener el campo de emojis (emoji_text o emojiText)
-        const rawEmojiText = plantillaElegida.emoji_text || plantillaElegida.emojitext || plantillaElegida.simbolo || "👾";
-        
-        // Convertir en un array de emojis individuales (soporta caracteres Unicode multibyte) y seleccionar uno al azar
-        const listaEmojis = Array.from(rawEmojiText.trim());
-        const emojiAleatorio = listaEmojis.length > 0 
-            ? listaEmojis[Math.floor(Math.random() * listaEmojis.length)] 
-            : "👾";
+        // Obtener el emoji directamente desde la columna 'emoji' de la tabla Supabase
+        const emojiCarta = plantillaElegida.emoji || plantillaElegida.simbolo || "👾";
 
         // Visualizar en Canvas
         Estado.cartaPreviewActual = {
             nombre: plantillaElegida.nombre || "Criatura",
-            simbolo: emojiAleatorio,
+            simbolo: emojiCarta,
             rareza: plantillaElegida.rareza || "Común"
         };
         dibujarCartaCanvas();

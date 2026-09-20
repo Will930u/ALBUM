@@ -150,15 +150,15 @@ function iniciarSuscripcionRealtimeCartas() {
         .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'Cartas' },
-            async (payload) => {
-                logEstado(`⚡ Cambio detectado en Catálogo Cartas (${payload.eventType}). Actualizando estado...`);
-                await cargarMetricasServidor();
-                await cargarCatalogoCartas();
+            (payload) => {
+                logEstado(`⚡ Cambio detectado en la tabla Cartas (${payload.eventType}). Recalculando IDs...`);
+                cargarMetricasServidor();
+                cargarCatalogoCartas();
             }
         )
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-                logEstado("🟢 Suscripción Realtime activa: Tabla Cartas sincronizada.");
+                logEstado("🟢 Suscripción Realtime activa sobre la tabla Cartas.");
             }
         });
 }
@@ -428,39 +428,7 @@ function escucharDibujoCanvas() {
     DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-guardar-carta')?.addEventListener('click', guardarCartaBD);
     DOM.get('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
-}
-
-function renderizarCanvasAMemoriaDataURL(nombre, simbolo, rareza) {
-    const canvasTemp = document.createElement('canvas');
-    canvasTemp.width = 220;
-    canvasTemp.height = 308;
-    const ctx = canvasTemp.getContext('2d');
-    const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
-    const width = canvasTemp.width;
-    const height = canvasTemp.height;
-
-    const gradiente = ctx.createLinearGradient(0, 0, width, height);
-    gradiente.addColorStop(0, paleta.fondo);
-    gradiente.addColorStop(0.5, paleta.acento + '33');
-    gradiente.addColorStop(1, '#000000');
-
-    ctx.fillStyle = gradiente;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.strokeStyle = paleta.borde;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(6, 6, width - 12, height - 12);
-
-    ctx.font = "48px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(simbolo, width / 2, height / 2 - 10);
-
-    ctx.fillStyle = paleta.texto;
-    ctx.font = "10px 'Press Start 2P', monospace";
-    ctx.fillText((nombre || "CARTA").substring(0, 14), width / 2, height - 30);
-
-    return canvasTemp.toDataURL("image/png");
+    DOM.get('btn-generar-masivo')?.addEventListener('click', generarCartasMasivasBD);
 }
 
 function dibujarCartaCanvas() {
@@ -566,7 +534,7 @@ async function generarImagenPollinationsDirecta() {
 
 // 9. PARSER E IMPORTACIÓN DE PLANTILLAS
 async function procesarYGuardarPlantillas() {
-    const textoArea = DOM.get('textarea-plantillas');
+    const textoArea = DOM.get('textarea-plantillas') || DOM.get('texto-plantillas-masivo');
     if (!textoArea || !textoArea.value.trim()) {
         alert("Pega el texto de las plantillas en el área de texto primero.");
         return;
@@ -580,9 +548,33 @@ async function procesarYGuardarPlantillas() {
 // 🎲 RANDOMIZADOR AVANZADO DE PLANTILLAS Y AUTOCONTEO SUPABASE (1 A 2000)
 // =============================================================================
 
+// OBTENCIÓN DE EMOJIS DESDE plantillas_criaturas
+async function obtenerEmojisPlantillas() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('plantillas_criaturas')
+            .select('*');
+
+        if (error || !data || data.length === 0) {
+            return ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
+        }
+
+        const emojisExtraídos = data
+            .map(row => row.emoji || row.simbolo || row.simbolos || row.emojis)
+            .filter(e => Boolean(e));
+
+        return emojisExtraídos.length > 0 
+            ? emojisExtraídos 
+            : ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
+    } catch (e) {
+        console.warn("Error al obtener emojis de plantillas_criaturas:", e);
+        return ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
+    }
+}
+
 // ACTUALIZADOR DINÁMICO DE ETIQUETA/TÍTULO ID DE CARTA (X a 2000)
-function actualizarTextoTituloId(proximoIdDisponible) {
-    const textoFormateado = `ID DE CARTA (${proximoIdDisponible} a 2000):`;
+function actualizarTextoTituloId(cantidadActualBD) {
+    const textoFormateado = `ID DE CARTA (${cantidadActualBD} a 2000):`;
 
     const labelId = DOM.get('label-carta-id') || DOM.get('title-carta-id');
     if (labelId) {
@@ -597,28 +589,6 @@ function actualizarTextoTituloId(proximoIdDisponible) {
             break;
         }
     }
-}
-
-// CONSULTA DE EMOJIS DIRECTA A PLANTILLAS_CRIATURAS
-async function obtenerEmojisPlantillasBD() {
-    try {
-        const { data: plantillas, error } = await supabaseClient
-            .from('plantillas_criaturas')
-            .select('*');
-
-        if (!error && plantillas && plantillas.length > 0) {
-            const emojisExtraidos = plantillas
-                .map(item => item.emoji || item.simbolo || item.icono)
-                .filter(Boolean);
-
-            if (emojisExtraidos.length > 0) {
-                return emojisExtraidos;
-            }
-        }
-    } catch (e) {
-        console.warn("No se pudieron cargar emojis de plantillas_criaturas:", e.message);
-    }
-    return ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
 }
 
 async function seleccionarPlantillaAleatoria() {
@@ -650,7 +620,7 @@ async function seleccionarPlantillaAleatoria() {
         proximoIdLibre = Math.floor(Math.random() * 2000) + 1;
     }
 
-    actualizarTextoTituloId(proximoIdLibre);
+    actualizarTextoTituloId(totalCreadas);
     DOM.setText('total-cartas-count', totalCreadas);
 
     // DICCIONARIOS DE GENERACIÓN AUTOMÁTICA
@@ -706,8 +676,8 @@ async function seleccionarPlantillaAleatoria() {
     ];
 
     const loreAleatorio = `${pick(iniciosLore)} ${pick(desarrollosLore)} ${pick(finalesLore)}`;
-    const simbolosBD = await obtenerEmojisPlantillasBD();
-    const simboloAleatorio = pick(simbolosBD);
+    const simbolosValidos = await obtenerEmojisPlantillas();
+    const simboloAleatorio = pick(simbolosValidos);
 
     // RELLENAR RECURSIVAMENTE TODOS LOS CUADROS Y CAMPOS POSIBLES
     DOM.setValue(['carta-id', 'id-carta', 'input-carta-id'], proximoIdLibre);
@@ -721,91 +691,89 @@ async function seleccionarPlantillaAleatoria() {
     logEstado(`✅ Cuadros rellenados aleatoriamente: ID #${proximoIdLibre} | ${nombreAleatorio}`);
 }
 
-// GENERACIÓN ALEATORIA MASIVA EN LOTE Y PUBLICACIÓN AUTOMÁTICA
-async function generarCartasMasivas() {
-    const inputCantidad = DOM.get('input-cantidad-masiva');
-    const cantidadACrear = Math.min(Math.max(parseInt(inputCantidad?.value, 10) || 1, 1), 100);
+// LÓGICA DE GENERACIÓN ALEATORIA MASIVA EN LOTE (RANGOS 27 A 2000)
+async function generarCartasMasivasBD() {
+    const inputCantidad = DOM.get('cantidad-masiva');
+    const cantidadAGenerar = parseInt(inputCantidad?.value, 10) || 5;
 
-    logEstado(`🚀 Iniciando generación en lote de ${cantidadACrear} cartas...`);
+    if (cantidadAGenerar <= 0) {
+        alert("Ingresa una cantidad válida mayor a 0.");
+        return;
+    }
+
+    logEstado(`⚡ Iniciando generación masiva en lote de ${cantidadAGenerar} cartas...`);
 
     try {
-        const { data: cartasExistentes, error: errCartas } = await supabaseClient
+        const { data: cartasExistentes, error } = await supabaseClient
             .from('Cartas')
             .select('id')
-            .gte('id', 1)
+            .gte('id', 27)
             .lte('id', 2000);
 
-        if (errCartas) {
-            alert("Error al verificar disponibilidad de IDs: " + errCartas.message);
+        if (error) {
+            alert("Error al verificar IDs en Supabase: " + error.message);
             return;
         }
 
-        const idsOcupados = new Set((cartasExistentes || []).map(c => Number(c.id)));
-        const idsDisponibles = [];
+        const idsOcupados = new Set(cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : []);
+        const idsLibres = [];
 
-        for (let i = 1; i <= 2000; i++) {
+        for (let i = 27; i <= 2000; i++) {
             if (!idsOcupados.has(i)) {
-                idsDisponibles.push(i);
+                idsLibres.push(i);
             }
         }
 
-        if (idsDisponibles.length < cantidadACrear) {
-            alert(`Solo quedan ${idsDisponibles.length} IDs disponibles entre 1 y 2000.`);
+        if (idsLibres.length < cantidadAGenerar) {
+            alert(`No hay suficientes IDs libres en el rango de 27 a 2000. Libres: ${idsLibres.length}`);
             return;
         }
 
-        const emojisBD = await obtenerEmojisPlantillasBD();
+        const idsAsignados = idsLibres.slice(0, cantidadAGenerar);
+        const simbolosDisponibles = await obtenerEmojisPlantillas();
 
-        const prefijosNombre = ["Ciber", "Guardián", "Espectro", "Centinela", "Titán", "Mago", "Fénix", "Sombra", "Señor", "Héroe", "Dragón", "Astral", "Crono"];
-        const nucleosNombre = ["Místico", "Neón", "Arcano", "Espacial", "Solar", "Espectral", "Ancestral", "Cuántico", "Radiante", "Salvaje", "Digital", "Cósmico"];
-        const sufijosNombre = ["del Abismo", "de Neón", "del Cosmos", "de la Sombra", "Supremo", "Alfa", "Prime", "del Milenio", "de Acero", "del Vacío", "Eterno"];
+        const prefijosNombre = ["Ciber", "Guardián", "Espectro", "Centinela", "Titán", "Mago", "Fénix", "Sombra", "Señor", "Héroe", "Dragón", "Nómada"];
+        const nucleosNombre = ["Místico", "Neón", "Arcano", "Espacial", "Solar", "Espectral", "Cuántico", "Radiante", "Salvaje", "Digital", "Estelar"];
+        const sufijosNombre = ["del Abismo", "de Neón", "del Cosmos", "de la Sombra", "Supremo", "Alfa", "Prime", "de Luz", "de Acero", "del Vacío"];
         const erasCategorias = ["Cyberpunk / Neón", "Cotidianos / Retro", "Cosmos / Estelar", "Místico / Arcana"];
 
         const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        const loteCartas = [];
 
-        for (let idx = 0; idx < cantidadACrear; idx++) {
-            const idAsignado = idsDisponibles[idx];
-            const nombreGenerado = `${pick(prefijosNombre)} ${pick(nucleosNombre)} ${pick(sufijosNombre)}`;
-            const eraElegida = pick(erasCategorias);
-            const simboloElegido = pick(emojisBD);
+        const loteCartas = idsAsignados.map(id => {
+            const nombre = `${pick(prefijosNombre)} ${pick(nucleosNombre)} ${pick(sufijosNombre)}`;
+            const simbolo = pick(simbolosDisponibles);
+            const era = pick(erasCategorias);
 
             const randRareza = Math.random() * 100;
-            let rarezaAsignada = "Común";
-            if (randRareza > 95) rarezaAsignada = "Legendaria";
-            else if (randRareza > 80) rarezaAsignada = "Épica";
-            else if (randRareza > 50) rarezaAsignada = "Rara";
+            let rareza = "Común";
+            if (randRareza > 95) rareza = "Legendaria";
+            else if (randRareza > 80) rareza = "Épica";
+            else if (randRareza > 50) rareza = "Rara";
 
-            const loreGenerado = `Entidad procedural #${idAsignado} manifestada en la era ${eraElegida}. Canaliza poder absoluto mediante ${simboloElegido}.`;
-            const imagenDataUrl = renderizarCanvasAMemoriaDataURL(nombreGenerado, simboloElegido, rarezaAsignada);
+            const lore = `Carta procedural generada en lote #${id} para el sector ${era}.`;
 
-            loteCartas.push({
-                id: idAsignado,
-                nombre: nombreGenerado,
-                rareza: rarezaAsignada,
-                tipo: eraElegida,
-                lore: loreGenerado,
-                imagen_url: imagenDataUrl
-            });
-        }
+            return {
+                id: id,
+                nombre: nombre,
+                rareza: rareza,
+                tipo: era,
+                lore: lore,
+                imagen_url: JSON.stringify({ modo: "canvas", procedural: true, simbolo: simbolo, nombre: nombre })
+            };
+        });
 
-        logEstado(`Enviando lote de ${loteCartas.length} cartas a Supabase...`);
-        const { error: errInsert } = await supabaseClient
-            .from('Cartas')
-            .upsert(loteCartas);
+        const { error: errUpsert } = await supabaseClient.from('Cartas').upsert(loteCartas);
 
-        if (errInsert) {
-            alert("Error al insertar lote en Supabase: " + errInsert.message);
-            logEstado(`❌ Error al guardar lote: ${errInsert.message}`);
+        if (errUpsert) {
+            alert("Error al insertar el lote masivo: " + errUpsert.message);
         } else {
-            alert(`🎉 ¡Éxito! Se crearon y guardaron ${loteCartas.length} cartas automáticamente.`);
-            logEstado(`✅ Lote de ${loteCartas.length} cartas publicado correctamente.`);
-            await cargarMetricasServidor();
+            alert(`🎉 Lote masivo de ${cantidadAGenerar} cartas insertado con éxito en Supabase.`);
+            logEstado(`✅ Generación masiva completada (${cantidadAGenerar} cartas creadas).`);
             await cargarCatalogoCartas();
+            await cargarMetricasServidor();
         }
     } catch (e) {
-        alert("Fallo crítico en generación masiva: " + e.message);
-        logEstado(`❌ Fallo en generación masiva: ${e.message}`);
+        alert("Fallo crítico durante la generación masiva: " + e.message);
     }
 }
 
@@ -838,7 +806,8 @@ async function cargarMetricasServidor() {
         if (statusEl) statusEl.style.color = "#00ff66";
 
         const creadasReales = countCartas ?? 0;
-
+        
+        actualizarTextoTituloId(creadasReales);
         DOM.setText('total-cartas-count', creadasReales);
 
         DOM.setText('ping-supabase', `${latencia} ms`);
@@ -855,18 +824,24 @@ async function cargarMetricasServidor() {
         let primerIdLibre = 1;
         if (cartasActivas) {
             const setIds = new Set(cartasActivas.map(c => Number(c.id)));
-            for (let i = 1; i <= 2000; i++) {
+            for (let i = 27; i <= 2000; i++) {
                 if (!setIds.has(i)) {
                     primerIdLibre = i;
                     break;
                 }
             }
+            if (primerIdLibre === 1) {
+                for (let i = 1; i <= 2000; i++) {
+                    if (!setIds.has(i)) {
+                        primerIdLibre = i;
+                        break;
+                    }
+                }
+            }
         }
 
-        actualizarTextoTituloId(primerIdLibre);
-
         const inputId = DOM.findInput(['carta-id', 'id-carta', 'input-carta-id']);
-        if (inputId && (!inputId.value || inputId.value === "0")) {
+        if (inputId) {
             DOM.setValue(['carta-id', 'id-carta', 'input-carta-id'], primerIdLibre);
         }
 
@@ -947,5 +922,5 @@ window.cargarMetricasServidor = cargarMetricasServidor;
 window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
-window.generarCartasMasivas = generarCartasMasivas;
 window.testearConexionSupabase = testearConexionSupabase;
+window.generarCartasMasivasBD = generarCartasMasivasBD;

@@ -1,516 +1,345 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generador Procedural de 100 Personajes Anime Pixel Art</title>
-  <style>
-    :root {
-      --bg-color: #0b0f19;
-      --card-bg: #151c2c;
-      --text-color: #f1f5f9;
-      --accent-color: #ec4899;
-      --accent-hover: #be185d;
-      --border-color: #1e293b;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      min-height: 100vh;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: #f472b6;
-      margin-bottom: 0.5rem;
-    }
-
-    p.subtitle {
-      color: #94a3b8;
-      font-size: 0.95rem;
-    }
-
-    .controls-panel {
-      background-color: var(--card-bg);
-      padding: 1.25rem 1.75rem;
-      border-radius: 1rem;
-      border: 1px solid var(--border-color);
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
-    }
-
-    button, a.btn {
-      background-color: var(--accent-color);
-      color: #fff;
-      border: none;
-      padding: 0.75rem 1.25rem;
-      font-size: 0.95rem;
-      font-weight: 700;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    button:hover, a.btn:hover {
-      background-color: var(--accent-hover);
-      box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
-    }
-
-    .toggle-container {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.9rem;
-      color: #cbd5e1;
-      cursor: pointer;
-    }
-
-    .toggle-container input {
-      accent-color: var(--accent-color);
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-
-    .grid-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 1.25rem;
-      width: 100%;
-      max-width: 1400px;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 0.75rem;
-      padding: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: #f472b6;
-    }
-
-    .canvas-box {
-      width: 120px;
-      height: 120px;
-      border-radius: 0.5rem;
-      overflow: hidden;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-      background-color: #000;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-    }
-
-    .card-title {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #94a3b8;
-    }
-
-    .download-link {
-      color: #38bdf8;
-      font-size: 0.75rem;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .download-link:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h1>Colección de 100 Personajes Anime Pixel Art</h1>
-    <p class="subtitle">Generación procedural completa: 100 avatares únicos con fondos dinámicos y animación en vivo</p>
-  </header>
-
-  <div class="controls-panel">
-    <button id="btnRebuild">Generar 100 Nuevos</button>
-    <label class="toggle-container">
-      <input type="checkbox" id="toggleAnimation" checked>
-      Activar Animación (Movimiento de respiración, cabello y fondo)
-    </label>
-  </div>
-
-  <div class="grid-container" id="grid"></div>
-
-  <script>
-    const grid = document.getElementById('grid');
-    const btnRebuild = document.getElementById('btnRebuild');
-    const toggleAnimation = document.getElementById('toggleAnimation');
-
-    const totalCharacters = 100;
-    let characterList = [];
-    let animationFrameId = null;
-    let globalTime = 0;
-
-    // Paletas de Colores
-    const skinPalettes = [
-      { base: '#ffe0bd', shadow: '#ffd0a1', blush: '#ffb3b3' },
-      { base: '#fcd5b5', shadow: '#e5b38f', blush: '#f8a5a5' },
-      { base: '#dca271', shadow: '#b87c4c', blush: '#d06e6e' },
-      { base: '#7c5230', shadow: '#59381e', blush: '#8e4848' }
-    ];
-
-    const hairPalettes = [
-      { base: '#3b82f6', light: '#93c5fd', shadow: '#1d4ed8' }, // Azul
-      { base: '#ec4899', light: '#fbcfe8', shadow: '#be185d' }, // Rosa
-      { base: '#a855f7', light: '#e9d5ff', shadow: '#6b21a8' }, // Púrpura
-      { base: '#eab308', light: '#fef08a', shadow: '#a16207' }, // Rubio
-      { base: '#10b981', light: '#a7f3d0', shadow: '#047857' }, // Verde Menta
-      { base: '#ef4444', light: '#fca5a5', shadow: '#991b1b' }, // Rojo
-      { base: '#1e293b', light: '#64748b', shadow: '#0f172a' }, // Negro
-      { base: '#f97316', light: '#fed7aa', shadow: '#c2410c' }  // Naranja
-    ];
-
-    const eyeColors = ['#2563eb', '#dc2626', '#059669', '#9333ea', '#d97706', '#ec4899', '#06b6d4'];
-    const clothesColors = ['#1e1b4b', '#831843', '#064e3b', '#431407', '#312e81', '#0f172a', '#4a044e', '#1e3a8a'];
-
-    const backgroundStyles = ['cyberpunk', 'sunset', 'forest', 'space', 'cherry_blossom', 'neon_grid'];
-
-    function getRandomItem(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    function generateCharacterData(id) {
-      return {
-        id: id,
-        skin: getRandomItem(skinPalettes),
-        hair: getRandomItem(hairPalettes),
-        eyeColor: getRandomItem(eyeColors),
-        clothColor: getRandomItem(clothesColors),
-        bgType: getRandomItem(backgroundStyles),
-        hasCatEars: Math.random() > 0.6,
-        hasGlasses: Math.random() > 0.7,
-        hairstyle: Math.floor(Math.random() * 3), // 0: corto, 1: largo, 2: coletas
-        animSpeed: 0.05 + Math.random() * 0.05,
-        animOffset: Math.random() * Math.PI * 2
-      };
-    }
-
-    function createCard(charData) {
-      const card = document.createElement('div');
-      card.className = 'card';
-
-      const canvasBox = document.createElement('div');
-      canvasBox.className = 'canvas-box';
-
-      const canvas = document.createElement('canvas');
-      canvas.width = 32;
-      canvas.height = 32;
-      canvas.id = `char-canvas-${charData.id}`;
-
-      canvasBox.appendChild(canvas);
-
-      const title = document.createElement('span');
-      title.className = 'card-title';
-      title.innerText = `Anime #${String(charData.id).padStart(3, '0')}`;
-
-      const downloadLink = document.createElement('a');
-      downloadLink.className = 'download-link';
-      downloadLink.innerText = 'Descargar PNG';
-      downloadLink.download = `anime-${charData.id}.png`;
-
-      card.appendChild(canvasBox);
-      card.appendChild(title);
-      card.appendChild(downloadLink);
-
-      return { card, canvas, downloadLink };
-    }
-
-    function drawBackground(ctx, bgType, time) {
-      ctx.save();
-      if (bgType === 'cyberpunk') {
-        ctx.fillStyle = '#0f051d';
-        ctx.fillRect(0, 0, 32, 32);
-        ctx.fillStyle = '#f43f5e';
-        const shift = Math.floor(Math.sin(time) * 2);
-        ctx.fillRect(0, 20 + shift, 32, 12);
-        ctx.fillStyle = '#06b6d4';
-        for (let i = 0; i < 32; i += 4) {
-          ctx.fillRect(i, 20 + shift, 2, 12);
-        }
-      } else if (bgType === 'sunset') {
-        const gradient = ctx.createLinearGradient(0, 0, 0, 32);
-        gradient.addColorStop(0, '#f97316');
-        gradient.addColorStop(0.5, '#e11d48');
-        gradient.addColorStop(1, '#4c0519');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 32, 32);
-        // Sol poniente
-        ctx.fillStyle = '#fef08a';
-        ctx.fillRect(12, 14, 8, 8);
-      } else if (bgType === 'forest') {
-        ctx.fillStyle = '#022c22';
-        ctx.fillRect(0, 0, 32, 32);
-        ctx.fillStyle = '#059669';
-        ctx.fillRect(2, 8, 6, 24);
-        ctx.fillRect(24, 6, 6, 26);
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(4, 12, 2, 20);
-        ctx.fillRect(26, 10, 2, 22);
-      } else if (bgType === 'space') {
-        ctx.fillStyle = '#030712';
-        ctx.fillRect(0, 0, 32, 32);
-        ctx.fillStyle = '#ffffff';
-        // Estrellas parpadeantes
-        if (Math.sin(time * 2) > 0) ctx.fillRect(4, 5, 1, 1);
-        if (Math.cos(time * 3) > 0) ctx.fillRect(25, 8, 1, 1);
-        if (Math.sin(time * 1.5) > 0) ctx.fillRect(12, 22, 1, 1);
-        if (Math.cos(time * 2.5) > 0) ctx.fillRect(28, 26, 1, 1);
-      } else if (bgType === 'cherry_blossom') {
-        ctx.fillStyle = '#fbcfe8';
-        ctx.fillRect(0, 0, 32, 32);
-        ctx.fillStyle = '#f472b6';
-        // Pétalos cayendo
-        const p1Y = (Math.floor(time * 10) % 32);
-        const p2Y = (Math.floor(time * 12 + 10) % 32);
-        ctx.fillRect(6, p1Y, 2, 2);
-        ctx.fillRect(22, p2Y, 2, 2);
-      } else { // neon_grid
-        ctx.fillStyle = '#18181b';
-        ctx.fillRect(0, 0, 32, 32);
-        ctx.fillStyle = '#a855f7';
-        for (let i = 0; i < 32; i += 6) {
-          ctx.fillRect(i, 0, 1, 32);
-          ctx.fillRect(0, i, 32, 1);
-        }
-      }
-      ctx.restore();
-    }
-
-    function renderCharacter(charObj, time, isAnimated) {
-      const { data, canvas, downloadLink } = charObj;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, 32, 32);
-
-      // Calcular movimiento sutil (Breath / Bobbing)
-      const t = isAnimated ? (time * charObj.data.animSpeed + charObj.data.animOffset) : 0;
-      const breathY = isAnimated ? Math.round(Math.sin(t) * 0.8) : 0; // Desplazamiento de 1px
-      const hairBlink = isAnimated ? Math.sin(t * 2) : 0;
-
-      // 1. Dibujar Fondo Animado
-      drawBackground(ctx, data.bgType, t);
-
-      // 2. Cabello Posterior (Largo o Coletas)
-      if (data.hairstyle === 1 || data.hairstyle === 2) {
-        ctx.fillStyle = data.hair.shadow;
-        ctx.fillRect(7, 12 + breathY, 18, 16);
-        ctx.fillStyle = data.hair.base;
-        ctx.fillRect(8, 12 + breathY, 16, 15);
-
-        if (data.hairstyle === 2) { // Coletas laterales
-          const sideWiggle = isAnimated ? Math.round(Math.cos(t * 2) * 0.6) : 0;
-          ctx.fillRect(3 + sideWiggle, 10 + breathY, 5, 14);
-          ctx.fillRect(24 - sideWiggle, 10 + breathY, 5, 14);
-        }
-      }
-
-      // 3. Cuello y Hombros / Uniforme
-      ctx.fillStyle = data.clothColor;
-      ctx.fillRect(8, 24 + breathY, 16, 8); // Cuerpo base
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(13, 24 + breathY, 6, 4); // Cuello marinero
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(15, 26 + breathY, 2, 3); // Lazo / Corbata
-
-      // Cuello
-      ctx.fillStyle = data.skin.shadow;
-      ctx.fillRect(14, 21 + breathY, 4, 4);
-      ctx.fillStyle = data.skin.base;
-      ctx.fillRect(14, 21 + breathY, 4, 2);
-
-      // 4. Rostro Base Anime
-      ctx.fillStyle = data.skin.base;
-      ctx.fillRect(10, 10 + breathY, 12, 11);
-      ctx.fillRect(11, 21 + breathY, 10, 1);
-      ctx.fillRect(12, 22 + breathY, 8, 1);
-      ctx.fillRect(13, 23 + breathY, 6, 1); // Barbilla
-
-      // Sombra rostro
-      ctx.fillStyle = data.skin.shadow;
-      ctx.fillRect(10, 10 + breathY, 1, 11);
-      ctx.fillRect(21, 10 + breathY, 1, 11);
-
-      // Rubor (Blush)
-      ctx.fillStyle = data.skin.blush;
-      ctx.fillRect(11, 17 + breathY, 3, 1);
-      ctx.fillRect(18, 17 + breathY, 3, 1);
-
-      // 5. Ojos Anime (Parpadeo)
-      const isBlinking = isAnimated && Math.sin(t * 3) > 0.95;
-
-      if (isBlinking) {
-        ctx.fillStyle = data.hair.shadow;
-        ctx.fillRect(11, 15 + breathY, 3, 1);
-        ctx.fillRect(18, 15 + breathY, 3, 1);
-      } else {
-        // Ojo Izquierdo
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(11, 14 + breathY, 3, 4);
-        ctx.fillStyle = data.eyeColor;
-        ctx.fillRect(12, 14 + breathY, 2, 3);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(12, 14 + breathY, 1, 1);
-
-        // Ojo Derecho
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(18, 14 + breathY, 3, 4);
-        ctx.fillStyle = data.eyeColor;
-        ctx.fillRect(18, 14 + breathY, 2, 3);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(18, 14 + breathY, 1, 1);
-
-        // Pestañas
-        ctx.fillStyle = data.hair.shadow;
-        ctx.fillRect(10, 13 + breathY, 5, 1);
-        ctx.fillRect(17, 13 + breathY, 5, 1);
-      }
-
-      // Boca
-      ctx.fillStyle = '#b91c1c';
-      ctx.fillRect(15, 20 + breathY, 2, 1);
-
-      // 6. Cabello Frontal (Flequillo)
-      ctx.fillStyle = data.hair.shadow;
-      ctx.fillRect(9, 8 + breathY, 14, 5);
-      ctx.fillStyle = data.hair.base;
-      ctx.fillRect(10, 7 + breathY, 12, 5);
-
-      // Mechones
-      ctx.fillRect(10, 11 + breathY, 2, 3);
-      ctx.fillRect(13, 11 + breathY, 2, 4);
-      ctx.fillRect(17, 11 + breathY, 2, 4);
-      ctx.fillRect(20, 11 + breathY, 2, 3);
-
-      // Brillo del cabello
-      ctx.fillStyle = data.hair.light;
-      ctx.fillRect(11, 8 + breathY, 10, 1);
-
-      // 7. Gafas (Accesorio)
-      if (data.hasGlasses) {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(10, 14 + breathY, 5, 4);
-        ctx.fillRect(17, 14 + breathY, 5, 4);
-        ctx.fillRect(14, 15 + breathY, 4, 1);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(11, 15 + breathY, 1, 1);
-        ctx.fillRect(18, 15 + breathY, 1, 1);
-      }
-
-      // 8. Orejas de Gato
-      if (data.hasCatEars) {
-        ctx.fillStyle = data.hair.base;
-        ctx.fillRect(8, 4 + breathY, 3, 4);
-        ctx.fillRect(9, 3 + breathY, 2, 2);
-        ctx.fillRect(21, 4 + breathY, 3, 4);
-        ctx.fillRect(21, 3 + breathY, 2, 2);
-
-        ctx.fillStyle = data.skin.blush;
-        ctx.fillRect(9, 5 + breathY, 1, 2);
-        ctx.fillRect(22, 5 + breathY, 1, 2);
-      }
-
-      // Actualizar enlace de descarga HD
-      updateDownloadLink(canvas, downloadLink);
-    }
-
-    function updateDownloadLink(sourceCanvas, link) {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 256;
-      tempCanvas.height = 256;
-      const tempCtx = tempCanvas.getContext('2d');
-      tempCtx.imageRendering = 'pixelated';
-      tempCtx.drawImage(sourceCanvas, 0, 0, 256, 256);
-      link.href = tempCanvas.toDataURL('image/png');
-    }
-
-    function initGrid() {
-      grid.innerHTML = '';
-      characterList = [];
-
-      for (let i = 1; i <= totalCharacters; i++) {
-        const data = generateCharacterData(i);
-        const { card, canvas, downloadLink } = createCard(data);
-        grid.appendChild(card);
-
-        const charObj = { data, canvas, downloadLink };
-        characterList.push(charObj);
-
-        renderCharacter(charObj, 0, false);
-      }
-    }
-
-    function animate(timestamp) {
-      globalTime = timestamp * 0.005;
-
-      if (toggleAnimation.checked) {
-        for (let i = 0; i < characterList.length; i++) {
-          renderCharacter(characterList[i], globalTime, true);
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(animate);
-    }
-
-    btnRebuild.addEventListener('click', () => {
-      initGrid();
-    });
-
-    toggleAnimation.addEventListener('change', (e) => {
-      if (!e.target.checked) {
-        // Redibujar estáticos
-        for (let i = 0; i < characterList.length; i++) {
-          renderCharacter(characterList[i], 0, false);
-        }
-      }
-    });
-
-    // Inicio
-    initGrid();
-    animationFrameId = requestAnimationFrame(animate);
-  </script>
-</body>
-</html
+/* =============================================================================
+🎨 CONSOLA DE ADMINISTRACIÓN - ESTILOS BASE Y MAQUETACIÓN GENERAL (TEMA AZUL ELEGANTE)
+============================================================================= */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #030712;
+    color: #f0f9ff;
+    font-family: 'Press Start 2P', monospace;
+    padding: 20px 10px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.contenedor-central {
+    background-color: #0b1329;
+    border: 3px solid #00d2ff;
+    padding: 20px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 0 25px rgba(0, 210, 255, 0.25), 6px 6px 0px #031b33;
+    border-radius: 8px;
+}
+
+.titulo-central {
+    font-size: 11px;
+    color: #00d2ff;
+    text-align: center;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    text-shadow: 0 0 10px rgba(0, 210, 255, 0.7);
+}
+
+.barra-pestanas {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    flex: 1;
+    background-color: #0f172a;
+    color: #64748b;
+    border: 2px solid #031b33;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.tab-btn:hover { 
+    color: #e0f2fe; 
+    background-color: #1e293b; 
+    border-color: #00d2ff;
+}
+
+.tab-btn.activo {
+    background-color: #00d2ff;
+    color: #030712;
+    font-weight: bold;
+    box-shadow: 0 0 12px rgba(0, 210, 255, 0.6), 2px 2px 0px #031b33;
+    border-color: #38bdf8;
+}
+
+.contenido-pestana { display: none; }
+.contenido-pestana.activa { display: block; }
+
+.subtitulo-admin {
+    font-size: 8px;
+    color: #38bdf8;
+    text-align: center;
+    margin-bottom: 15px;
+    border-bottom: 2px dashed #1e293b;
+    padding-bottom: 12px;
+    line-height: 1.4;
+    text-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+}
+
+.form-grupo {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+    width: 100%;
+}
+
+label {
+    font-size: 8px;
+    color: #7dd3fc;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+input[type="text"], input[type="number"], textarea, select {
+    width: 100%;
+    background-color: #020617;
+    border: 2px solid #1e293b;
+    color: #f0f9ff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 10px;
+    outline: none;
+    border-radius: 4px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, select:focus, textarea:focus { 
+    border-color: #00d2ff; 
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+}
+
+.btn-admin-final {
+    background-color: #00d2ff;
+    color: #020617;
+    border: 3px solid #031b33;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 14px;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #031b33;
+    margin-top: 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.btn-admin-final:hover {
+    background-color: #e0f2fe;
+    box-shadow: 0 0 16px rgba(224, 242, 254, 0.5), 4px 4px 0px #0f172a;
+}
+
+/* =============================================================================
+👁️ VISTA PREVIA CANVAS ALGORÍTMICO Y POLLINATIONS IA
+============================================================================= */
+.contenedor-vista-previa-canvas {
+    background-color: #020617;
+    border: 2px dashed #00d2ff;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 15px 0;
+    border-radius: 6px;
+    position: relative;
+}
+
+.label-previa {
+    font-size: 7px;
+    color: #00d2ff;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.canvas-wrapper {
+    width: 220px;
+    height: 308px;
+    border: 3px solid #1e3a8a;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.35);
+    background-color: #020617;
+    position: relative;
+}
+
+#canvasCartaGenerada { width: 100%; height: 100%; display: block; }
+.img-pollinations-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
+
+.spinner-ia {
+    display: none;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    color: #38bdf8;
+    text-align: center;
+    background: rgba(2, 6, 23, 0.9);
+    padding: 10px;
+    border: 1px solid #38bdf8;
+    border-radius: 4px;
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.info-semilla-box {
+    margin-top: 10px;
+    font-size: 7px;
+    color: #94a3b8;
+    word-break: break-all;
+    text-align: center;
+}
+
+.selector-modo-render {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.btn-modo-opt {
+    flex: 1;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #64748b;
+    font-family: inherit;
+    font-size: 7px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-modo-opt.activo {
+    border-color: #38bdf8;
+    color: #e0f2fe;
+    background: #075985;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+/* =============================================================================
+📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (ELEGANT BLUE NEON)
+============================================================================= */
+#grid-catalogo-admin {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 14px;
+    max-height: 480px;
+    overflow-y: auto;
+    padding: 6px;
+    margin-top: 15px;
+    background: rgba(2, 6, 23, 0.6);
+    border-radius: 6px;
+    border: 1px solid #1e293b;
+}
+
+#grid-catalogo-admin::-webkit-scrollbar { width: 6px; }
+#grid-catalogo-admin::-webkit-scrollbar-track { background: #020617; border-radius: 4px; }
+#grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00d2ff; border-radius: 4px; box-shadow: 0 0 6px #00d2ff; }
+
+/* 🎴 CARTA BASE CON DISEÑO ELEGANTE */
+.tarjeta-carta {
+    background: #070e20;
+    border: 2px solid #1e3a8a;
+    border-radius: 8px;
+    padding: 8px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.tarjeta-carta:hover {
+    transform: translateY(-6px) scale(1.02);
+    border-color: #00d2ff;
+    box-shadow: 0 8px 22px rgba(0, 210, 255, 0.4), 0 0 12px rgba(0, 210, 255, 0.25);
+    z-index: 10;
+}
+
+/* ✨ FONDO DUAL DEGRADADO DINO/ANIMADO EN TONO AZUL */
+.fondo-movil-animado {
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(
+        135deg, 
+        rgba(0, 210, 255, 0) 30%, 
+        rgba(0, 210, 255, 0.12) 50%, 
+        rgba(0, 210, 255, 0) 70%
+    );
+    background-size: 200% 200%;
+    animation: animacionGlowHolografico 4s linear infinite;
+    z-index: 1;
+    pointer-events: none;
+}
+
+@keyframes animacionGlowHolografico {
+    0% { transform: rotate(0deg) translate(-10%, -10%); }
+    50% { transform: rotate(180deg) translate(10%, 10%); }
+    100% { transform: rotate(360deg) translate(-10%, -10%); }
+}
+
+/* ✨ EFECTO DE RESPLANDOR HOLOGRÁFICO AL HACER HOVER */
+.efecto-brillo-holografico {
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent, 
+        rgba(0, 210, 255, 0.3), 
+        rgba(224, 242, 254, 0.5), 
+        rgba(0, 210, 255, 0.3), 
+        transparent
+    );
+    transform: skewX(-25deg);
+    transition: left 0.6s ease-in-out;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.tarjeta-carta:hover .efecto-brillo-holografico { 
+    left: 150%; 
+}
+
+/* 🏷️ BADGES DE RAREZA ESTRUCTURADOS */
+.badge-rareza {
+    background: rgba(2, 6, 23, 0.85);
+    border: 1px solid currentColor;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 6px currentColor;
+    display: inline-block;
+}
+
+/* =============================================================================
+📊 LOGS Y ESTADO DEL SERVIDOR
+============================================================================= */
+#status-log, #servidor-log-output {
+    font-size: 7px;
+    color: #00d2ff;
+    background: #020617;
+    border: 1px solid #1e293b;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+    max-height: 100px;
+    overflow-y: auto;
+    line-height: 1.5;
+}
+
+#servidor-log-output { color: #cbd5e1; font-family: monospace; }

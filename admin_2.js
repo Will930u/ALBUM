@@ -70,6 +70,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     ]);
     
     iniciarSuscripcionRealtimeAlbum();
+
+    // 🎨 Cargar un dibujo inicial por defecto sin guardar en BD
+    Estado.cartaPreviewActual = {
+        nombre: "Criatura",
+        simbolo: "👾",
+        rareza: "Común"
+    };
+    dibujarCartaCanvas();
 });
 
 // 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES

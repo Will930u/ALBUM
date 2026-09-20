@@ -524,7 +524,7 @@ async function seleccionarPlantillaAleatoria() {
         const plantillaElegida = plantillasDisponibles[Math.floor(Math.random() * plantillasDisponibles.length)];
 
         // Obtener el campo de emojis (emoji_text o emojiText)
-        const rawEmojiText = plantillaElegida.emoji_text || plantillaElegida.emojiText || plantillaElegida.simbolo || "👾";
+        const rawEmojiText = plantillaElegida.emoji_text || plantillaElegida.emojiText || plantillaElegida.simbolo || "??";
         
         // Convertir en un array de emojis individuales (soporta caracteres Unicode multibyte) y seleccionar uno al azar
         const listaEmojis = Array.from(rawEmojiText.trim());

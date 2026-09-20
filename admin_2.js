@@ -499,16 +499,16 @@ async function seleccionarPlantillaAleatoria() {
 
         // 2. Consultar plantillas disponibles desde plantilla_criaturas
         const { data: plantillas, error: errPlantillas } = await supabaseClient
-            .from('plantilla_criaturas')
+            .from('plantillas_criaturas')
             .select('*');
 
         if (errPlantillas) {
-            alert("Error leyendo plantilla_criaturas: " + errPlantillas.message);
+            alert("Error leyendo plantillas_criaturas: " + errPlantillas.message);
             return;
         }
 
         if (!plantillas || plantillas.length === 0) {
-            alert("No hay plantillas disponibles en la tabla plantilla_criaturas.");
+            alert("No hay plantillas disponibles en la tabla plantillas_criaturas.");
             return;
         }
 
@@ -516,7 +516,7 @@ async function seleccionarPlantillaAleatoria() {
         const plantillasDisponibles = plantillas.filter(p => !nombresExistentes.has(p.nombre?.toLowerCase().trim()));
 
         if (plantillasDisponibles.length === 0) {
-            alert("Todas las plantillas de plantilla_criaturas ya han sido registradas como cartas.");
+            alert("Todas las plantillas de plantillas_criaturas ya han sido registradas como cartas.");
             return;
         }
 

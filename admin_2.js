@@ -464,16 +464,97 @@ async function generarImagenPollinationsDirecta() {
     }
 }
 
-// 8. PARSER E IMPORTACIÓN DE PLANTILLAS
 async function procesarYGuardarPlantillas() {
-    const textoArea = DOM.get('textarea-plantillas');
-    if (!textoArea || !textoArea.value.trim()) {
-        alert("Pega el texto de las plantillas en el área de texto primero.");
+    const textarea = DOM.get('input-texto-plantillas') || document.querySelector('textarea');
+    if (!textarea || !textarea.value.trim()) {
+        alert("Por favor, ingresa el texto plano de las plantillas.");
         return;
     }
-    logEstado("Procesando bloque de plantillas...");
-    alert("✅ Función de parseo lista.");
-    logEstado("✅ Plantillas procesadas.");
+
+    const textoBruto = textarea.value.trim();
+    logEstado("⏳ Parseando e insertando plantillas en Supabase...");
+
+    let zonaActual = "Zona Desconocida";
+    let eraSugerida = "cotidianos";
+    let descripcionGeneral = "Plantilla cargada masivamente";
+    const registrosAInsertar = [];
+
+    // Dividir por líneas para identificar zonas o bloques
+    const lineas = textoBruto.split('\n');
+
+    for (let linea of lineas) {
+        linea = linea.trim();
+        if (!linea) continue;
+
+        // Si la línea contiene una descripción o contexto general
+        if (linea.includes(':') && !linea.includes('/')) {
+            const partes = linea.split(':');
+            zonaActual = partes[0].trim();
+            descripcionGeneral = partes[1].trim();
+            continue;
+        }
+
+        // Procesar elementos separados por '/'
+        const elementos = linea.split('/');
+        for (let item of elementos) {
+            item = item.trim();
+            if (!item) continue;
+
+            // Extraer el emoji (primeros caracteres UTF-16/32)
+            const matchEmoji = item.match(/(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u);
+            const emoji = matchEmoji ? matchEmoji[0] : "👾";
+
+            // Extraer el nombre (removiendo el emoji y posibles descripciones tras ':')
+            let textoLimpio = item.replace(emoji, '').trim();
+            let loreItem = descripcionGeneral;
+
+            if (textoLimpio.includes(':')) {
+                const partesItem = textoLimpio.split(':');
+                textoLimpio = partesItem[0].trim();
+                loreItem = partesItem[1].trim();
+            }
+
+            if (textoLimpio.length > 0) {
+                registrosAInsertar.push({
+                    emoji: emoji,
+                    nombre: textoLimpio,
+                    lore: loreItem,
+                    zona: zonaActual,
+                    era_sugerida: eraSugerida
+                });
+            }
+        }
+    }
+
+    if (registrosAInsertar.length === 0) {
+        alert("No se pudieron extraer plantillas válidas del texto.");
+        return;
+    }
+
+    try {
+        // Inserción masiva en Supabase (tabla plantillas_criaturas)
+        const { data, error } = await supabaseClient
+            .from('plantillas_criaturas')
+            .insert(registrosAInsertar);
+
+        if (error) {
+            alert("Error al guardar en Supabase: " + error.message);
+            logEstado(`❌ Error guardando plantillas: ${error.message}`);
+            return;
+        }
+
+        logEstado(`✅ Se registraron ${registrosAInsertar.length} plantillas con éxito.`);
+        alert(`✅ ¡Proceso completado! Se guardaron ${registrosAInsertar.length} plantillas en la base de datos.`);
+        
+        // Limpiar area y actualizar contadores si aplica
+        textarea.value = '';
+        if (typeof cargarContadorPlantillas === 'function') {
+            cargarContadorPlantillas();
+        }
+
+    } catch (err) {
+        logEstado(`❌ Excepción al insertar plantillas: ${err.message}`);
+    }
 }
 
 // =============================================================================

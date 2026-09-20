@@ -741,12 +741,6 @@ async function testearConexionSupabase() {
     }
 }
 
-function limpiarStorageHuerfano() {
-    logEstado("🧹 Limpiando caché local...");
-    localStorage.removeItem('admin_pestana_activa');
-    alert("Caché local de pestañas limpiada.");
-}
-
 function limpiarLogServidor() {
     const logServidor = DOM.get('servidor-log-output');
     if (logServidor) {
@@ -767,6 +761,7 @@ function logEstado(mensaje) {
 
 function configurarEventosUI() {
     DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
+    DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
@@ -779,11 +774,8 @@ function configurarEventosUI() {
 
 // EXPONER FUNCIONES GLOBALMENTE PARA ATRIBUTOS ONCLICK DEL HTML
 window.cambiarPestana = cambiarPestana;
-window.seleccionarModoRender = seleccionarModoRender;
-window.generarImagenPollinationsDirecta = generarImagenPollinationsDirecta;
 window.cargarMetricasServidor = cargarMetricasServidor;
 window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.testearConexionSupabase = testearConexionSupabase;
-window.limpiarStorageHuerfano = limpiarStorageHuerfano;

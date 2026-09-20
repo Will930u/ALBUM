@@ -51,7 +51,7 @@
             </div>
 
             <div class="form-grupo">
-                <label for="carta-id" id="label-carta-id">ID DE CARTA (1 a 2000):</label>
+                <label for="carta-id">ID DE CARTA (1 a 2000):</label>
                 <input type="number" id="carta-id" placeholder="Ej: 1" min="1" max="2000">
             </div>
 
@@ -109,8 +109,8 @@
             </p>
 
             <div class="form-grupo">
-                <label for="texto-plantillas-masivo">LISTA DE TEXTO PLANO:</label>
-                <textarea id="texto-plantillas-masivo" rows="12" style="width:100%; background:#090a0f; color:#00ff66; border:1px solid #1e293b; padding:10px; font-family:monospace; font-size:10px; resize:vertical;" placeholder="🌋 Zona del Caos y Criaturas de la Noche&#10;👾 Monstruo alienígena / 👽 Alienígena / 🤖 Robot: Invasores del espacio exterior.&#10;..."></textarea>
+                <label for="textarea-plantillas">LISTA DE TEXTO PLANO:</label>
+                <textarea id="textarea-plantillas" rows="12" style="width:100%; background:#090a0f; color:#00ff66; border:1px solid #1e293b; padding:10px; font-family:monospace; font-size:10px; resize:vertical;" placeholder="🌋 Zona del Caos y Criaturas de la Noche&#10;👾 Monstruo alienígena / 👽 Alienígena / 🤖 Robot: Invasores del espacio exterior.&#10;..."></textarea>
             </div>
 
             <div style="display:flex; gap:10px; margin-top:10px;">
@@ -192,9 +192,9 @@
 
             <!-- ACCIONES RÁPIDAS -->
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-                <button type="button" id="btn-probar-conexion" class="btn-admin-final" style="flex: 1; background-color: #22c55e;">🔌 PROBAR CONEXIÓN</button>
+                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #22c55e;" onclick="testearConexionSupabase()">🔌 PROBAR CONEXIÓN</button>
                 <button type="button" class="btn-admin-final" style="flex: 1; background-color: #ef4444;" onclick="limpiarStorageHuerfano()">🧹 LIMPIAR STORAGE</button>
-                <button type="button" id="btn-refrescar-servidor" class="btn-admin-final" style="flex: 1; background-color: #a855f7;">🔄 REFRESCAR MÉTRICAS</button>
+                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #a855f7;" onclick="cargarMetricasServidor()">🔄 REFRESCAR MÉTRICAS</button>
             </div>
 
             <!-- SOLICITUDES DE PREMIOS -->
@@ -219,9 +219,6 @@
 
             <!-- CONSOLA DE LOGS EN VIVO -->
             <div class="subtitulo-admin">LOGS DE AUDITORÍA DEL SERVIDOR</div>
-            <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
-                <button type="button" id="btn-limpiar-log" style="background:#333; color:#aaa; border:none; padding:4px 8px; font-size:6px; cursor:pointer;">🧹 LIMPIAR LOG</button>
-            </div>
             <div id="servidor-log-output" style="font-size: 8px; color: #00ff66; padding: 10px; background: #000; border: 1px solid #1a3a2a; font-family: monospace; min-height: 60px; max-height: 120px; overflow-y: auto;">
                 [SISTEMA] Módulo Servidor en línea. Listo para ejecutar diagnósticos.
             </div>
@@ -232,7 +229,7 @@
         </div>
     </div>
 
-    <!-- SDK SUPABASE Y JS ADMINISTRADOR -->
+    <!-- SDK SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="admin_2.js"></script>
 </body>

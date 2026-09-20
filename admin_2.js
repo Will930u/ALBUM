@@ -31,13 +31,23 @@ const PALETAS_ERA = Object.freeze({
 // AYUDANTES DE DOM (DOM HELPERS)
 const DOM = {
     get: (id) => document.getElementById(id),
-    setValue: (id, val) => { 
-        const el = document.getElementById(id); 
-        if (el) {
-            el.value = val;
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
+    findInput: (posiblesIds) => {
+        for (let id of posiblesIds) {
+            let el = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
+            if (el) return el;
         }
+        return null;
+    },
+    setValue: (posiblesIds, val) => {
+        const idList = Array.isArray(posiblesIds) ? posiblesIds : [posiblesIds];
+        idList.forEach(id => {
+            const el = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
+            if (el) {
+                el.value = val;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
     },
     setText: (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; },
     setDisplay: (id, display) => { const el = document.getElementById(id); if (el) el.style.display = display; },
@@ -50,13 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     configurarEventosUI();
     escucharDibujoCanvas();
 
-    // 🔄 Obtener la última pestaña guardada (o 'tab-crear' si es la primera vez)
     const pestanaGuardada = localStorage.getItem('admin_pestana_activa') || 'tab-crear';
-    
-    // Abrir la pestaña en la que estabas antes de refrescar
     cambiarPestana(pestanaGuardada);
 
-    // Cargar los datos correspondientes
     await Promise.all([
         cargarMetricasServidor(),
         cargarCatalogoCartas()
@@ -69,21 +75,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 function cambiarPestana(idPestana) {
     if (!idPestana) return;
 
-    // Ocultar todas las pestañas y quitar estado activo a botones
     document.querySelectorAll('.contenido-pestana').forEach(el => el.classList.remove('activa'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('activo'));
     
-    // Activar el panel destino
     const pestanaDestino = DOM.get(idPestana);
     if (pestanaDestino) pestanaDestino.classList.add('activa');
     
-    // Marcar el botón activo correspondiente
     const botonActivo = Array.from(document.querySelectorAll('.tab-btn')).find(btn => 
         btn.getAttribute('onclick')?.includes(idPestana)
     );
     if (botonActivo) botonActivo.classList.add('activo');
 
-    // 💾 GUARDAR PESTAÑA EN LOCALSTORAGE PARA MANTENER ESTADO AL REFRESCAR
     try {
         localStorage.setItem('admin_pestana_activa', idPestana);
     } catch (e) {
@@ -138,9 +140,10 @@ function iniciarSuscripcionRealtimeAlbum() {
 
 // 4. ASIGNAR / REGALAR CARTA A USUARIO
 async function regalarCartaAUsuario() {
-    const targetUser = DOM.get('target-user')?.value?.trim();
-    const idCarta = parseInt(DOM.get('target-carta-id')?.value, 10);
-    const cantidadAñadir = parseInt(DOM.get('target-cantidad')?.value, 10) || 1;
+    const targetUser = DOM.findInput(['target-user', 'regalo-usuario', 'usuario-destino'])?.value?.trim();
+    const idCartaInput = DOM.findInput(['target-carta-id', 'regalo-carta-id', 'id-carta-regalo']);
+    const idCarta = parseInt(idCartaInput?.value, 10);
+    const cantidadAñadir = parseInt(DOM.findInput(['target-cantidad', 'regalo-cantidad'])?.value, 10) || 1;
 
     if (!targetUser || !idCarta || isNaN(idCarta)) {
         alert("Ingresa un usuario válido y un ID numérico de carta.");
@@ -198,12 +201,19 @@ async function regalarCartaAUsuario() {
 
 // 5. CREACIÓN Y PUBLICACIÓN DE CARTA
 async function guardarCartaBD() {
-    const id = parseInt(DOM.get('carta-id')?.value, 10);
-    const nombre = DOM.get('carta-nombre')?.value.trim();
-    const rareza = DOM.get('carta-rareza')?.value.trim() || 'Común';
-    const tipo = DOM.get('carta-tipo')?.value.trim() || DOM.get('carta-era')?.value.trim() || 'Algorítmica Canvas';
-    const lore = DOM.get('carta-lore')?.value.trim() || '';
-    const simbolo = DOM.get('carta-simbolo')?.value.trim() || '👾';
+    const inputId = DOM.findInput(['carta-id', 'id-carta', 'input-carta-id']);
+    const inputNombre = DOM.findInput(['carta-nombre', 'nombre-carta', 'input-carta-nombre']);
+    const inputRareza = DOM.findInput(['carta-rareza', 'rareza-carta', 'select-rareza']);
+    const inputTipo = DOM.findInput(['carta-tipo', 'tipo-carta', 'carta-era', 'select-era']);
+    const inputLore = DOM.findInput(['carta-lore', 'lore-carta', 'textarea-lore']);
+    const inputSimbolo = DOM.findInput(['carta-simbolo', 'simbolo-carta']);
+
+    const id = parseInt(inputId?.value, 10);
+    const nombre = inputNombre?.value?.trim();
+    const rareza = inputRareza?.value?.trim() || 'Común';
+    const tipo = inputTipo?.value?.trim() || 'Algorítmica Canvas';
+    const lore = inputLore?.value?.trim() || '';
+    const simbolo = inputSimbolo?.value?.trim() || '👾';
 
     if (!id || !nombre) {
         alert("Por favor completa el ID y el Nombre de la carta.");
@@ -272,8 +282,6 @@ async function cargarCatalogoCartas() {
     }
 
     grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
-
-    // Iniciar bucle de animación para fondos en movimiento procedural
     iniciarBucleAnimacionCatalogo(cartas);
 }
 
@@ -311,7 +319,6 @@ function renderizarCartaDesdeBD(carta) {
     `;
 }
 
-// DIBUJO ANIMADO CONTINUO DE FONDOS PROCEDURALES (CATÁLOGO)
 function animarFondoMiniCanvas(canvas, carta, tiempo) {
     if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
@@ -329,10 +336,8 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     const width = canvas.width;
     const height = canvas.height;
 
-    // 1. Limpiar canvas
     ctx.clearRect(0, 0, width, height);
 
-    // 2. Fondo dinámico
     const t = tiempo * 0.002;
     const gradiente = ctx.createLinearGradient(
         (Math.sin(t) * 0.5 + 0.5) * width,
@@ -347,7 +352,6 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     ctx.fillStyle = gradiente;
     ctx.fillRect(0, 0, width, height);
 
-    // 3. REJILLA MATRIX / PUNTOS FLOTANTES (PARTÍCULAS DE NODOS)
     ctx.fillStyle = paleta.borde;
     const size = 16;
 
@@ -360,12 +364,10 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     }
     ctx.globalAlpha = 1.0;
 
-    // 4. Borde neón
     ctx.strokeStyle = paleta.borde;
     ctx.lineWidth = 2;
     ctx.strokeRect(3, 3, width - 6, height - 6);
 
-    // 5. Dibujar símbolo central con flotación suave
     const offsetFlotacion = Math.sin(t * 2) * 3;
     ctx.font = "32px sans-serif";
     ctx.textAlign = "center";
@@ -388,24 +390,21 @@ function iniciarBucleAnimacionCatalogo(cartas) {
 
 // 7. GENERADOR CANVAS EN VIVO ANIMADO
 function escucharDibujoCanvas() {
-    ['carta-nombre', 'carta-rareza', 'carta-simbolo'].forEach(id => {
-        DOM.get(id)?.addEventListener('input', () => {
-            if (Estado.modoRenderActual === 'canvas') dibujarCartaCanvas();
-        });
+    ['carta-nombre', 'carta-rareza', 'carta-simbolo', 'nombre-carta', 'rareza-carta', 'simbolo-carta'].forEach(id => {
+        const el = DOM.get(id);
+        if (el) {
+            el.addEventListener('input', () => {
+                if (Estado.modoRenderActual === 'canvas') dibujarCartaCanvas();
+            });
+        }
     });
 
-    DOM.get('btn-randomizar')?.addEventListener('click', () => {
-        const simbolos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🐜'];
-        const aleatorio = simbolos[Math.floor(Math.random() * simbolos.length)];
-        DOM.setValue('carta-simbolo', aleatorio);
-        dibujarCartaCanvas();
-    });
-
+    DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
+    DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-guardar-carta')?.addEventListener('click', guardarCartaBD);
     DOM.get('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
 }
 
-// GENERADOR CANVAS EN VIVO ANIMADO (CREADOR DE BARAJITAS)
 function dibujarCartaCanvas() {
     const canvas = DOM.get('canvasCartaGenerada');
     if (!canvas) return;
@@ -417,9 +416,13 @@ function dibujarCartaCanvas() {
 
     function loopPreview(tiempo) {
         const ctx = canvas.getContext('2d');
-        const nombre = DOM.get('carta-nombre')?.value || "Carta Misteriosa";
-        const simbolo = DOM.get('carta-simbolo')?.value || "👾";
-        const rareza = DOM.get('carta-rareza')?.value || "Común";
+        const inputNombre = DOM.findInput(['carta-nombre', 'nombre-carta']);
+        const inputSimbolo = DOM.findInput(['carta-simbolo', 'simbolo-carta']);
+        const inputRareza = DOM.findInput(['carta-rareza', 'rareza-carta', 'select-rareza']);
+
+        const nombre = inputNombre?.value || "Carta Misteriosa";
+        const simbolo = inputSimbolo?.value || "👾";
+        const rareza = inputRareza?.value || "Común";
         const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
 
         const width = canvas.width;
@@ -427,7 +430,6 @@ function dibujarCartaCanvas() {
 
         ctx.clearRect(0, 0, width, height);
 
-        // 1. Fondo animado en vivo
         const t = tiempo * 0.002;
         const gradiente = ctx.createLinearGradient(
             (Math.sin(t) * 0.5 + 0.5) * width,
@@ -442,7 +444,6 @@ function dibujarCartaCanvas() {
         ctx.fillStyle = gradiente;
         ctx.fillRect(0, 0, width, height);
 
-        // 2. REJILLA MATRIX / PUNTOS FLOTANTES (PARTÍCULAS DE NODOS)
         ctx.fillStyle = paleta.borde;
         const size = 18;
 
@@ -455,19 +456,16 @@ function dibujarCartaCanvas() {
         }
         ctx.globalAlpha = 1.0;
 
-        // 3. Borde exterior
         ctx.strokeStyle = paleta.borde;
         ctx.lineWidth = 4;
         ctx.strokeRect(6, 6, width - 12, height - 12);
 
-        // 4. Símbolo central flotante
         const offsetFlotacion = Math.sin(t * 2) * 4;
         ctx.font = "48px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(simbolo, width / 2, height / 2 - 10 + offsetFlotacion);
 
-        // 5. Nombre de la carta
         ctx.fillStyle = paleta.texto;
         ctx.font = "10px 'Press Start 2P', monospace";
         ctx.fillText(nombre.substring(0, 14), width / 2, height - 30);
@@ -485,7 +483,8 @@ function dibujarCartaCanvas() {
 // 8. MOTOR POLLINATIONS IA
 async function generarImagenPollinationsDirecta() {
     const promptCustom = DOM.get('prompt-ia-custom')?.value?.trim();
-    const nombre = DOM.get('carta-nombre')?.value || "creature";
+    const inputNombre = DOM.findInput(['carta-nombre', 'nombre-carta']);
+    const nombre = inputNombre?.value || "creature";
     const imgIa = DOM.get('imgPollinationsPreview');
     
     const promptFinal = promptCustom || `trading card art of ${nombre}, digital art, highly detailed, vibrant background`;
@@ -522,14 +521,33 @@ async function procesarYGuardarPlantillas() {
 // =============================================================================
 // 🎲 RANDOMIZADOR AVANZADO DE PLANTILLAS Y AUTOCONTEO SUPABASE (1 A 2000)
 // =============================================================================
+
+// ACTUALIZADOR DINÁMICO DE ETIQUETA/TÍTULO ID DE CARTA (X a 2000)
+function actualizarTextoTituloId(cantidadActualBD) {
+    const textoFormateado = `ID DE CARTA (${cantidadActualBD} a 2000):`;
+
+    const labelId = DOM.get('label-carta-id') || DOM.get('title-carta-id');
+    if (labelId) {
+        labelId.textContent = textoFormateado;
+        return;
+    }
+
+    const elementos = document.querySelectorAll('label, h1, h2, h3, h4, span, div, p');
+    for (let el of elementos) {
+        if (el.children.length === 0 && el.textContent.includes('ID DE CARTA')) {
+            el.textContent = textoFormateado;
+            break;
+        }
+    }
+}
+
 async function seleccionarPlantillaAleatoria() {
-    logEstado("🎲 Verificando base de datos para asignar ID disponible (1 a 2000)...");
+    logEstado("🎲 Consultando Supabase y rellenando aleatoriamente todos los cuadros...");
 
     let proximoIdLibre = 1;
     let totalCreadas = 0;
 
     try {
-        // 1. Consultar a Supabase los IDs existentes entre 1 y 2000
         const { data: cartasExistentes, error } = await supabaseClient
             .from('Cartas')
             .select('id')
@@ -540,7 +558,6 @@ async function seleccionarPlantillaAleatoria() {
             const idsOcupados = new Set(cartasExistentes.map(c => Number(c.id)));
             totalCreadas = idsOcupados.size;
 
-            // Buscar el primer número del 1 al 2000 que no esté usado
             for (let i = 1; i <= 2000; i++) {
                 if (!idsOcupados.has(i)) {
                     proximoIdLibre = i;
@@ -549,17 +566,14 @@ async function seleccionarPlantillaAleatoria() {
             }
         }
     } catch (e) {
-        console.warn("Fallo al obtener IDs de Supabase, asignando respaldo:", e.message);
+        console.warn("Fallo al obtener IDs de Supabase:", e.message);
         proximoIdLibre = Math.floor(Math.random() * 2000) + 1;
     }
 
-    const quedanDisponibles = Math.max(0, 2000 - totalCreadas);
-    logEstado(`📊 Estado Colección BD: ${totalCreadas}/2000 Creadas | Quedan: ${quedanDisponibles} | Asignando ID Libre: #${proximoIdLibre}`);
-
-    // Reflejar conteo en la interfaz de usuario
+    actualizarTextoTituloId(totalCreadas);
     DOM.setText('total-cartas-count', totalCreadas);
 
-    // 2. GENERADOR COMBINATORIO DE NOMBRES (> 2,000 COMBINACIONES ÚNICAS)
+    // DICCIONARIOS DE GENERACIÓN AUTOMÁTICA
     const prefijosNombre = [
         "Ciber", "Guardián", "Espectro", "Centinela", "Titán", "Mago", "Fénix", "Sombra",
         "Señor", "Héroe", "Dragón", "Búho", "Alien", "Escarabajo", "Gato", "Nómada", "Oráculo",
@@ -573,29 +587,21 @@ async function seleccionarPlantillaAleatoria() {
     const sufijosNombre = [
         "del Abismo", "de Neón", "del Cosmos", "de la Sombra", "Supremo", "Alfa", "Prime",
         "del Milenio", "de Luz", "de Acero", "del Vacío", "Ancestral", "v2.0", "de Cristal",
-        "de Fuego", "del Viento", "Eterno", "Prototipo", "del Caos", "Sombra"
+        "de Fuego", "del Viento", "Eterno", "Prototipo", "del Caos"
     ];
 
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
     const nombreAleatorio = `${pick(prefijosNombre)} ${pick(nucleosNombre)} ${pick(sufijosNombre)}`;
 
-    // 3. ERAS CONCEPTUALES Y SUB-PALETAS (50+ COMBINACIONES)
-    const erasCategorias = [
-        "Cyberpunk / Neón",
-        "Cotidianos / Retro",
-        "Cosmos / Estelar",
-        "Místico / Arcana"
-    ];
+    const erasCategorias = ["Cyberpunk / Neón", "Cotidianos / Retro", "Cosmos / Estelar", "Místico / Arcana"];
     const eraElegida = pick(erasCategorias);
 
-    // 4. PONDERACIÓN AUTOMÁTICA DE RAREZA
     const randRareza = Math.random() * 100;
     let rarezaAsignada = "Común";
     if (randRareza > 95) rarezaAsignada = "Legendaria";
     else if (randRareza > 80) rarezaAsignada = "Épica";
     else if (randRareza > 50) rarezaAsignada = "Rara";
 
-    // 5. GENERADOR PROCEDURAL DE HISTORIA / LORE (300+ VARIACIONES)
     const iniciosLore = [
         "Originado en las profundidades del sector neón,",
         "Descubierto durante una excavación espacial,",
@@ -623,23 +629,16 @@ async function seleccionarPlantillaAleatoria() {
     const simbolosValidos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
     const simboloAleatorio = pick(simbolosValidos);
 
-    // 6. AUTO-RELLENADO FORZADO Y EXACTO DE TODOS LOS CAMPOS EN EL DOM
-    DOM.setValue('carta-id', proximoIdLibre);
-    DOM.setValue('carta-nombre', nombreAleatorio);
-    DOM.setValue('carta-rareza', rarezaAsignada);
-    DOM.setValue('carta-simbolo', simboloAleatorio);
-    DOM.setValue('carta-lore', loreAleatorio);
+    // RELLENAR RECURSIVAMENTE TODOS LOS CUADROS Y CAMPOS POSIBLES
+    DOM.setValue(['carta-id', 'id-carta', 'input-carta-id'], proximoIdLibre);
+    DOM.setValue(['carta-nombre', 'nombre-carta', 'input-carta-nombre'], nombreAleatorio);
+    DOM.setValue(['carta-rareza', 'rareza-carta', 'select-rareza'], rarezaAsignada);
+    DOM.setValue(['carta-simbolo', 'simbolo-carta'], simboloAleatorio);
+    DOM.setValue(['carta-lore', 'lore-carta', 'textarea-lore'], loreAleatorio);
+    DOM.setValue(['carta-tipo', 'tipo-carta', 'carta-era', 'select-era'], eraElegida);
 
-    // Asignar Era / Tipo buscando elementos probables en el HTML
-    ['carta-tipo', 'carta-era', 'select-era'].forEach(idEl => {
-        const el = DOM.get(idEl);
-        if (el) DOM.setValue(idEl, eraElegida);
-    });
-
-    // Re-renderizar inmediatamente el Canvas en vivo con la nueva receta
     dibujarCartaCanvas();
-    
-    logEstado(`✅ Formulario actualizado: Carta #${proximoIdLibre} "${nombreAleatorio}" (${rarezaAsignada}).`);
+    logEstado(`✅ Cuadros rellenados aleatoriamente: ID #${proximoIdLibre} | ${nombreAleatorio}`);
 }
 
 // 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
@@ -666,23 +665,20 @@ async function cargarMetricasServidor() {
 
         const latencia = Date.now() - inicio;
 
-        if (errUsuarios) console.error("Error Supabase (usuarios):", errUsuarios.message);
-        if (errPremios) console.error("Error Supabase (premios):", errPremios.message);
-        if (errColecciones) console.error("Error Supabase (colecciones):", errColecciones.message);
-
-        // Actualizar estado de conexión a CONECTADO
         DOM.setText('status-supabase', "● CONECTADO");
         const statusEl = DOM.get('status-supabase');
         if (statusEl) statusEl.style.color = "#00ff66";
 
         const creadasReales = countCartas ?? 0;
+        
+        actualizarTextoTituloId(creadasReales);
         DOM.setText('total-cartas-count', creadasReales);
+
         DOM.setText('ping-supabase', `${latencia} ms`);
         DOM.setText('kpi-usuarios-totales', countUsuarios ?? 0);
         DOM.setText('kpi-premios-pendientes', countPremios ?? 0);
         DOM.setText('kpi-total-colecciones', countColecciones ?? 0);
 
-        // Buscar próximo ID libre e informarlo al cargar
         const { data: cartasActivas } = await supabaseClient
             .from('Cartas')
             .select('id')
@@ -700,10 +696,9 @@ async function cargarMetricasServidor() {
             }
         }
 
-        // Auto-colocar el primer ID libre en el input del formulario si está vacío o no ha sido cambiado
-        const inputId = DOM.get('carta-id');
+        const inputId = DOM.findInput(['carta-id', 'id-carta', 'input-carta-id']);
         if (inputId && (!inputId.value || inputId.value === "0")) {
-            DOM.setValue('carta-id', primerIdLibre);
+            DOM.setValue(['carta-id', 'id-carta', 'input-carta-id'], primerIdLibre);
         }
 
         logEstado(`🟢 Servidor activo | Cartas en BD: ${creadasReales}/2000 | Próximo ID disponible: #${primerIdLibre}`);
@@ -715,9 +710,7 @@ async function cargarMetricasServidor() {
     }
 }
 
-// =============================================================================
-// FUNCIÓN AUXILIAR: TESTEAR CONEXIÓN CON SUPABASE
-// =============================================================================
+// TESTEAR CONEXIÓN CON SUPABASE
 async function testearConexionSupabase() {
     logEstado("🔄 Testeando conexión directa con Supabase...");
     const inicio = Date.now();
@@ -767,14 +760,12 @@ function logEstado(mensaje) {
 }
 
 function configurarEventosUI() {
-    // Botones del Generador / Plantillas
     DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
     DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
     
-    // Botones del Panel de Servidor y Catálogo
     DOM.get('btn-refrescar-servidor')?.addEventListener('click', cargarMetricasServidor);
     DOM.get('btn-probar-conexion')?.addEventListener('click', testearConexionSupabase);
     DOM.get('btn-limpiar-log')?.addEventListener('click', limpiarLogServidor);

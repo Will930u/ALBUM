@@ -4,65 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración y Generador Procedural / IA</title>
-    <link rel="stylesheet" href="admin-style_2.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="admin-style_2.css">
 </head>
 <body>
+
     <div class="contenedor-central">
         <h1 class="titulo-central">[ CONSOLA DE MANDO Y GENERADOR DE CARTA ]</h1>
 
-        <!-- BARRA DE PESTAÑAS -->
-        <nav class="barra-pestanas">
+        <!-- BARRA DE PESTAÑAS SPA -->
+        <div class="barra-pestanas">
             <button class="tab-btn activo" onclick="cambiarPestana('tab-crear')">🎨 CREAR CARTA</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-plantillas')">📋 PLANTILLAS</button>
-            <button class="tab-btn" onclick="cambiarPestana('tab-regalar')">🎁 REGALAR</button>
+            <button class="tab-btn" onclick="cambiarPestana('tab-asignar')">🎁 REGALAR</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-catalogo')">📖 CATÁLOGO</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-servidor')">🖥️ SERVIDOR</button>
-        </nav>
+        </div>
 
-        <!-- PESTAÑA 1: CREAR CARTA -->
-        <section id="tab-crear" class="contenido-pestana activa">
-            <h2 class="subtitulo-admin">GENERADOR MATEMÁTICO & MOTOR POLLINATIONS.AI</h2>
+        <!-- PESTAÑA 1: GENERADOR PROCEDURAL Y POLLINATIONS IA -->
+        <div id="tab-crear" class="contenido-pestana activa">
+            <div class="subtitulo-admin">GENERADOR MATEMÁTICO & MOTOR POLLINATIONS.AI</div>
 
-            <!-- Selector de Modo Render -->
+            <!-- SELECTOR DE MODO -->
             <div class="selector-modo-render">
-                <button id="btn-modo-canvas" class="btn-modo-opt activo">👾 CANVAS 2D PROCEDURAL</button>
-                <button id="btn-modo-ia" class="btn-modo-opt"> POLLINATIONS IA</button>
+                <button type="button" class="btn-modo-opt activo" id="btn-modo-canvas" onclick="seleccionarModoRender('canvas')">👾 CANVAS 2D PROCEDURAL</button>
+                <button type="button" class="btn-modo-opt" id="btn-modo-ia" onclick="seleccionarModoRender('ia')">🤖 POLLINATIONS IA</button>
             </div>
 
-            <!-- Vista Previa -->
             <div class="contenedor-vista-previa-canvas">
-                <div id="label-modo-previa" class="label-previa">EN VIVO: RENDERIZADO CANVAS MATEMÁTICO</div>
+                <div class="label-previa" id="label-modo-previa">EN VIVO: RENDERIZADO CANVAS MATEMÁTICO</div>
+                
                 <div class="canvas-wrapper">
                     <canvas id="canvasCartaGenerada" width="220" height="308"></canvas>
-                    <img id="imgPollinationsPreview" class="img-pollinations-preview" alt="IA Preview">
+                    <img id="imgPollinationsPreview" class="img-pollinations-preview" alt="Preview IA">
                     <div id="spinnerIA" class="spinner-ia">GENERANDO IA...</div>
                 </div>
-                <div id="info-semilla" class="info-semilla-box">Semilla: - | Era: -</div>
-            </div>
 
-            <!-- Panel Opciones IA -->
-            <div id="panel-opciones-ia" style="display:none;">
-                <div class="form-grupo">
-                    <label for="prompt-ia-custom">PROMPT PERSONALIZADO (POLLINATIONS):</label>
-                    <input type="text" id="prompt-ia-custom" placeholder="Ej: pixel art dragon, neon style">
+                <div class="info-semilla-box" id="info-semilla">Semilla: - | Era: -</div>
+                
+                <div style="display:flex; gap:8px; width:100%; margin-top:10px;">
+                    <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="flex:1; padding:10px;">🎲 RANDOMIZAR DESDE PLANTILLAS</button>
+                    <button type="button" id="btn-generar-ia" class="btn-mini-admin" style="background:#38bdf8; color:#000; display:none; padding:10px;" onclick="generarImagenPollinationsDirecta()">⚡ GENERAR IA</button>
                 </div>
-                <button id="btn-generar-ia" class="btn-admin-final">⚡ GENERAR IA</button>
             </div>
 
-            <!-- Botón Randomizar -->
-            <button id="btn-randomizar" class="btn-admin-final" style="background:#38bdf8; margin-bottom:10px;">🎲 RANDOMIZAR DESDE PLANTILLAS</button>
-
-            <!-- Formulario de Carta -->
             <div class="form-grupo">
-                <label id="label-carta-id" for="carta-id">ID DE CARTA (1 a 2000):</label>
-                <input type="number" id="carta-id" min="1" max="2000" placeholder="1">
+                <label for="carta-id">ID DE CARTA (1 a 2000):</label>
+                <input type="number" id="carta-id" placeholder="Ej: 1" min="1" max="2000">
             </div>
 
             <div class="form-grupo">
                 <label for="carta-nombre">NOMBRE DE LA CARTA:</label>
-                <input type="text" id="carta-nombre" placeholder="Guardián de Neón">
+                <input type="text" id="carta-nombre" placeholder="Ej: Guardián Místico">
+            </div>
+
+            <!-- PANEL DE OPCIONES ESPECÍFICAS DE IA -->
+            <div id="panel-opciones-ia" style="display:none; background:#000; padding:10px; border:1px solid #333; margin-bottom:14px; border-radius:4px;">
+                <div class="form-grupo">
+                    <label for="prompt-ia-custom">PROMPT PERSONALIZADO (POLLINATIONS):</label>
+                    <input type="text" id="prompt-ia-custom" placeholder="Ej: emoji of mythological dragon, 3d style render, isolated white background">
+                </div>
             </div>
 
             <div class="form-grupo">
@@ -87,103 +90,147 @@
 
             <div class="form-grupo">
                 <label for="carta-simbolo">SÍMBOLO / EMOJI CENTRAL:</label>
-                <input type="text" id="carta-simbolo" placeholder="👾" maxlength="4">
+                <input type="text" id="carta-simbolo" value="👾" maxlength="4">
+            </div>
+
+            <div class="form-grupo">
+                <label for="carta-lore">HISTORIA / LORE:</label>
+                <input type="text" id="carta-lore" placeholder="Historia breve de la carta...">
             </div>
 
             <button id="btn-guardar-carta" class="btn-admin-final">💾 PUBLICAR RECETA EN BASE DE DATOS</button>
-        </section>
+        </div>
 
-        <!-- PESTAÑA 2: PLANTILLAS -->
-        <section id="tab-plantillas" class="contenido-pestana">
-            <h2 class="subtitulo-admin">CARGA MASIVA DE PLANTILLAS Y CATEGORÍAS</h2>
-            <p style="font-size:7px; color:#94a3b8; margin-bottom:10px; line-height:1.4;">
+        <!-- PESTAÑA 2: CARGA Y PARSER DE PLANTILLAS -->
+        <div id="tab-plantillas" class="contenido-pestana">
+            <div class="subtitulo-admin">CARGA MASIVA DE PLANTILLAS Y CATEGORÍAS</div>
+            <p style="font-size:7px; color:#aaa; margin-bottom:10px; line-height:1.4;">
                 Pega el texto estructurado con las Zonas (encabezados) y las listas de emojis con sus nombres y descripciones. El parser lo procesará e insertará en la tabla <code>plantillas_criaturas</code>.
             </p>
-            <div class="form-grupo">
-                <label for="texto-plantillas-masivo">LISTA DE TEXTO PLANO:</label>
-                <textarea id="texto-plantillas-masivo" rows="10" placeholder="👽 Zona del Caos y Criaturas de la Noche&#10;Monstruo alienígena / 👽 Alienígena / 🤖 Robot: Invasores del espacio exterior."></textarea>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <button id="btn-procesar-plantillas" class="btn-admin-final" style="background:#38bdf8;">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
-                <button id="btn-vaciar-plantillas" class="btn-admin-final" style="background:#ef4444;">🗑️ VACIAR TABLA PLANTILLAS</button>
-            </div>
-            <p style="font-size:7px; color:#00ff66; margin-top:10px;">Plantillas registradas actualmente: <span id="total-plantillas-count">0</span></p>
-        </section>
 
-        <!-- PESTAÑA 3: REGALAR -->
-        <section id="tab-regalar" class="contenido-pestana">
-            <h2 class="subtitulo-admin">ENTREGAR CARTA DIRECTA A COLECCIÓN USUARIO TELEGRAM</h2>
+            <div class="form-grupo">
+                <label for="textarea-plantillas">LISTA DE TEXTO PLANO:</label>
+                <textarea id="textarea-plantillas" rows="12" style="width:100%; background:#090a0f; color:#00ff66; border:1px solid #1e293b; padding:10px; font-family:monospace; font-size:10px; resize:vertical;" placeholder="🌋 Zona del Caos y Criaturas de la Noche&#10;👾 Monstruo alienígena / 👽 Alienígena / 🤖 Robot: Invasores del espacio exterior.&#10;..."></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button id="btn-procesar-plantillas" class="btn-admin-final" style="background:#10b981;">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
+                <button id="btn-limpiar-plantillas" class="btn-admin-final" style="background:#ef4444;">🗑️ VACIAR TABLA PLANTILLAS</button>
+            </div>
+            
+            <div id="resumen-plantillas" style="margin-top:10px; font-size:8px; color:#38bdf8;">
+                Plantillas registradas actualmente: <span id="count-plantillas">0</span>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 3: ASIGNAR CARTA A USUARIO -->
+        <div id="tab-asignar" class="contenido-pestana">
+            <div class="subtitulo-admin">ENTREGAR CARTA DIRECTA A COLECCIÓN</div>
+            
             <div class="form-grupo">
                 <label for="target-user">USUARIO TELEGRAM (CON O SIN @):</label>
-                <input type="text" id="target-user" placeholder="@usuario">
+                <input type="text" id="target-user" value="utrera930">
             </div>
+
             <div class="form-grupo">
                 <label for="target-carta-id">ID DE CARTA A REGALAR:</label>
-                <input type="number" id="target-carta-id" min="1" max="2000" placeholder="1">
+                <input type="number" id="target-carta-id" placeholder="Ej: 1">
             </div>
+
             <div class="form-grupo">
                 <label for="target-cantidad">CANTIDAD:</label>
-                <input type="number" id="target-cantidad" min="1" value="1">
-            </div>
-            <button id="btn-regalar-carta" class="btn-admin-final">🎁 ASIGNAR CARTA A USUARIO</button>
-        </section>
-
-        <!-- PESTAÑA 4: CATÁLOGO -->
-        <section id="tab-catalogo" class="contenido-pestana">
-            <h2 class="subtitulo-admin">CATÁLOGO GLOBAL DE RECETAS PUBLICADAS</h2>
-            <button id="btn-refrescar-catalogo" class="btn-admin-final" style="background:#38bdf8; margin-bottom:10px;">🔄 REFRESCAR CATÁLOGO</button>
-            <div id="grid-catalogo-admin" class="grid-catalogo-admin"></div>
-        </section>
-
-        <!-- PESTAÑA 5: SERVIDOR -->
-        <section id="tab-servidor" class="contenido-pestana">
-            <h2 class="subtitulo-admin">CENTRO DE MANDO & ESTADO DEL SERVIDOR</h2>
-
-            <div class="metricas-grid">
-                <div class="metrica-box">
-                    <span class="metrica-label">ESTADO SUPABASE</span>
-                    <span id="status-supabase" class="metrica-valor" style="color:#ef4444;">● DESCONECTADO</span>
-                </div>
-                <div class="metrica-box">
-                    <span class="metrica-label">CARTAS EN BD</span>
-                    <span id="total-cartas-count" class="metrica-valor">0</span>
-                </div>
-                <div class="metrica-box">
-                    <span class="metrica-label">LATENCIA (PING)</span>
-                    <span id="ping-supabase" class="metrica-valor">-- ms</span>
-                </div>
+                <input type="number" id="target-cantidad" value="1" min="1">
             </div>
 
-            <h3 style="font-size:8px; color:#ffcc00; margin:15px 0 10px; text-align:center;">MÉTRICAS EN TIEMPO REAL (MINIAPP)</h3>
-            <div class="metricas-grid">
-                <div class="metrica-box">
-                    <span class="metrica-label">USUARIOS REGISTRADOS</span>
-                    <span id="kpi-usuarios-totales" class="metrica-valor">0</span>
+            <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;">🎁 ASIGNAR CARTA A USUARIO</button>
+        </div>
+
+        <!-- PESTAÑA 4: CATÁLOGO DE CARTAS REGISTRADAS -->
+        <div id="tab-catalogo" class="contenido-pestana">
+            <div class="subtitulo-admin">CATÁLOGO GLOBAL DE RECETAS PUBLICADAS</div>
+            <div class="grid-cartas-admin" id="grid-catalogo-admin">
+                <!-- Se puebla dinámicamente -->
+            </div>
+        </div>
+
+        <!-- PESTAÑA 5: MONITOREO Y CONTROL DEL SERVIDOR -->
+        <div id="tab-servidor" class="contenido-pestana">
+            <div class="subtitulo-admin">CENTRO DE MANDO & ESTADO DEL SERVIDOR</div>
+            
+            <!-- MÉTRICAS TÉCNICAS (INFRAESTRUCTURA) -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+                    <div style="font-size: 8px; color: #888;">ESTADO SUPABASE</div>
+                    <div id="status-supabase" style="color: #00ff66; font-size: 10px; margin-top: 5px; font-weight: bold;">● DESCONECTADO</div>
                 </div>
-                <div class="metrica-box">
-                    <span class="metrica-label">PREMIOS PENDIENTES</span>
-                    <span id="kpi-premios-pendientes" class="metrica-valor">0</span>
+                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+                    <div style="font-size: 8px; color: #888;">CARTAS EN BD</div>
+                    <div id="total-cartas-count" style="color: #fff; font-size: 10px; margin-top: 5px; font-weight: bold;">0</div>
                 </div>
-                <div class="metrica-box">
-                    <span class="metrica-label">COLECCIONES ACTIVAS</span>
-                    <span id="kpi-total-colecciones" class="metrica-valor">0</span>
+                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+                    <div style="font-size: 8px; color: #888;">LATENCIA (PING)</div>
+                    <div id="ping-supabase" style="color: #38bdf8; font-size: 10px; margin-top: 5px; font-weight: bold;">-- ms</div>
                 </div>
             </div>
 
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <button id="btn-probar-conexion" class="btn-admin-final" style="background:#38bdf8;"> PROBAR CONEXIÓN</button>
-                <button id="btn-refrescar-servidor" class="btn-admin-final" style="background:#00ff66;">🔄 REFRESCAR MÉTRICAS</button>
-                <button id="btn-limpiar-log" class="btn-admin-final" style="background:#ef4444;">🧹 LIMPIAR LOG</button>
+            <!-- MÉTRICAS OPERATIVAS (MINIAPP) -->
+            <div class="subtitulo-admin">MÉTRICAS EN TIEMPO REAL (MINIAPP)</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+                    <div style="font-size: 8px; color: #888;">USUARIOS REGISTRADOS</div>
+                    <div id="kpi-usuarios-totales" style="color: #00ff66; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+                </div>
+                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+                    <div style="font-size: 8px; color: #888;">PREMIOS PENDIENTES</div>
+                    <div id="kpi-premios-pendientes" style="color: #eab308; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+                </div>
+                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
+                    <div style="font-size: 8px; color: #888;">COLECCIONES ACTIVAS</div>
+                    <div id="kpi-total-colecciones" style="color: #38bdf8; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+                </div>
             </div>
 
-            <h3 style="font-size:8px; color:#ffcc00; margin:15px 0 10px; text-align:center;">LOGS DE AUDITORÍA DEL SERVIDOR</h3>
-            <div id="servidor-log-output" class="log-servidor">
+            <!-- ACCIONES RÁPIDAS -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #22c55e;" onclick="testearConexionSupabase()">🔌 PROBAR CONEXIÓN</button>
+                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #ef4444;" onclick="limpiarStorageHuerfano()">🧹 LIMPIAR STORAGE</button>
+                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #a855f7;" onclick="cargarMetricasServidor()">🔄 REFRESCAR MÉTRICAS</button>
+            </div>
+
+            <!-- SOLICITUDES DE PREMIOS -->
+            <div class="subtitulo-admin">SOLICITUDES DE PREMIOS Y HITOS (RECLAMACIONES)</div>
+            <div style="background: #000; border: 1px solid #222; padding: 10px; margin-bottom: 15px; max-height: 180px; overflow-y: auto;">
+                <table style="width: 100%; text-align: left; color: #fff; font-size: 8px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #333; color: #888;">
+                            <th style="padding: 4px;">USUARIO</th>
+                            <th style="padding: 4px;">HITO/PREMIO</th>
+                            <th style="padding: 4px;">ESTADO</th>
+                            <th style="padding: 4px; text-align: center;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-servidor-premios">
+                        <tr>
+                            <td colspan="4" style="padding: 8px; text-align: center; color: #666;">Esperando interacción o datos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- CONSOLA DE LOGS EN VIVO -->
+            <div class="subtitulo-admin">LOGS DE AUDITORÍA DEL SERVIDOR</div>
+            <div id="servidor-log-output" style="font-size: 8px; color: #00ff66; padding: 10px; background: #000; border: 1px solid #1a3a2a; font-family: monospace; min-height: 60px; max-height: 120px; overflow-y: auto;">
                 [SISTEMA] Módulo Servidor en línea. Listo para ejecutar diagnósticos.
             </div>
-            <div id="status-log" class="status-log">Sistema inicializado. Listo para procesar algoritmos.</div>
-        </section>
+        </div>
+
+        <div class="status-log" id="status-log" style="margin-top:15px; font-size:7px; color:#00ff66; padding:8px; background:#000; border:1px solid #333; min-height:40px; word-break:break-all;">
+            Sistema inicializado. Listo para procesar algoritmos.
+        </div>
     </div>
 
+    <!-- SDK SUPABASE -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="admin_2.js"></script>
 </body>
 </html>

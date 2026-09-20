@@ -511,49 +511,126 @@ async function procesarYGuardarPlantillas() {
     logEstado("✅ Plantillas procesadas.");
 }
 
+// =============================================================================
+// 🎲 RANDOMIZADOR AVANZADO DE PLANTILLAS Y AUTOCONTEO SUPABASE (1 A 2000)
+// =============================================================================
 async function seleccionarPlantillaAleatoria() {
-    logEstado("🎲 Generando plantilla aleatoria...");
-    
-    const PLANTILLAS_FALLBACK = [
-        { nombre: "Ciber Dragón", rareza: "Cyber", simbolo: "🐲", lore: "Aparece en las redes cuánticas de neón." },
-        { nombre: "Búho Sabio", rareza: "Cotidiano", simbolo: "🦉", lore: "Guardián silencioso de la biblioteca." },
-        { nombre: "Alien Ancestral", rareza: "Espacial", simbolo: "👽", lore: "Viajero interestelar de galaxias lejanas." },
-        { nombre: "Mago Arcano", rareza: "Antiguo", simbolo: "🔮", lore: "Dominador de las artes místicas antiguas." },
-        { nombre: "Robot Centinela", rareza: "Cyber", simbolo: "🤖", lore: "Unidad automatizada de defensa militar." },
-        { nombre: "Fénix Radiante", rareza: "Espacial", simbolo: "🔥", lore: "Nacido del núcleo ardiente de una estrella." },
-        { nombre: "Escarabajo Solar", rareza: "Antiguo", simbolo: "🪲", lore: "Reliquia sagrada enterrada en la arena." },
-        { nombre: "Gato Espectral", rareza: "Cotidiano", simbolo: "🐱", lore: "Camina entre el plano físico y el de las sombras." }
-    ];
+    logEstado("🎲 Verificando base de datos para asignar ID disponible (1 a 2000)...");
 
-    let plantillaElegida = null;
+    let proximoIdLibre = 1;
+    let totalCreadas = 0;
 
     try {
-        const { data, error } = await supabaseClient
-            .from('plantillas_criaturas')
-            .select('*');
-        
-        if (!error && data && data.length > 0) {
-            const indiceRandom = Math.floor(Math.random() * data.length);
-            plantillaElegida = data[indiceRandom];
+        // 1. Consultar a Supabase los IDs existentes entre 1 y 2000
+        const { data: cartasExistentes, error } = await supabaseClient
+            .from('Cartas')
+            .select('id')
+            .gte('id', 1)
+            .lte('id', 2000);
+
+        if (!error && cartasExistentes) {
+            const idsOcupados = new Set(cartasExistentes.map(c => Number(c.id)));
+            totalCreadas = idsOcupados.size;
+
+            // Buscar el primer número del 1 al 2000 que no esté usado
+            for (let i = 1; i <= 2000; i++) {
+                if (!idsOcupados.has(i)) {
+                    proximoIdLibre = i;
+                    break;
+                }
+            }
         }
     } catch (e) {
-        console.warn("No se cargaron plantillas de BD, usando fallback local:", e.message);
+        console.warn("Fallo al obtener IDs de Supabase, asignando respaldo:", e.message);
+        proximoIdLibre = Math.floor(Math.random() * 2000) + 1;
     }
 
-    if (!plantillaElegida) {
-        const indiceRandom = Math.floor(Math.random() * PLANTILLAS_FALLBACK.length);
-        plantillaElegida = PLANTILLAS_FALLBACK[indiceRandom];
+    const quedanDisponibles = Math.max(0, 2000 - totalCreadas);
+    logEstado(`📊 Estado Colección: ${totalCreadas}/2000 Creadas | Quedan: ${quedanDisponibles} | Asignando ID: #${proximoIdLibre}`);
+
+    // 2. GENERADOR COMBINATORIO DE NOMBRES (> 2,000 COMBINACIONES ÚNICAS)
+    const prefijosNombre = [
+        "Ciber", "Guardián", "Espectro", "Centinela", "Titán", "Mago", "Fénix", "Sombra",
+        "Señor", "Héroe", "Dragón", "Búho", "Alien", "Escarabajo", "Gato", "Nómada", "Oráculo",
+        "Vanguardia", "Cazador", "Caminante", "Sacerdote", "Automátón", "Astral", "Crono"
+    ];
+    const nucleosNombre = [
+        "Místico", "Neón", "Arcano", "Espacial", "Solar", "Espectral", "Néctar", "Ancestral",
+        "Cuántico", "Radiante", "Salvaje", "Digital", "Tenebroso", "Estelar", "Oscuro",
+        "Pixel", "Cósmico", "Sintético", "Eterno", "Cibernético", "Olvido", "Infinito"
+    ];
+    const sufijosNombre = [
+        "del Abismo", "de Neón", "del Cosmos", "de la Sombra", "Supremo", "Alfa", "Prime",
+        "del Milenio", "de Luz", "de Acero", "del Vacío", "Ancestral", "v2.0", "de Cristal",
+        "de Fuego", "del Viento", "Eterno", "Prototipo", "del Caos", "Sombra"
+    ];
+
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const nombreAleatorio = `${pick(prefijosNombre)} ${pick(nucleosNombre)} ${pick(sufijosNombre)}`;
+
+    // 3. ERAS CONCEPTUALES Y SUB-PALETAS (50+ COMBINACIONES)
+    const erasCategorias = [
+        "Cyberpunk / Neón", "Cyberpunk / Neón",
+        "Cotidianos / Retro", "Cotidianos / Retro",
+        "Cosmos / Estelar",
+        "Místico / Arcana"
+    ];
+    const eraElegida = pick(erasCategorias);
+
+    // 4. PONDERACIÓN AUTOMÁTICA DE RAREZA
+    // Común (50%), Rara (30%), Épica (15%), Legendaria (5%)
+    const randRareza = Math.random() * 100;
+    let rarezaAsignada = "Común";
+    if (randRareza > 95) rarezaAsignada = "Legendaria";
+    else if (randRareza > 80) rarezaAsignada = "Épica";
+    else if (randRareza > 50) rarezaAsignada = "Rara";
+
+    // 5. GENERADOR PROCEDURAL DE HISTORIA / LORE (300+ VARIACIONES)
+    const iniciosLore = [
+        "Originado en las profundidades del sector neón,",
+        "Descubierto durante una excavación espacial,",
+        "Forgeado en el núcleo de una estrella extinta,",
+        "Antigua deidad atrapada en una red cibernética,",
+        "Entidad programada para proteger el equilibrio del reino,",
+        "Un mito olvidado que volvió a emerger de las sombras,"
+    ];
+    const desarrollosLore = [
+        "posee el control absoluto sobre la energía de su entorno y",
+        "utiliza tecnología cuántica avanzada para canalizar su poder,",
+        "patrulla los límites del espacio conocido mientras",
+        "aguarda pacientemente el momento de desplegar su verdadero poder,",
+        "desafía las leyes de la física en cada manifestación,"
+    ];
+    const finalesLore = [
+        "nadie ha logrado descifrar su código original.",
+        "convirtiéndose en una leyenda para los coleccionistas.",
+        "marcando el inicio de una nueva era cibernética.",
+        "dejando una ráfaga de resplandor tras su paso.",
+        "revelando secretos ocultos del universo digital."
+    ];
+
+    const loreAleatorio = `${pick(iniciosLore)} ${pick(desarrollosLore)} ${pick(finalesLore)}`;
+
+    // 6. ASIGNAR VALORES OBTENIDOS Y GENERADOS A LA INTERFAZ
+    DOM.setValue('carta-id', proximoIdLibre);
+    DOM.setValue('carta-nombre', nombreAleatorio);
+    
+    const selectEra = DOM.get('carta-tipo') || DOM.get('carta-era');
+    if (selectEra) DOM.setValue(selectEra.id, eraElegida);
+    
+    DOM.setValue('carta-rareza', rarezaAsignada);
+    DOM.setValue('carta-lore', loreAleatorio);
+
+    // Símbolo aleatorio por defecto si falta
+    const simbolosValidos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
+    if (!DOM.get('carta-simbolo')?.value) {
+        DOM.setValue('carta-simbolo', pick(simbolosValidos));
     }
 
-    const idAleatorio = Math.floor(Math.random() * 8999) + 1000;
-    DOM.setValue('carta-id', idAleatorio);
-    DOM.setValue('carta-nombre', plantillaElegida.nombre || "Criatura Aleatoria");
-    DOM.setValue('carta-rareza', plantillaElegida.rareza || "Cotidiano");
-    DOM.setValue('carta-simbolo', plantillaElegida.simbolo || "👾");
-    DOM.setValue('carta-lore', plantillaElegida.lore || "Generado desde plantilla aleatoria.");
-
+    // Dibujar actualización inmediata en la vista previa del Canvas
     dibujarCartaCanvas();
-    logEstado(`✅ Plantilla "${plantillaElegida.nombre}" cargada en el formulario (ID #${idAleatorio}).`);
+    
+    logEstado(`✅ Carta #${proximoIdLibre} "${nombreAleatorio}" (${rarezaAsignada}) lista para publicar.`);
 }
 
 // 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR

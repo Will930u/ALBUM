@@ -71,13 +71,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     iniciarSuscripcionRealtimeAlbum();
 
-    // 🎨 Cargar un dibujo inicial por defecto sin guardar en BD
-    Estado.cartaPreviewActual = {
-        nombre: "Criatura",
-        simbolo: "👾",
-        rareza: "Común"
-    };
-    dibujarCartaCanvas();
+    // 🎨 Generar solo vista previa aleatoria al recargar (SIN guardar en Supabase)
+    try {
+        const { data: plantillas } = await supabaseClient
+            .from('plantillas_criaturas')
+            .select('*');
+
+        if (plantillas && plantillas.length > 0) {
+            // Seleccionar una plantilla al azar de la lista
+            const plantillaAleatoria = plantillas[Math.floor(Math.random() * plantillas.length)];
+            
+            Estado.cartaPreviewActual = {
+                nombre: plantillaAleatoria.nombre || "Criatura",
+                simbolo: plantillaAleatoria.emoji || plantillaAleatoria.simbolo || "👾",
+                rareza: plantillaAleatoria.rareza || "Común"
+            };
+            dibujarCartaCanvas();
+        }
+    } catch (err) {
+        logEstado(`⚠️ No se pudo cargar la vista previa inicial: ${err.message}`);
+    }
 });
 
 // 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES

@@ -31,7 +31,14 @@ const PALETAS_ERA = Object.freeze({
 // AYUDANTES DE DOM (DOM HELPERS)
 const DOM = {
     get: (id) => document.getElementById(id),
-    setValue: (id, val) => { const el = document.getElementById(id); if (el) el.value = val; },
+    setValue: (id, val) => { 
+        const el = document.getElementById(id); 
+        if (el) {
+            el.value = val;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    },
     setText: (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; },
     setDisplay: (id, display) => { const el = document.getElementById(id); if (el) el.style.display = display; },
     toggleClass: (id, className, force) => { const el = document.getElementById(id); if (el) el.classList.toggle(className, force); }
@@ -194,7 +201,7 @@ async function guardarCartaBD() {
     const id = parseInt(DOM.get('carta-id')?.value, 10);
     const nombre = DOM.get('carta-nombre')?.value.trim();
     const rareza = DOM.get('carta-rareza')?.value.trim() || 'Común';
-    const tipo = DOM.get('carta-tipo')?.value.trim() || 'Algorítmica Canvas';
+    const tipo = DOM.get('carta-tipo')?.value.trim() || DOM.get('carta-era')?.value.trim() || 'Algorítmica Canvas';
     const lore = DOM.get('carta-lore')?.value.trim() || '';
     const simbolo = DOM.get('carta-simbolo')?.value.trim() || '👾';
 
@@ -233,6 +240,7 @@ async function guardarCartaBD() {
         alert(`✅ Carta #${id} "${nombre}" publicada con éxito.`);
         logEstado(`✅ Carta #${id} guardada correctamente.`);
         await cargarCatalogoCartas();
+        await cargarMetricasServidor();
     }
 }
 
@@ -546,7 +554,10 @@ async function seleccionarPlantillaAleatoria() {
     }
 
     const quedanDisponibles = Math.max(0, 2000 - totalCreadas);
-    logEstado(`📊 Estado Colección: ${totalCreadas}/2000 Creadas | Quedan: ${quedanDisponibles} | Asignando ID: #${proximoIdLibre}`);
+    logEstado(`📊 Estado Colección BD: ${totalCreadas}/2000 Creadas | Quedan: ${quedanDisponibles} | Asignando ID Libre: #${proximoIdLibre}`);
+
+    // Reflejar conteo en la interfaz de usuario
+    DOM.setText('total-cartas-count', totalCreadas);
 
     // 2. GENERADOR COMBINATORIO DE NOMBRES (> 2,000 COMBINACIONES ÚNICAS)
     const prefijosNombre = [
@@ -570,15 +581,14 @@ async function seleccionarPlantillaAleatoria() {
 
     // 3. ERAS CONCEPTUALES Y SUB-PALETAS (50+ COMBINACIONES)
     const erasCategorias = [
-        "Cyberpunk / Neón", "Cyberpunk / Neón",
-        "Cotidianos / Retro", "Cotidianos / Retro",
+        "Cyberpunk / Neón",
+        "Cotidianos / Retro",
         "Cosmos / Estelar",
         "Místico / Arcana"
     ];
     const eraElegida = pick(erasCategorias);
 
     // 4. PONDERACIÓN AUTOMÁTICA DE RAREZA
-    // Común (50%), Rara (30%), Épica (15%), Legendaria (5%)
     const randRareza = Math.random() * 100;
     let rarezaAsignada = "Común";
     if (randRareza > 95) rarezaAsignada = "Legendaria";
@@ -589,7 +599,7 @@ async function seleccionarPlantillaAleatoria() {
     const iniciosLore = [
         "Originado en las profundidades del sector neón,",
         "Descubierto durante una excavación espacial,",
-        "Forgeado en el núcleo de una estrella extinta,",
+        "Forjado en el núcleo de una estrella extinta,",
         "Antigua deidad atrapada en una red cibernética,",
         "Entidad programada para proteger el equilibrio del reino,",
         "Un mito olvidado que volvió a emerger de las sombras,"
@@ -610,27 +620,26 @@ async function seleccionarPlantillaAleatoria() {
     ];
 
     const loreAleatorio = `${pick(iniciosLore)} ${pick(desarrollosLore)} ${pick(finalesLore)}`;
+    const simbolosValidos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
+    const simboloAleatorio = pick(simbolosValidos);
 
-    // 6. ASIGNAR VALORES OBTENIDOS Y GENERADOS A LA INTERFAZ
+    // 6. AUTO-RELLENADO FORZADO Y EXACTO DE TODOS LOS CAMPOS EN EL DOM
     DOM.setValue('carta-id', proximoIdLibre);
     DOM.setValue('carta-nombre', nombreAleatorio);
-    
-    const selectEra = DOM.get('carta-tipo') || DOM.get('carta-era');
-    if (selectEra) DOM.setValue(selectEra.id, eraElegida);
-    
     DOM.setValue('carta-rareza', rarezaAsignada);
+    DOM.setValue('carta-simbolo', simboloAleatorio);
     DOM.setValue('carta-lore', loreAleatorio);
 
-    // Símbolo aleatorio por defecto si falta
-    const simbolosValidos = ['👾', '👽', '🤖', '🐲', '⚡', '🔥', '🔮', '⚔️', '🐝', '🦋', '🦉', '🪲'];
-    if (!DOM.get('carta-simbolo')?.value) {
-        DOM.setValue('carta-simbolo', pick(simbolosValidos));
-    }
+    // Asignar Era / Tipo buscando elementos probables en el HTML
+    ['carta-tipo', 'carta-era', 'select-era'].forEach(idEl => {
+        const el = DOM.get(idEl);
+        if (el) DOM.setValue(idEl, eraElegida);
+    });
 
-    // Dibujar actualización inmediata en la vista previa del Canvas
+    // Re-renderizar inmediatamente el Canvas en vivo con la nueva receta
     dibujarCartaCanvas();
     
-    logEstado(`✅ Carta #${proximoIdLibre} "${nombreAleatorio}" (${rarezaAsignada}) lista para publicar.`);
+    logEstado(`✅ Formulario actualizado: Carta #${proximoIdLibre} "${nombreAleatorio}" (${rarezaAsignada}).`);
 }
 
 // 10. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
@@ -666,13 +675,38 @@ async function cargarMetricasServidor() {
         const statusEl = DOM.get('status-supabase');
         if (statusEl) statusEl.style.color = "#00ff66";
 
-        DOM.setText('total-cartas-count', countCartas ?? 0);
+        const creadasReales = countCartas ?? 0;
+        DOM.setText('total-cartas-count', creadasReales);
         DOM.setText('ping-supabase', `${latencia} ms`);
         DOM.setText('kpi-usuarios-totales', countUsuarios ?? 0);
         DOM.setText('kpi-premios-pendientes', countPremios ?? 0);
         DOM.setText('kpi-total-colecciones', countColecciones ?? 0);
 
-        logEstado(`🟢 Servidor activo | usuarios: ${countUsuarios ?? 0}`);
+        // Buscar próximo ID libre e informarlo al cargar
+        const { data: cartasActivas } = await supabaseClient
+            .from('Cartas')
+            .select('id')
+            .gte('id', 1)
+            .lte('id', 2000);
+
+        let primerIdLibre = 1;
+        if (cartasActivas) {
+            const setIds = new Set(cartasActivas.map(c => Number(c.id)));
+            for (let i = 1; i <= 2000; i++) {
+                if (!setIds.has(i)) {
+                    primerIdLibre = i;
+                    break;
+                }
+            }
+        }
+
+        // Auto-colocar el primer ID libre en el input del formulario si está vacío o no ha sido cambiado
+        const inputId = DOM.get('carta-id');
+        if (inputId && (!inputId.value || inputId.value === "0")) {
+            DOM.setValue('carta-id', primerIdLibre);
+        }
+
+        logEstado(`🟢 Servidor activo | Cartas en BD: ${creadasReales}/2000 | Próximo ID disponible: #${primerIdLibre}`);
     } catch (e) {
         DOM.setText('status-supabase', "● DESCONECTADO");
         const statusEl = DOM.get('status-supabase');

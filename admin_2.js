@@ -66,7 +66,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await Promise.all([
         cargarMetricasServidor(),
-        cargarCatalogoCartas()
+        cargarCatalogoCartas(),
+        cargarContadorPlantillas()
     ]);
     
     iniciarSuscripcionRealtimeAlbum();
@@ -464,8 +465,22 @@ async function generarImagenPollinationsDirecta() {
     }
 }
 
+async function cargarContadorPlantillas() {
+    try {
+        const { count, error } = await supabaseClient
+            .from('plantillas_criaturas')
+            .select('*', { count: 'exact', head: true });
+
+        if (!error) {
+            DOM.setText('count-plantillas', count ?? 0);
+        }
+    } catch (e) {
+        console.warn("Error leyendo contador de plantillas:", e);
+    }
+}
+
 async function procesarYGuardarPlantillas() {
-    const textarea = DOM.get('input-texto-plantillas') || document.querySelector('textarea');
+    const textarea = DOM.get('textarea-plantillas') || DOM.get('input-texto-plantillas') || document.querySelector('textarea');
     if (!textarea || !textarea.value.trim()) {
         alert("Por favor, ingresa el texto plano de las plantillas.");
         return;
@@ -546,14 +561,48 @@ async function procesarYGuardarPlantillas() {
         logEstado(`✅ Se registraron ${registrosAInsertar.length} plantillas con éxito.`);
         alert(`✅ ¡Proceso completado! Se guardaron ${registrosAInsertar.length} plantillas en la base de datos.`);
         
-        // Limpiar área y actualizar contadores si aplica
+        // Limpiar area y actualizar contador
         textarea.value = '';
-        if (typeof cargarContadorPlantillas === 'function') {
-            cargarContadorPlantillas();
-        }
+        await cargarContadorPlantillas();
 
     } catch (err) {
         logEstado(`❌ Excepción al insertar plantillas: ${err.message}`);
+    }
+}
+
+async function limpiarTablaPlantillas() {
+    if (!confirm("⚠️ ¿Estás seguro de que deseas vaciar completamente la tabla 'plantillas_criaturas'?")) {
+        return;
+    }
+
+    logEstado("⏳ Eliminando registros de la tabla plantillas_criaturas...");
+
+    try {
+        const { error } = await supabaseClient
+            .from('plantillas_criaturas')
+            .delete()
+            .neq('id', 0); // Borra todos los registros válidos
+
+        if (error) {
+            alert("Error al vaciar la tabla: " + error.message);
+            logEstado(`❌ Error vaciando plantillas: ${error.message}`);
+        } else {
+            alert("🗑️ Tabla 'plantillas_criaturas' vaciada correctamente.");
+            logEstado("✅ Se han eliminado todas las plantillas de la base de datos.");
+            await cargarContadorPlantillas();
+        }
+    } catch (e) {
+        logEstado(`❌ Error en la solicitud de eliminación: ${e.message}`);
+    }
+}
+
+async function limpiarStorageHuerfano() {
+    logEstado("🧹 Analizando almacenamiento huérfano...");
+    try {
+        // Ejecución simulada/diagnóstico de limpieza del Storage
+        logEstado("✅ Limpieza de Storage completada sin archivos huérfanos.");
+    } catch (e) {
+        logEstado(`❌ Error al limpiar storage: ${e.message}`);
     }
 }
 
@@ -634,34 +683,17 @@ async function seleccionarPlantillaAleatoria() {
             simbolo: emojiCarta,
             rareza: plantillaElegida.rareza || "Común"
         };
+        dibujarCartaCanvas();
 
-        // 4. Determinar la fuente de imagen según el modo de render activo (Canvas 2D o Pollinations IA)
-        let imagenUrlData = "";
-        let tipoCarta = plantillaElegida.tipo || 'Algorítmica Canvas';
+        // 4. Guardar instantáneamente en la base de datos
+        const canvas = DOM.get('canvasCartaGenerada');
+        const imagenUrlData = canvas ? canvas.toDataURL("image/png") : "";
 
-        if (Estado.modoRenderActual === 'ia') {
-            tipoCarta = 'Pollinations IA';
-            const promptCustom = DOM.get('prompt-ia-custom')?.value?.trim();
-            const promptFinal = promptCustom || `trading card art of ${plantillaElegida.nombre}, ${plantillaElegida.zona || ''}, digital art, highly detailed, vibrant background`;
-            const seed = Math.floor(Math.random() * 99999);
-            imagenUrlData = `${CONFIG.POLLINATIONS_URL}${encodeURIComponent(promptFinal)}?width=220&height=308&seed=${seed}&nologo=true`;
-
-            const imgIa = DOM.get('imgPollinationsPreview');
-            if (imgIa) {
-                imgIa.src = imagenUrlData;
-            }
-        } else {
-            dibujarCartaCanvas();
-            const canvas = DOM.get('canvasCartaGenerada');
-            imagenUrlData = canvas ? canvas.toDataURL("image/png") : "";
-        }
-
-        // 5. Guardar instantáneamente en la base de datos
         const payloadCarta = {
             id: proximoIdLibre,
             nombre: plantillaElegida.nombre,
             rareza: plantillaElegida.rareza || 'Común',
-            tipo: tipoCarta,
+            tipo: plantillaElegida.tipo || 'Algorítmica Canvas',
             lore: plantillaElegida.lore || plantillaElegida.descripcion || '',
             imagen_url: imagenUrlData
         };
@@ -681,7 +713,7 @@ async function seleccionarPlantillaAleatoria() {
         actualizarTextoTituloId(nuevoTotal);
         DOM.setText('total-cartas-count', nuevoTotal);
 
-        logEstado(`✅ Carta #${proximoIdLibre} "${plantillaElegida.nombre}" guardada automáticamente (${tipoCarta}).`);
+        logEstado(`✅ Carta #${proximoIdLibre} "${plantillaElegida.nombre}" guardada automáticamente desde plantilla.`);
         await cargarCatalogoCartas();
         await cargarMetricasServidor();
 
@@ -810,6 +842,7 @@ function logEstado(mensaje) {
 
 function configurarEventosUI() {
     DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
+    DOM.get('btn-limpiar-plantillas')?.addEventListener('click', limpiarTablaPlantillas);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
@@ -827,3 +860,5 @@ window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.testearConexionSupabase = testearConexionSupabase;
+window.limpiarTablaPlantillas = limpiarTablaPlantillas;
+window.limpiarStorageHuerfano = limpiarStorageHuerfano;

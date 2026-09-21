@@ -138,6 +138,34 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 16px rgba(224, 242, 254, 0.5), 4px 4px 0px #0f172a;
 }
 
+.btn-mini-admin {
+    background-color: #0f172a;
+    color: #00d2ff;
+    border: 2px solid #00d2ff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.btn-mini-admin:hover {
+    background-color: #00d2ff;
+    color: #020617;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+}
+
+.btn-mini-drop {
+    background-color: #1e293b;
+    color: #38bdf8;
+    border-color: #38bdf8;
+}
+
+.btn-mini-drop:hover {
+    background-color: #38bdf8;
+    color: #020617;
+}
+
 /* =============================================================================
 👁️ VISTA PREVIA CANVAS ALGORÍTMICO Y POLLINATIONS IA
 ============================================================================= */

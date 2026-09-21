@@ -55,6 +55,149 @@ const DOM = {
     toggleClass: (id, className, force) => { const el = document.getElementById(id); if (el) el.classList.toggle(className, force); }
 };
 
+// =============================================================================
+// 🎨 MOTOR DE GENERACIÓN DE PERSONAJES Y AVATARES VECTORIALES 2D (PROCEDURAL)
+// =============================================================================
+
+function stringToSeed(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash);
+}
+
+function generateAvatar(ctx, cx, cy, seed, paleta) {
+    ctx.save();
+    
+    // Generador pseudoaleatorio basado en la semilla
+    const random = function() {
+        let x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+    };
+
+    const coloresSkin = [paleta.acento, '#38bdf8', '#a855f7', '#22c55e', '#f59e0b', '#ec4899'];
+    const skinColor = coloresSkin[Math.floor(random() * coloresSkin.length)];
+    const eyeColor = '#ffffff';
+
+    // 1. Cuerpo / Hombros
+    ctx.fillStyle = paleta.borde;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 35, 30, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Cabeza
+    ctx.fillStyle = skinColor;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 5, 25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+
+    // 3. Ojos 2D
+    const eyeOffset = 9;
+    const eyeY = cy - 10;
+    
+    // Ojo Izquierdo
+    ctx.fillStyle = eyeColor;
+    ctx.beginPath();
+    ctx.arc(cx - eyeOffset, eyeY, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(cx - eyeOffset + 1, eyeY, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ojo Derecho
+    ctx.fillStyle = eyeColor;
+    ctx.beginPath();
+    ctx.arc(cx + eyeOffset, eyeY, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(cx + eyeOffset - 1, eyeY, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Boca / Expresión
+    const bocaTipo = Math.floor(random() * 3);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (bocaTipo === 0) {
+        ctx.arc(cx, cy + 5, 8, 0.1 * Math.PI, 0.9 * Math.PI, false); // Sonrisa
+    } else if (bocaTipo === 1) {
+        ctx.moveTo(cx - 6, cy + 8);
+        ctx.lineTo(cx + 6, cy + 8); // Linea seria
+    } else {
+        ctx.arc(cx, cy + 7, 4, 0, Math.PI * 2); // Boca sorprendida
+        ctx.fillStyle = '#000';
+        ctx.fill();
+    }
+    ctx.stroke();
+
+    // 5. Detalles extra (Antenas o Cuernos si es cyber/espacial)
+    if (random() > 0.4) {
+        ctx.fillStyle = paleta.acento;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 32, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 30);
+        ctx.lineTo(cx, cy - 25);
+        ctx.strokeStyle = paleta.acento;
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+function generateCharacter(ctx, cx, cy, seed, paleta) {
+    ctx.save();
+    
+    const random = function() {
+        let x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+    };
+
+    const cBody = paleta.acento;
+    const cDetail = paleta.borde;
+
+    // 1. Torso
+    ctx.fillStyle = cBody;
+    ctx.beginPath();
+    ctx.roundRect(cx - 20, cy - 10, 40, 45, 8);
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 2. Cabeza estilo Criatura 2D
+    ctx.fillStyle = cDetail;
+    ctx.beginPath();
+    ctx.roundRect(cx - 22, cy - 45, 44, 32, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // 3. Ojo Visor Central o Múltiples Ojos
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 30, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#00ffcc';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 30, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Detalle de Armadura / Pecho
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(cx - 12, cy, 24, 15);
+    ctx.strokeStyle = paleta.borde;
+    ctx.strokeRect(cx - 12, cy, 24, 15);
+
+    ctx.restore();
+}
+
 // 1. INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', async () => {
     logEstado("Inicializando Panel de Mando...");
@@ -85,7 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             Estado.cartaPreviewActual = {
                 nombre: plantillaAleatoria.nombre || "Criatura",
                 simbolo: plantillaAleatoria.emoji || plantillaAleatoria.simbolo || "👾",
-                rareza: plantillaAleatoria.rareza || "Común"
+                rareza: plantillaAleatoria.rareza || "Común",
+                seed: stringToSeed(plantillaAleatoria.nombre || "Criatura")
             };
             dibujarCartaCanvas();
         }
@@ -292,14 +436,6 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     const ctx = canvas.getContext('2d');
     const rareza = (carta.rareza || 'Común').toLowerCase();
     const paleta = PALETAS_ERA[rareza] || PALETAS_ERA.cyber;
-    let simbolo = '👾';
-
-    if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
-        try {
-            const parsed = JSON.parse(carta.imagen_url);
-            if (parsed.simbolo) simbolo = parsed.simbolo;
-        } catch (e) {}
-    }
 
     const width = canvas.width;
     const height = canvas.height;
@@ -337,10 +473,14 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     ctx.strokeRect(3, 3, width - 6, height - 6);
 
     const offsetFlotacion = Math.sin(t * 2) * 3;
-    ctx.font = "32px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(simbolo, width / 2, height / 2 + offsetFlotacion);
+    const seed = stringToSeed(carta.nombre || 'carta');
+    
+    // Renderizado 2D Vectorial en mini Canvas en lugar de Emoji
+    if (seed % 2 === 0) {
+        generateAvatar(ctx, width / 2, height / 2 + offsetFlotacion, seed, paleta);
+    } else {
+        generateCharacter(ctx, width / 2, height / 2 + offsetFlotacion + 10, seed, paleta);
+    }
 }
 
 function iniciarBucleAnimacionCatalogo(cartas) {
@@ -356,7 +496,7 @@ function iniciarBucleAnimacionCatalogo(cartas) {
     Estado.animacionCatalogoId = requestAnimationFrame(loop);
 }
 
-// 6. GENERADOR CANVAS EN VIVO ANIMADO
+// 6. GENERADOR CANVAS EN VIVO ANIMADO CON PERSONAJES 2D
 function escucharDibujoCanvas() {
     DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
@@ -377,13 +517,14 @@ function dibujarCartaCanvas() {
         const carta = Estado.cartaPreviewActual || {
             nombre: "Carta Misteriosa",
             simbolo: "👾",
-            rareza: "Común"
+            rareza: "Común",
+            seed: 12345
         };
 
         const nombre = carta.nombre || "Carta Misteriosa";
-        const simbolo = carta.simbolo || "👾";
         const rareza = carta.rareza || "Común";
         const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
+        const seed = carta.seed || stringToSeed(nombre);
 
         const width = canvas.width;
         const height = canvas.height;
@@ -421,16 +562,20 @@ function dibujarCartaCanvas() {
         ctx.strokeRect(6, 6, width - 12, height - 12);
 
         const offsetFlotacion = Math.sin(t * 2) * 4;
-        ctx.font = "48px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(simbolo, width / 2, height / 2 - 10 + offsetFlotacion);
+        
+        // 🚀 RENDERIZADO PROCEDURAL VECTORIAL 2D (REEMPLAZA ctx.fillText EMOJI)
+        if (seed % 2 === 0) {
+            generateAvatar(ctx, width / 2, height / 2 - 10 + offsetFlotacion, seed, paleta);
+        } else {
+            generateCharacter(ctx, width / 2, height / 2 + 10 + offsetFlotacion, seed, paleta);
+        }
 
         ctx.fillStyle = paleta.texto;
         ctx.font = "10px 'Press Start 2P', monospace";
+        ctx.textAlign = "center";
         ctx.fillText(nombre.substring(0, 14), width / 2, height - 30);
 
-        DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Símbolo: ${simbolo}`);
+        DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Semilla: ${seed}`);
 
         if (Estado.modoRenderActual === 'canvas') {
             Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
@@ -673,15 +818,14 @@ async function seleccionarPlantillaAleatoria() {
 
         // 3. Seleccionar plantilla al azar
         const plantillaElegida = plantillasDisponibles[Math.floor(Math.random() * plantillasDisponibles.length)];
-
-        // Obtener el emoji directamente desde la columna 'emoji' de la tabla Supabase
         const emojiCarta = plantillaElegida.emoji || plantillaElegida.simbolo || "👾";
 
-        // Visualizar en Canvas
+        // Visualizar en Canvas con personaje 2D mediante semilla
         Estado.cartaPreviewActual = {
             nombre: plantillaElegida.nombre || "Criatura",
             simbolo: emojiCarta,
-            rareza: plantillaElegida.rareza || "Común"
+            rareza: plantillaElegida.rareza || "Común",
+            seed: stringToSeed(plantillaElegida.nombre || "Criatura")
         };
         dibujarCartaCanvas();
 
@@ -862,3 +1006,5 @@ window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.testearConexionSupabase = testearConexionSupabase;
 window.limpiarTablaPlantillas = limpiarTablaPlantillas;
 window.limpiarStorageHuerfano = limpiarStorageHuerfano;
+window.generateAvatar = generateAvatar;
+window.generateCharacter = generateCharacter;

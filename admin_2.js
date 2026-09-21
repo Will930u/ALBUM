@@ -17,36 +17,7 @@ const Estado = {
     canalRealtimeColeccion: null,
     animacionCatalogoId: null,
     animacionPreviewId: null,
-    cartaPreviewActual: null,
-    procesandoMasivo: false
-};
-
-// BANCOS DE SEMILLAS PARA GENERACIÓN PROCEDURAL (1000 UNIDADES POR CATEGORÍA)
-const BANCO_CATEGORIAS = {
-    emojis: {
-        simbolos: ['👾', '🤖', '👽', '👻', '💀', '🤡', '👹', '👺', '🎃', '👽', '🐲', '🔮', '🧿', '⭐', '💥', '🔥', '⚡', '🌟', '💫', '🎯'],
-        prefijos: ['Alfa', 'Beta', 'Gama', 'Cyber', 'Neo', 'Quantum', 'Glitch', 'Sintético', 'Ciber', 'Pixel'],
-        sufijos: ['Bot', 'Core', 'Node', 'Unit', 'System', 'Matrix', 'Vector', 'Entity', 'Spark', 'Byte'],
-        rareza: ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria']
-    },
-    personajes: {
-        simbolos: ['🧙‍♂️', '🧝‍♂️', '🧛‍♂️', '🧟‍♂️', '🦸‍♂️', '🦹‍♂️', '🥷', '👸', '🤴', '🧜‍♂️', '🧚‍♂️', '👼', '🏼', '🧔‍♂️', '💂‍♂️'],
-        prefijos: ['Sombra', 'Elfo', 'Mago', 'Guerrero', 'Paladín', 'Necromante', 'Caballero', 'Señor', 'Brujo', 'Espía'],
-        sufijos: ['Místico', 'Oscuro', 'Supremo', 'Arcano', 'Eterno', 'Inmortal', 'Divino', 'Sanguinario', 'Ancestral', 'Prohibido'],
-        rareza: ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria']
-    },
-    animales: {
-        simbolos: ['🦁', '🐯', '🐻', '🐺', '🦊', '🦅', '🦈', '🐉', '🐍', '🦉', 'Pantera', '🐗', '🦂', '🐊', '🦍'],
-        prefijos: ['Feroz', 'Salvaje', 'Alfa', 'Tigre', 'Lobo', 'Águila', 'Oso', 'Bestia', 'Gato', 'Cazador'],
-        sufijos: ['Salvajismo', 'Nativo', 'Depredador', 'Voraz', 'Furia', 'Colmillo', 'Garra', 'Rastro', 'Rugido', 'Sombra'],
-        rareza: ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria']
-    },
-    carros: {
-        simbolos: ['🏎️', '🚗', '🚘', '🚙', '🛻', '🏎', '🏎️', '🚙', '🚓', '🚕'],
-        prefijos: ['Turbo', 'Nitro', 'Cyber', 'V8', 'Racer', 'Hyper', 'Apex', 'Pro', 'Drift', 'Phantom'],
-        sufijos: ['GT', 'Speed', 'Velocity', 'Drive', 'Motors', 'Custom', 'Force', 'Overdrive', 'Boost', 'Racer'],
-        rareza: ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria']
-    }
+    cartaPreviewActual: null
 };
 
 // PALETAS DE COLOR POR ERA / RAREZA
@@ -386,6 +357,8 @@ function iniciarBucleAnimacionCatalogo(cartas) {
 
 // 6. GENERADOR CANVAS EN VIVO ANIMADO
 function escucharDibujoCanvas() {
+    DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
+    DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
 }
 
@@ -573,7 +546,7 @@ async function procesarYGuardarPlantillas() {
         logEstado(`✅ Se registraron ${registrosAInsertar.length} plantillas con éxito.`);
         alert(`✅ ¡Proceso completado! Se guardaron ${registrosAInsertar.length} plantillas en la base de datos.`);
         
-        // Limpiar area y actualizar contadores si aplica
+        // Limpiar área y actualizar contadores si aplica
         textarea.value = '';
         if (typeof cargarContadorPlantillas === 'function') {
             cargarContadorPlantillas();
@@ -585,7 +558,7 @@ async function procesarYGuardarPlantillas() {
 }
 
 // =============================================================================
-// 🎲 GENERADOR MASIVO POR CATEGORÍA Y AUTOCONTEO SUPABASE (1000 ITEMS POR BOTÓN)
+// 🎲 RANDOMIZADOR AVANZADO DE PLANTILLAS Y AUTOCONTEO SUPABASE (1 A 2000)
 // =============================================================================
 
 function actualizarTextoTituloId(cantidadActualBD) {
@@ -596,84 +569,125 @@ function actualizarTextoTituloId(cantidadActualBD) {
     }
 }
 
-async function generarMasivoPorCategoria(categoria) {
-    if (Estado.procesandoMasivo) {
-        alert("Ya se está ejecutando un proceso de generación masiva. Por favor espera.");
-        return;
-    }
+async function seleccionarPlantillaAleatoria() {
+    logEstado("🎲 Consultando plantillas en Supabase...");
 
-    const configCat = BANCO_CATEGORIAS[categoria];
-    if (!configCat) {
-        alert("Categoría no válida.");
-        return;
-    }
+    try {
+        // 1. Obtener cartas existentes
+        const { data: cartasExistentes, error: errCartas } = await supabaseClient
+            .from('Cartas')
+            .select('id, nombre');
 
-    Estado.procesandoMasivo = true;
-    logEstado(`🚀 Iniciando creación procedural de 1,000 plantillas para la categoría '${categoria.toUpperCase()}'...`);
-
-    const limiteTotal = 1000;
-    const tamanoLote = 50;
-    let guardadosCorrectamente = 0;
-
-    DOM.setText('contador-masivo-num', '0');
-
-    for (let i = 0; i < limiteTotal; i += tamanoLote) {
-        const lote = [];
-
-        for (let j = 0; j < tamanoLote; j++) {
-            const indiceActual = i + j + 1;
-            const sim = configCat.simbolos[Math.floor(Math.random() * configCat.simbolos.length)];
-            const pref = configCat.prefijos[Math.floor(Math.random() * configCat.prefijos.length)];
-            const suf = configCat.sufijos[Math.floor(Math.random() * configCat.sufijos.length)];
-            const rareza = configCat.rareza[Math.floor(Math.random() * configCat.rareza.length)];
-
-            const nombreGen = `${pref} ${suf} #${Math.floor(1000 + Math.random() * 9000)}`;
-            const loreGen = `Entidad procedural pertenecientes al universo de ${categoria}. Rango de combate #${indiceActual}.`;
-
-            lote.push({
-                emoji: sim,
-                nombre: nombreGen,
-                lore: loreGen,
-                zona: `Sector ${categoria.toUpperCase()}`,
-                era_sugerida: 'cyber',
-                rareza: rareza,
-                categoria: categoria
-            });
-
-            // Muestra en vivo en Canvas el elemento siendo generado
-            Estado.cartaPreviewActual = {
-                nombre: nombreGen,
-                simbolo: sim,
-                rareza: rareza
-            };
-            dibujarCartaCanvas();
+        if (errCartas) {
+            alert("Error consultando Cartas: " + errCartas.message);
+            return;
         }
 
-        // Envío en bloques (batching) a la tabla plantillas_criaturas
-        try {
-            const { error } = await supabaseClient
-                .from('plantillas_criaturas')
-                .insert(lote);
+        const idsOcupados = new Set(cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : []);
+        const nombresExistentes = new Set(cartasExistentes ? cartasExistentes.map(c => c.nombre?.toLowerCase().trim()) : []);
 
-            if (error) {
-                logEstado(`⚠️ Error insertando lote ${i / tamanoLote + 1}: ${error.message}`);
-            } else {
-                guardadosCorrectamente += lote.length;
-                DOM.setText('contador-masivo-num', guardadosCorrectamente);
+        let proximoIdLibre = null;
+        for (let i = 1; i <= 2000; i++) {
+            if (!idsOcupados.has(i)) {
+                proximoIdLibre = i;
+                break;
             }
-        } catch (err) {
-            logEstado(`❌ Excepción enviando lote a Supabase: ${err.message}`);
         }
 
-        // Breve pausa técnica para mantener fluido el navegador y actualizar Canvas
-        await new Promise(resolve => setTimeout(resolve, 30));
+        if (!proximoIdLibre) {
+            alert("Se ha alcanzado el límite máximo de 2000 cartas creadas.");
+            return;
+        }
+
+        // 2. Consultar plantillas disponibles desde plantillas_criaturas
+        const { data: plantillas, error: errPlantillas } = await supabaseClient
+            .from('plantillas_criaturas')
+            .select('*');
+
+        if (errPlantillas) {
+            alert("Error leyendo plantillas_criaturas: " + errPlantillas.message);
+            return;
+        }
+
+        if (!plantillas || plantillas.length === 0) {
+            alert("No hay plantillas disponibles en la tabla plantillas_criaturas.");
+            return;
+        }
+
+        // Filtrar plantillas no usadas
+        const plantillasDisponibles = plantillas.filter(p => !nombresExistentes.has(p.nombre?.toLowerCase().trim()));
+
+        if (plantillasDisponibles.length === 0) {
+            alert("Todas las plantillas de plantillas_criaturas ya han sido registradas como cartas.");
+            return;
+        }
+
+        // 3. Seleccionar plantilla al azar
+        const plantillaElegida = plantillasDisponibles[Math.floor(Math.random() * plantillasDisponibles.length)];
+
+        // Obtener el emoji directamente desde la columna 'emoji' de la tabla Supabase
+        const emojiCarta = plantillaElegida.emoji || plantillaElegida.simbolo || "👾";
+
+        // Visualizar en Canvas
+        Estado.cartaPreviewActual = {
+            nombre: plantillaElegida.nombre || "Criatura",
+            simbolo: emojiCarta,
+            rareza: plantillaElegida.rareza || "Común"
+        };
+
+        // 4. Determinar la fuente de imagen según el modo de render activo (Canvas 2D o Pollinations IA)
+        let imagenUrlData = "";
+        let tipoCarta = plantillaElegida.tipo || 'Algorítmica Canvas';
+
+        if (Estado.modoRenderActual === 'ia') {
+            tipoCarta = 'Pollinations IA';
+            const promptCustom = DOM.get('prompt-ia-custom')?.value?.trim();
+            const promptFinal = promptCustom || `trading card art of ${plantillaElegida.nombre}, ${plantillaElegida.zona || ''}, digital art, highly detailed, vibrant background`;
+            const seed = Math.floor(Math.random() * 99999);
+            imagenUrlData = `${CONFIG.POLLINATIONS_URL}${encodeURIComponent(promptFinal)}?width=220&height=308&seed=${seed}&nologo=true`;
+
+            const imgIa = DOM.get('imgPollinationsPreview');
+            if (imgIa) {
+                imgIa.src = imagenUrlData;
+            }
+        } else {
+            dibujarCartaCanvas();
+            const canvas = DOM.get('canvasCartaGenerada');
+            imagenUrlData = canvas ? canvas.toDataURL("image/png") : "";
+        }
+
+        // 5. Guardar instantáneamente en la base de datos
+        const payloadCarta = {
+            id: proximoIdLibre,
+            nombre: plantillaElegida.nombre,
+            rareza: plantillaElegida.rareza || 'Común',
+            tipo: tipoCarta,
+            lore: plantillaElegida.lore || plantillaElegida.descripcion || '',
+            imagen_url: imagenUrlData
+        };
+
+        const { error: errInsert } = await supabaseClient
+            .from('Cartas')
+            .insert([payloadCarta]);
+
+        if (errInsert) {
+            alert("Error al guardar la carta en Supabase: " + errInsert.message);
+            return;
+        }
+
+        // Actualizar UI
+        const nuevoTotal = idsOcupados.size + 1;
+        DOM.setValue(['carta-id', 'id-carta'], proximoIdLibre);
+        actualizarTextoTituloId(nuevoTotal);
+        DOM.setText('total-cartas-count', nuevoTotal);
+
+        logEstado(`✅ Carta #${proximoIdLibre} "${plantillaElegida.nombre}" guardada automáticamente (${tipoCarta}).`);
+        await cargarCatalogoCartas();
+        await cargarMetricasServidor();
+
+    } catch (e) {
+        logEstado(`❌ Error procesando plantilla aleatoria: ${e.message}`);
     }
-
-    Estado.procesandoMasivo = false;
-    logEstado(`🎉 ¡Proceso finalizado! Se crearon y guardaron ${guardadosCorrectamente} de 1000 plantillas en 'plantillas_criaturas'.`);
-    alert(`🎉 ¡Completado! Se generaron y guardaron ${guardadosCorrectamente} plantillas de tipo ${categoria.toUpperCase()} en Supabase.`);
-
-    await cargarMetricasServidor();
 }
 
 // 9. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
@@ -811,5 +825,5 @@ window.cambiarPestana = cambiarPestana;
 window.cargarMetricasServidor = cargarMetricasServidor;
 window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
-window.generarMasivoPorCategoria = generarMasivoPorCategoria;
+window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.testearConexionSupabase = testearConexionSupabase;

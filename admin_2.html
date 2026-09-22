@@ -44,9 +44,12 @@
 
                 <div class="info-semilla-box" id="info-semilla">Semilla: - | Era: -</div>
                 
-                <div style="display:flex; gap:8px; width:100%; margin-top:10px;">
-                    <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="flex:1; padding:10px;" onclick="generar2000CombinacionesEnLote()">🎲 GENERAR Y GUARDAR 2000 CARTAS EN LOTE</button>
-                    <button type="button" id="btn-generar-ia" class="btn-mini-admin" style="background:#38bdf8; color:#000; display:none; padding:10px;" onclick="generarImagenPollinationsDirecta()">⚡ GENERAR IA</button>
+                <div style="display:flex; flex-direction:column; gap:8px; width:100%; margin-top:10px;">
+                    <div style="display:flex; gap:8px; width:100%;">
+                        <button type="button" id="btn-randomizar" class="btn-mini-admin" style="flex:1; padding:10px; background:#10b981; color:#000;" onclick="seleccionarPlantillaAleatoria()">🎲 GENERAR CARTA INDIVIDUAL</button>
+                        <button type="button" id="btn-generar-ia" class="btn-mini-admin" style="background:#38bdf8; color:#000; display:none; padding:10px;" onclick="generarImagenPollinationsDirecta()">⚡ GENERAR IA</button>
+                    </div>
+                    <button type="button" id="btn-lote-2000" class="btn-mini-admin btn-mini-drop" style="width:100%; padding:10px; background:#a855f7; color:#fff;" onclick="generar2000CombinacionesEnLote()">⚡ GENERAR Y GUARDAR HASTA 2000 CARTAS EN LOTE</button>
                 </div>
             </div>
 
@@ -54,7 +57,7 @@
             <div id="panel-opciones-ia" style="display:none; background:#000; padding:10px; border:1px solid #333; margin-bottom:14px; border-radius:4px;">
                 <div class="form-grupo">
                     <label for="prompt-ia-custom">PROMPT PERSONALIZADO (POLLINATIONS):</label>
-                    <input type="text" id="prompt-ia-custom" placeholder="Ej: emoji of mythological dragon, 3d style render, isolated white background">
+                    <input type="text" id="prompt-ia-custom" placeholder="Ej: trading card art of anime warrior, pixel art, cyberpunk background">
                 </div>
             </div>
 
@@ -78,7 +81,7 @@
 
             <div style="display:flex; gap:10px; margin-top:10px;">
                 <button id="btn-procesar-plantillas" class="btn-admin-final" style="background:#10b981;" onclick="procesarYGuardarPlantillas()">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
-                <button id="btn-limpiar-plantillas" class="btn-admin-final" style="background:#ef4444;">🗑️ VACIAR TABLA PLANTILLAS</button>
+                <button id="btn-limpiar-plantillas" class="btn-admin-final" style="background:#ef4444;" onclick="vaciarTablaPlantillas()">🗑️ VACIAR TABLA PLANTILLAS</button>
             </div>
             
             <div id="resumen-plantillas" style="margin-top:10px; font-size:8px; color:#38bdf8;">

@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL - EDICIÓN CYBERPUNK CON MOVIMIENTO ANIMADO
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL - ANIMACIONES FACIALES Y CORPORALES AVANZADAS
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (visor) visor.style.display = 'none';
     });
 
-    // Iniciar bucle global de animación Canvas para imágenes y barajitas
+    // Iniciar bucle global de animación Canvas avanzado
     iniciarBucleAnimacionGlobal();
 });
 
@@ -161,9 +161,6 @@ async function cargarInventarioInicial() {
     }
 }
 
-// =============================================================================
-// 🏆 SISTEMA DE REVISIÓN Y RECLAMO DE PREMIOS POR RANGOS DE ÁLBUM
-// =============================================================================
 async function verificarProgresoHitosPremios() {
     if (!supabaseClient || inventarioUsuarioCache.size === 0) return;
 
@@ -314,7 +311,7 @@ function renderizarLibro(pagina) {
     const grillaCartas = document.getElementById('grilla-cartas');
     if (!grillaCartas) return;
 
-    canvasAnimados = []; // Limpiar lista de canvas activos para animación
+    canvasAnimados = [];
 
     const inicioRango = (pagina - 1) * cartasPorPagina + 1;
     const finRango = pagina * cartasPorPagina;
@@ -359,7 +356,7 @@ function renderizarLibro(pagina) {
 }
 
 // =============================================================================
-// 🎨 MOTOR DE RENDERIZADO ANIMADO PARA IMÁGENES Y BARAJITAS (CANVAS DINÁMICO)
+// 🎨 MOTOR AVANZADO DE ANIMACIÓN FACIAL Y CORPORAL (DEFORMACIÓN & PARPADEO 2D)
 // =============================================================================
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let config = {};
@@ -383,7 +380,6 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let objetoImagen = null;
     let esImagen = false;
 
-    // Detectar si la carta posee una URL o Data URL de Imagen
     if (typeof datosCarta?.imagen_url === 'string' && (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http'))) {
         esImagen = true;
         objetoImagen = new Image();
@@ -391,7 +387,6 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         objetoImagen.src = datosCarta.imagen_url;
     }
 
-    // Guardar referencia en el registro global para animación interactiva
     canvasAnimados.push({
         canvas: canvas,
         ctx: ctx,
@@ -405,10 +400,9 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     contenedor.appendChild(canvas);
 }
 
-// BUCLE GLOBAL DE ANIMACIÓN (60 FPS)
 function iniciarBucleAnimacionGlobal() {
     function animar(timestamp) {
-        const tiempo = timestamp * 0.003; // Control de velocidad de animación
+        const t = timestamp * 0.0025; // Control de tiempo general
 
         canvasAnimados.forEach(item => {
             const { canvas, ctx, datosCarta, idCarta, config, esImagen, img } = item;
@@ -417,53 +411,105 @@ function iniciarBucleAnimacionGlobal() {
 
             ctx.clearRect(0, 0, w, h);
 
-            // Fondo base Neón Synthwave
+            // Fondo base Neón
             ctx.fillStyle = config.fondoColor || config.colorFondo || "#090a14";
             ctx.fillRect(0, 0, w, h);
 
             if (esImagen && img && img.complete) {
-                // EFECTO ANIMACIÓN EN IMÁGENES: Zoom suave y flotación senoidal
                 ctx.save();
-                
-                const offsetY = Math.sin(tiempo + idCarta) * 3;
-                const scale = 1 + Math.sin(tiempo * 0.8 + idCarta) * 0.03;
 
-                ctx.translate(w / 2, h / 2 + offsetY);
-                ctx.scale(scale, scale);
+                // 1. GIRO DE CABEZA / INCLINACIÓN CORPORAL (Eje central)
+                const anguloGiro = Math.sin(t * 0.8 + idCarta) * 0.05; 
+                const traslacionX = Math.cos(t * 0.5 + idCarta) * 2;
+                const traslacionY = Math.sin(t * 1.2 + idCarta) * 2;
 
-                // Dibujar imagen principal
-                ctx.drawImage(img, -w / 2, -h / 2, w, h);
+                ctx.translate(w / 2 + traslacionX, h / 2 + traslacionY);
+                ctx.rotate(anguloGiro);
+
+                // Dibujar Cuerpo Principal / Fondo de Personaje
+                ctx.drawImage(img, 0, 0, img.width, img.height, -w / 2, -h / 2, w, h);
+
+                // 2. PARPADEO DE OJOS (Recorte y escala vertical acelerada)
+                // Se genera un pulso de parpadeo cada cierto intervalo usando senos de alta frecuencia
+                const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
+                let escalaOjoY = 1;
+                if (tiempoParpadeo > 3.7) { 
+                    escalaOjoY = Math.abs(Math.cos((tiempoParpadeo - 3.7) * Math.PI * 16.6)); 
+                }
+
+                if (escalaOjoY < 0.95) {
+                    // Region del ojo (30% a 45% de la altura de la imagen)
+                    const ojoSrcY = img.height * 0.30;
+                    const ojoSrcH = img.height * 0.15;
+                    const ojoDestY = -h / 2 + h * 0.30;
+                    const ojoDestH = h * 0.15;
+
+                    ctx.save();
+                    ctx.translate(0, ojoDestY + ojoDestH / 2);
+                    ctx.scale(1, escalaOjoY); // Compresión Y para cerrar párpado
+                    ctx.drawImage(
+                        img, 
+                        0, ojoSrcY, img.width, ojoSrcH, 
+                        -w / 2, -ojoDestH / 2, w, ojoDestH
+                    );
+                    ctx.restore();
+                }
+
+                // 3. MOVIMIENTO DE BOCA (Gesticulación / Habla)
+                // Recorte de región bucal (52% a 68% de la altura de la imagen)
+                const aperturaBoca = Math.sin(t * 3.5 + idCarta) * 0.12;
+                if (aperturaBoca > 0.02) {
+                    const bocaSrcY = img.height * 0.52;
+                    const bocaSrcH = img.height * 0.16;
+                    const bocaDestY = -h / 2 + h * 0.52;
+                    const bocaDestH = h * 0.16;
+
+                    ctx.save();
+                    ctx.translate(0, bocaDestY + bocaDestH / 2);
+                    ctx.scale(1 + aperturaBoca * 0.2, 1 + aperturaBoca); // Deformación rítmica
+                    ctx.drawImage(
+                        img, 
+                        0, bocaSrcY, img.width, bocaSrcH, 
+                        -w / 2, -bocaDestH / 2, w, bocaDestH
+                    );
+                    ctx.restore();
+                }
+
                 ctx.restore();
 
-                // Efecto Barrido Holográfico Neón sobre la Imagen
-                const holoGradient = ctx.createLinearGradient(0, (tiempo * 40) % (h * 2) - h, w, (tiempo * 40) % (h * 2));
+                // Efecto Barrido Holográfico Neón
+                const holoGradient = ctx.createLinearGradient(0, (t * 50) % (h * 2) - h, w, (t * 50) % (h * 2));
                 holoGradient.addColorStop(0, "rgba(255,0,127,0)");
-                holoGradient.addColorStop(0.5, "rgba(0,243,255,0.25)");
+                holoGradient.addColorStop(0.5, "rgba(0,243,255,0.2)");
                 holoGradient.addColorStop(1, "rgba(255,0,127,0)");
                 
                 ctx.fillStyle = holoGradient;
                 ctx.fillRect(0, 0, w, h);
+
             } else {
-                // EFECTO ANIMACIÓN SIMBOLOGÍA PIXEL ART: Flotación + Brillo Respiratorio
+                // ANIMACIÓN PIXEL ART: Flotación + Cierre de ojos Pixel
                 ctx.save();
                 
-                const offsetY = Math.sin(tiempo * 1.5 + idCarta) * 4;
-                
+                const offsetY = Math.sin(t * 1.5 + idCarta) * 4;
+                const rotacionPixel = Math.cos(t * 0.8 + idCarta) * 0.08;
+
+                ctx.translate(w / 2, h / 2 - 10 + offsetY);
+                ctx.rotate(rotacionPixel);
+
                 ctx.font = "38px sans-serif";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
 
-                // Sombra Neón Flotante
                 ctx.shadowColor = config.marcoColor || config.colorPrimario || "#00f3ff";
-                ctx.shadowBlur = 10 + Math.sin(tiempo * 2) * 5;
+                ctx.shadowBlur = 10 + Math.sin(t * 2) * 5;
 
-                ctx.fillText(config.simbolo || "👾", w / 2, (h / 2) - 10 + offsetY);
+                ctx.fillText(config.simbolo || "👾", 0, 0);
                 ctx.restore();
             }
 
-            // MARCO CON PULSO NEÓN DINÁMICO
+            // MARCO NEÓN CON PULSACIÓN DE BORDE
             ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#00f3ff";
-            ctx.lineWidth = 4 + Math.sin(tiempo * 2 + idCarta) * 2;
+            ctx.lineWidth = 4 + Math.sin(t * 2 + idCarta) * 2;
             ctx.strokeRect(2, 2, w - 4, h - 4);
 
             // ZÓCALO DE IDENTIFICACIÓN CYBER

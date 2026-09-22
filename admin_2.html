@@ -44,14 +44,14 @@
 
                 <div class="info-semilla-box" id="info-semilla">Semilla: - | Era: -</div>
                 
-                <div style="display:flex; gap:8px; width:100%; margin-top:10px;">
-                    <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="flex:1; padding:10px;">🎲 RANDOMIZAR DESDE PLANTILLAS</button>
-                    <button type="button" id="btn-generar-ia" class="btn-mini-admin" style="background:#38bdf8; color:#000; display:none; padding:10px;" onclick="generarImagenPollinationsDirecta()">⚡ GENERAR IA</button>
+                <div class="grupo-acciones-previa">
+                    <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop">🎲 RANDOMIZAR DESDE PLANTILLAS</button>
+                    <button type="button" id="btn-generar-ia" class="btn-mini-admin btn-ia-accion" onclick="generarImagenPollinationsDirecta()">⚡ GENERAR IA</button>
                 </div>
             </div>
 
             <!-- PANEL DE OPCIONES ESPECÍFICAS DE IA -->
-            <div id="panel-opciones-ia" style="display:none; background:#000; padding:10px; border:1px solid #333; margin-bottom:14px; border-radius:4px;">
+            <div id="panel-opciones-ia" class="panel-ia-container">
                 <div class="form-grupo">
                     <label for="prompt-ia-custom">PROMPT PERSONALIZADO (POLLINATIONS):</label>
                     <input type="text" id="prompt-ia-custom" placeholder="Ej: emoji of mythological dragon, 3d style render, isolated white background">
@@ -67,21 +67,21 @@
         <!-- PESTAÑA 2: CARGA Y PARSER DE PLANTILLAS -->
         <div id="tab-plantillas" class="contenido-pestana">
             <div class="subtitulo-admin">CARGA MASIVA DE PLANTILLAS Y CATEGORÍAS</div>
-            <p style="font-size:7px; color:#aaa; margin-bottom:10px; line-height:1.4;">
+            <p class="texto-instruccion">
                 Pega el texto estructurado con las Zonas (encabezados) y las listas de emojis con sus nombres y descripciones. El parser lo procesará e insertará en la tabla <code>plantillas_criaturas</code>.
             </p>
 
             <div class="form-grupo">
                 <label for="textarea-plantillas">LISTA DE TEXTO PLANO:</label>
-                <textarea id="textarea-plantillas" rows="12" style="width:100%; background:#090a0f; color:#00ff66; border:1px solid #1e293b; padding:10px; font-family:monospace; font-size:10px; resize:vertical;" placeholder="🌋 Zona del Caos y Criaturas de la Noche&#10;👾 Monstruo alienígena / 👽 Alienígena / 🤖 Robot: Invasores del espacio exterior.&#10;..."></textarea>
+                <textarea id="textarea-plantillas" rows="12" class="textarea-plantillas-input" placeholder="🌋 Zona del Caos y Criaturas de la Noche&#10;👾 Monstruo alienígena / 👽 Alienígena / 🤖 Robot: Invasores del espacio exterior.&#10;..."></textarea>
             </div>
 
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button id="btn-procesar-plantillas" class="btn-admin-final" style="background:#10b981;">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
-                <button id="btn-limpiar-plantillas" class="btn-admin-final" style="background:#ef4444;" onclick="limpiarTablaPlantillas()">🗑️ VACIAR TABLA PLANTILLAS</button>
+            <div class="grupo-acciones-doble">
+                <button id="btn-procesar-plantillas" class="btn-admin-final btn-exito">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
+                <button id="btn-limpiar-plantillas" class="btn-admin-final btn-peligro">🗑️ VACIAR TABLA PLANTILLAS</button>
             </div>
             
-            <div id="resumen-plantillas" style="margin-top:10px; font-size:8px; color:#38bdf8;">
+            <div id="resumen-plantillas" class="resumen-plantillas-box">
                 Plantillas registradas actualmente: <span id="count-plantillas">0</span>
             </div>
         </div>
@@ -105,14 +105,17 @@
                 <input type="number" id="target-cantidad" value="1" min="1">
             </div>
 
-            <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;">🎁 ASIGNAR CARTA A USUARIO</button>
+            <button id="btn-regalar-carta" class="btn-admin-final btn-info">🎁 ASIGNAR CARTA A USUARIO</button>
         </div>
 
-        <!-- PESTAÑA 4: CATÁLOGO DE CARTAS REGISTRADAS -->
+        <!-- PESTAÑA 4: CATÁLOGO DE CARTAS REGISTRADAS (CANVAS Y RENDER ANIMADO) -->
         <div id="tab-catalogo" class="contenido-pestana">
-            <div class="subtitulo-admin">CATÁLOGO GLOBAL DE RECETAS PUBLICADAS</div>
+            <div class="cabecera-catalogo">
+                <div class="subtitulo-admin sin-margin">CATÁLOGO GLOBAL DE RECETAS PUBLICADAS</div>
+                <button id="btn-refrescar-catalogo" class="btn-mini-admin btn-refrescar">🔄 REFRESCAR CATÁLOGO</button>
+            </div>
             <div class="grid-cartas-admin" id="grid-catalogo-admin">
-                <!-- Se puebla dinámicamente -->
+                <!-- Se puebla dinámicamente vía admin_2.js con tarjetas y elementos canvas -->
             </div>
         </div>
 
@@ -121,60 +124,60 @@
             <div class="subtitulo-admin">CENTRO DE MANDO & ESTADO DEL SERVIDOR</div>
             
             <!-- MÉTRICAS TÉCNICAS (INFRAESTRUCTURA) -->
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
-                    <div style="font-size: 8px; color: #888;">ESTADO SUPABASE</div>
-                    <div id="status-supabase" style="color: #00ff66; font-size: 10px; margin-top: 5px; font-weight: bold;">● DESCONECTADO</div>
+            <div class="grid-metricas">
+                <div class="tarjeta-metrica">
+                    <div class="label-metrica">ESTADO SUPABASE</div>
+                    <div id="status-supabase" class="valor-metrica estado-desconectado">● DESCONECTADO</div>
                 </div>
-                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
-                    <div style="font-size: 8px; color: #888;">CARTAS EN BD</div>
-                    <div id="total-cartas-count" style="color: #fff; font-size: 10px; margin-top: 5px; font-weight: bold;">0</div>
+                <div class="tarjeta-metrica">
+                    <div class="label-metrica">CARTAS EN BD</div>
+                    <div id="total-cartas-count" class="valor-metrica valor-blanco">0</div>
                 </div>
-                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
-                    <div style="font-size: 8px; color: #888;">LATENCIA (PING)</div>
-                    <div id="ping-supabase" style="color: #38bdf8; font-size: 10px; margin-top: 5px; font-weight: bold;">-- ms</div>
+                <div class="tarjeta-metrica">
+                    <div class="label-metrica">LATENCIA (PING)</div>
+                    <div id="ping-supabase" class="valor-metrica valor-cyan">-- ms</div>
                 </div>
             </div>
 
             <!-- MÉTRICAS OPERATIVAS (MINIAPP) -->
             <div class="subtitulo-admin">MÉTRICAS EN TIEMPO REAL (MINIAPP)</div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
-                    <div style="font-size: 8px; color: #888;">USUARIOS REGISTRADOS</div>
-                    <div id="kpi-usuarios-totales" style="color: #00ff66; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+            <div class="grid-metricas">
+                <div class="tarjeta-metrica">
+                    <div class="label-metrica">USUARIOS REGISTRADOS</div>
+                    <div id="kpi-usuarios-totales" class="valor-metrica valor-verde">0</div>
                 </div>
-                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
-                    <div style="font-size: 8px; color: #888;">PREMIOS PENDIENTES</div>
-                    <div id="kpi-premios-pendientes" style="color: #eab308; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+                <div class="tarjeta-metrica">
+                    <div class="label-metrica">PREMIOS PENDIENTES</div>
+                    <div id="kpi-premios-pendientes" class="valor-metrica valor-amarillo">0</div>
                 </div>
-                <div style="flex: 1; padding: 10px; background: #111; border: 1px solid #333; text-align: center;">
-                    <div style="font-size: 8px; color: #888;">COLECCIONES ACTIVAS</div>
-                    <div id="kpi-total-colecciones" style="color: #38bdf8; font-size: 11px; margin-top: 5px; font-weight: bold;">0</div>
+                <div class="tarjeta-metrica">
+                    <div class="label-metrica">COLECCIONES ACTIVAS</div>
+                    <div id="kpi-total-colecciones" class="valor-metrica valor-cyan">0</div>
                 </div>
             </div>
 
             <!-- ACCIONES RÁPIDAS -->
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #22c55e;" onclick="testearConexionSupabase()">🔌 PROBAR CONEXIÓN</button>
-                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #ef4444;" onclick="limpiarStorageHuerfano()">🧹 LIMPIAR STORAGE</button>
-                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #a855f7;" onclick="cargarMetricasServidor()">🔄 REFRESCAR MÉTRICAS</button>
+            <div class="grupo-acciones-servidor">
+                <button type="button" id="btn-probar-conexion" class="btn-admin-final btn-exito" onclick="testearConexionSupabase()">🔌 PROBAR CONEXIÓN</button>
+                <button type="button" id="btn-limpiar-storage" class="btn-admin-final btn-peligro" onclick="limpiarStorageHuerfano()">🧹 LIMPIAR STORAGE</button>
+                <button type="button" id="btn-refrescar-servidor" class="btn-admin-final btn-purple" onclick="cargarMetricasServidor()">🔄 REFRESCAR MÉTRICAS</button>
             </div>
 
             <!-- SOLICITUDES DE PREMIOS -->
             <div class="subtitulo-admin">SOLICITUDES DE PREMIOS Y HITOS (RECLAMACIONES)</div>
-            <div style="background: #000; border: 1px solid #222; padding: 10px; margin-bottom: 15px; max-height: 180px; overflow-y: auto;">
-                <table style="width: 100%; text-align: left; color: #fff; font-size: 8px; border-collapse: collapse;">
+            <div class="contenedor-tabla-servidor">
+                <table class="tabla-servidor">
                     <thead>
-                        <tr style="border-bottom: 1px solid #333; color: #888;">
-                            <th style="padding: 4px;">USUARIO</th>
-                            <th style="padding: 4px;">HITO/PREMIO</th>
-                            <th style="padding: 4px;">ESTADO</th>
-                            <th style="padding: 4px; text-align: center;">ACCIÓN</th>
+                        <tr>
+                            <th>USUARIO</th>
+                            <th>HITO/PREMIO</th>
+                            <th>ESTADO</th>
+                            <th class="texto-centro">ACCIÓN</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-servidor-premios">
                         <tr>
-                            <td colspan="4" style="padding: 8px; text-align: center; color: #666;">Esperando interacción o datos...</td>
+                            <td colspan="4" class="tabla-vacia-msj">Esperando interacción o datos...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -182,18 +185,18 @@
 
             <!-- CONSOLA DE LOGS EN VIVO -->
             <div class="subtitulo-admin">LOGS DE AUDITORÍA DEL SERVIDOR</div>
-            <div id="servidor-log-output" style="font-size: 8px; color: #00ff66; padding: 10px; background: #000; border: 1px solid #1a3a2a; font-family: monospace; min-height: 60px; max-height: 120px; overflow-y: auto;">
+            <div id="servidor-log-output" class="box-logs">
                 [SISTEMA] Módulo Servidor en línea. Listo para ejecutar diagnósticos.
             </div>
         </div>
 
-        <div class="status-log" id="status-log" style="margin-top:15px; font-size:7px; color:#00ff66; padding:8px; background:#000; border:1px solid #333; min-height:40px; word-break:break-all;">
+        <div class="status-log" id="status-log">
             Sistema inicializado. Listo para procesar algoritmos.
         </div>
     </div>
 
-    <!-- SDK SUPABASE -->
+    <!-- SDK SUPABASE Y SCRIPT DE CONTROL -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="admin_2.js"></script>
+    <script src="admin_2.js" defer></script>
 </body>
 </html>

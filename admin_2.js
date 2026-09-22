@@ -17,7 +17,8 @@ const Estado = {
     canalRealtimeColeccion: null,
     animacionCatalogoId: null,
     animacionPreviewId: null,
-    cartaPreviewActual: null
+    cartaPreviewActual: null,
+    cartasCatalogoCache: []
 };
 
 // PALETAS DE COLOR POR ERA / RAREZA
@@ -342,6 +343,13 @@ function cambiarPestana(idPestana) {
     );
     if (botonActivo) botonActivo.classList.add('activo');
 
+    // 🚀 REACTIVAR BUCLE DE ANIMACIÓN DEL CATÁLOGO AL CAMBIAR DE PESTAÑA
+    if (idPestana === 'tab-catalogo') {
+        setTimeout(() => {
+            iniciarBucleAnimacionCatalogo();
+        }, 50);
+    }
+
     try {
         localStorage.setItem('admin_pestana_activa', idPestana);
     } catch (e) {
@@ -455,7 +463,7 @@ async function regalarCartaAUsuario() {
     }
 }
 
-// 5. RENDERIZADO DEL CATÁLOGO
+// 5. RENDERIZADO DEL CATÁLOGO DINÁMICO EN MOVIMIENTO (CANVAS EN VIVO)
 async function cargarCatalogoCartas() {
     const grid = DOM.get('grid-catalogo-admin');
     if (!grid) return;
@@ -465,7 +473,7 @@ async function cargarCatalogoCartas() {
         Estado.animacionCatalogoId = null;
     }
 
-    grid.innerHTML = `<div style="color:#00ffcc; font-size:10px;">Cargando catálogo desde Supabase...</div>`;
+    grid.innerHTML = `<div style="color:#00ffcc; font-size:10px;">Cargando catálogo dinámico desde Supabase...</div>`;
 
     const { data: cartas, error } = await supabaseClient
         .from('Cartas')
@@ -482,8 +490,27 @@ async function cargarCatalogoCartas() {
         return;
     }
 
-    grid.innerHTML = cartas.map(carta => renderizarCartaDesdeBD(carta)).join('');
-    iniciarBucleAnimacionCatalogo(cartas);
+    // Asignar o deserializar datos dinámicos a cada carta para su animación
+    Estado.cartasCatalogoCache = cartas.map(carta => {
+        let personajeData = null;
+        if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(carta.imagen_url);
+                if (parsed.personajeData) personajeData = parsed.personajeData;
+            } catch (e) {}
+        }
+        if (!personajeData) {
+            personajeData = generarDatosPersonajeAnime();
+        }
+        return { ...carta, personajeData };
+    });
+
+    grid.innerHTML = Estado.cartasCatalogoCache.map(carta => renderizarCartaDesdeBD(carta)).join('');
+    
+    // Esperar a que los elementos Canvas se consoliden en el DOM antes de animar
+    setTimeout(() => {
+        iniciarBucleAnimacionCatalogo();
+    }, 50);
 }
 
 function renderizarCartaDesdeBD(carta) {
@@ -492,7 +519,7 @@ function renderizarCartaDesdeBD(carta) {
     const paleta = PALETAS_ERA[rarezaTexto.toLowerCase()] || PALETAS_ERA.cyber;
 
     const rawUrl = String(carta.imagen_url || '').trim();
-    const esImagenUrlDirecta = rawUrl.startsWith('data:image/') || rawUrl.startsWith('http://') || rawUrl.startsWith('https://');
+    const esImagenHttp = rawUrl.startsWith('http://') || rawUrl.startsWith('https://');
 
     return `
         <div class="tarjeta-carta ${rarezaClase}" data-id="${carta.id || ''}">
@@ -503,87 +530,65 @@ function renderizarCartaDesdeBD(carta) {
                 <span class="badge-rareza" style="color:${paleta.acento}; font-weight:bold;">${rarezaTexto}</span>
             </div>
             <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
-                ${esImagenUrlDirecta 
-                    ? `<img src="${rawUrl}" alt="${carta.nombre}" style="max-width:100%; max-height:100%; object-fit:contain;" onerror="this.style.display='none'; const c = document.getElementById('canvas-cat-${carta.id}'); if(c) c.style.display='block';">
-                       <canvas id="canvas-cat-${carta.id}" width="150" height="100" style="display:none; max-width:100%; max-height:100%;"></canvas>` 
-                    : `<canvas id="canvas-cat-${carta.id}" width="150" height="100" style="max-width:100%; max-height:100%;"></canvas>`
+                ${esImagenHttp 
+                    ? `<img src="${rawUrl}" alt="${carta.nombre}" style="max-width:100%; max-height:100%; object-fit:contain;">` 
+                    : `<canvas id="canvas-cat-${carta.id}" width="150" height="100" style="max-width:100%; max-height:100%; display:block;"></canvas>`
                 }
             </div>
             <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; height:28px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000; margin-bottom:4px;">
                 "${carta.lore || 'Sin descripción disponible.'}"
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; font-weight:bold; position:relative; z-index:2; border-top:1px solid ${paleta.borde}33; padding-top:4px;">
-                <span>${carta.tipo || 'Algorítmica'}</span>
+                <span>${carta.tipo || 'Divertida'}</span>
                 <span>${rarezaTexto}</span>
             </div>
         </div>
     `;
 }
 
-function animarFondoMiniCanvas(canvas, carta, tiempo) {
+function animarMiniCanvasCarta(canvas, carta, tiempo) {
     if (!canvas || !canvas.getContext) return;
+    
+    // Omitir renderizado si el canvas no tiene dimensiones reales en pantalla
+    if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
+
     const ctx = canvas.getContext('2d');
-    const rareza = (carta.rareza || 'Común').toLowerCase();
-    const paleta = PALETAS_ERA[rareza] || PALETAS_ERA.cyber;
-    let simbolo = '👾';
-
-    if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
-        try {
-            const parsed = JSON.parse(carta.imagen_url);
-            if (parsed.simbolo) simbolo = parsed.simbolo;
-        } catch (e) {}
-    }
-
     const width = canvas.width;
     const height = canvas.height;
 
     ctx.clearRect(0, 0, width, height);
 
-    const t = tiempo * 0.002;
-    const gradiente = ctx.createLinearGradient(
-        (Math.sin(t) * 0.5 + 0.5) * width,
-        0,
-        (Math.cos(t) * 0.5 + 0.5) * width,
-        height
-    );
-    gradiente.addColorStop(0, paleta.fondo);
-    gradiente.addColorStop(0.5, paleta.acento + '33');
-    gradiente.addColorStop(1, '#000000');
+    // Dibujar Personaje Anime Pixel Art Animado dentro del Canvas Mini del Catálogo
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = 32;
+    offscreenCanvas.height = 32;
+    const offCtx = offscreenCanvas.getContext('2d');
 
-    ctx.fillStyle = gradiente;
-    ctx.fillRect(0, 0, width, height);
+    renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
 
-    ctx.fillStyle = paleta.borde;
-    const size = 16;
+    ctx.imageSmoothingEnabled = false;
+    const targetSize = 90;
+    const targetX = (width - targetSize) / 2;
+    const targetY = (height - targetSize) / 2;
 
-    for (let x = 8; x < width; x += size) {
-        for (let y = 8; y < height; y += size) {
-            let alpha = Math.sin((x * 0.05 + y * 0.05 + tiempo * 0.003)) * 0.4 + 0.5;
-            ctx.globalAlpha = alpha;
-            ctx.fillRect(x - 1, y - 1, 2.5, 2.5);
-        }
-    }
-    ctx.globalAlpha = 1.0;
-
-    ctx.strokeStyle = paleta.borde;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(3, 3, width - 6, height - 6);
-
-    const offsetFlotacion = Math.sin(t * 2) * 3;
-    ctx.font = "32px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(simbolo, width / 2, height / 2 + offsetFlotacion);
+    ctx.drawImage(offscreenCanvas, targetX, targetY, targetSize, targetSize);
 }
 
-function iniciarBucleAnimacionCatalogo(cartas) {
+function iniciarBucleAnimacionCatalogo() {
+    if (Estado.animacionCatalogoId) {
+        cancelAnimationFrame(Estado.animacionCatalogoId);
+        Estado.animacionCatalogoId = null;
+    }
+
     function loop(tiempo) {
-        cartas.forEach(carta => {
-            const canvasEl = DOM.get(`canvas-cat-${carta.id}`);
-            if (canvasEl && canvasEl.style.display !== 'none') {
-                animarFondoMiniCanvas(canvasEl, carta, tiempo);
-            }
-        });
+        if (Estado.cartasCatalogoCache && Estado.cartasCatalogoCache.length > 0) {
+            Estado.cartasCatalogoCache.forEach(carta => {
+                const canvasEl = DOM.get(`canvas-cat-${carta.id}`);
+                if (canvasEl) {
+                    animarMiniCanvasCarta(canvasEl, carta, tiempo);
+                }
+            });
+        }
         Estado.animacionCatalogoId = requestAnimationFrame(loop);
     }
     Estado.animacionCatalogoId = requestAnimationFrame(loop);
@@ -863,9 +868,13 @@ async function seleccionarPlantillaAleatoria() {
         };
         dibujarCartaCanvas();
 
-        // 4. Guardar instantáneamente la imagen generada en la base de datos Supabase
+        // 4. Guardar en Supabase incluyendo los metadatos dinámicos del personaje Anime Pixel Art
         const canvas = DOM.get('canvasCartaGenerada');
-        const imagenUrlData = canvas ? canvas.toDataURL("image/png") : "";
+        const imagenUrlData = JSON.stringify({
+            dataUrl: canvas ? canvas.toDataURL("image/png") : "",
+            personajeData: nuevosDatosAnime,
+            simbolo: emojiCarta
+        });
 
         const payloadCarta = {
             id: proximoIdLibre,

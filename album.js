@@ -1,10 +1,10 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL (VERSIÓN UNIFICADA POR USERNAME)
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL - EDICIÓN CYBERPUNK CON MOVIMIENTO ANIMADO
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
-const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbyi8o0jE_x_xY/exec"; // URL de tu Webhook GAS
+const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbyi8o0jE_x_xY/exec";
 
 let supabaseClient = null;
 const tg = window.Telegram?.WebApp;
@@ -24,6 +24,7 @@ const cartasPorPagina = 25;
 const totalPaginas = 80;
 
 let inventarioUsuarioCache = new Map();
+let canvasAnimados = []; // Registro activo de Canvas con bucles de animación
 
 // Rangos Oficiales de Premios
 const RANGOS_PREMIOS = [
@@ -66,6 +67,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const visor = document.getElementById('modal-visor');
         if (visor) visor.style.display = 'none';
     });
+
+    // Iniciar bucle global de animación Canvas para imágenes y barajitas
+    iniciarBucleAnimacionGlobal();
 });
 
 function inicializarUsuarioTelegram() {
@@ -140,7 +144,7 @@ async function cargarInventarioInicial() {
                         inventarioUsuarioCache.set(idCartaNum, { 
                             carta_id: idCartaNum, 
                             cantidad: cantidadNum,
-                            datosCarta: infoCarta || { id: idCartaNum, nombre: `Carta #${idCartaNum}` }
+                            datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
                         });
                     }
                 }
@@ -149,7 +153,6 @@ async function cargarInventarioInicial() {
 
         renderizarLibro(paginaActual);
         
-        // Verificación de hitos de álbum completados y consulta de pagos
         await verificarProgresoHitosPremios();
         await consultarEstadoPremiosYComprobantes();
 
@@ -167,7 +170,6 @@ async function verificarProgresoHitosPremios() {
     try {
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
 
-        // 1. Obtener los premios que el usuario ya reclamó anteriormente
         const { data: reclamados, error } = await supabaseClient
             .from('premios_ganados')
             .select('nivel_premio')
@@ -180,9 +182,8 @@ async function verificarProgresoHitosPremios() {
 
         const nivelesReclamados = new Set(reclamados ? reclamados.map(r => Number(r.nivel_premio)) : []);
 
-        // 2. Verificar cada rango de álbum
         for (const rango of RANGOS_PREMIOS) {
-            if (nivelesReclamados.has(rango.nivel)) continue; // Si ya fue reclamado, saltar
+            if (nivelesReclamados.has(rango.nivel)) continue;
 
             let incompleto = false;
             for (let id = rango.inicio; id <= rango.fin; id++) {
@@ -192,10 +193,9 @@ async function verificarProgresoHitosPremios() {
                 }
             }
 
-            // Si posee TODAS las cartas correlativas del rango (#1 al #500, etc.)
             if (!incompleto) {
                 desplegarModalGanadorPremio(rango);
-                break; // Muestra un modal a la vez
+                break;
             }
         }
     } catch (e) {
@@ -208,7 +208,7 @@ function desplegarModalGanadorPremio(rango) {
     if (!modalPremio) return;
 
     document.getElementById('premio-titulo-nivel').innerText = rango.nombre;
-    document.getElementById('premio-rango-cartas').innerText = `Rango Completado: Barajita #${rango.inicio} a la #${rango.fin}`;
+    document.getElementById('premio-rango-cartas').innerText = `Matriz Completa: Barajita #${rango.inicio} a la #${rango.fin}`;
     document.getElementById('input-premio-nivel').value = rango.nivel;
 
     modalPremio.style.display = 'flex';
@@ -247,7 +247,7 @@ async function enviarSolicitudPremio() {
         const data = await res.json();
 
         if (data.success) {
-            alert("¡Felicitaciones! Tu información de pago se ha enviado correctamente a Telegram. Procesaremos tu premio a la brevedad.");
+            alert("¡Transmisión Exitosa! Tu información de pago se ha enviado correctamente.");
             document.getElementById('modal-ganador-premio').style.display = 'none';
             await cargarInventarioInicial();
         } else {
@@ -261,9 +261,6 @@ async function enviarSolicitudPremio() {
     }
 }
 
-// =============================================================================
-// 📜 CONSULTA DE COMPROBANTE DE PAGO DESDE LA MINIAPP
-// =============================================================================
 async function consultarEstadoPremiosYComprobantes() {
     try {
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
@@ -276,7 +273,6 @@ async function consultarEstadoPremiosYComprobantes() {
 
         if (error || !premios || premios.length === 0) return;
 
-        // Mostrar el último premio pagado si no ha sido visto o está disponible
         const ultimoPagado = premios[premios.length - 1];
         if (ultimoPagado && ultimoPagado.referencia_pago) {
             mostrarComprobantePagoMiniApp(ultimoPagado);
@@ -298,7 +294,6 @@ function mostrarComprobantePagoMiniApp(datosPremio) {
     document.getElementById('comp-referencia').innerText = datosPremio.referencia_pago || 'N/A';
     document.getElementById('comp-fecha').innerText = datosPremio.fecha_pago ? new Date(datosPremio.fecha_pago).toLocaleString() : 'Recientemente';
 
-    // Para evitar que sea invasivo cada vez que abra la app, se guarda un flag de visualización en localStorage
     const vistoKey = `premio_visto_${datosPremio.id}_${datosPremio.referencia_pago}`;
     if (!localStorage.getItem(vistoKey)) {
         modalComprobante.style.display = 'flex';
@@ -318,6 +313,8 @@ function irAPaginaDeCarta(idCarta) {
 function renderizarLibro(pagina) {
     const grillaCartas = document.getElementById('grilla-cartas');
     if (!grillaCartas) return;
+
+    canvasAnimados = []; // Limpiar lista de canvas activos para animación
 
     const inicioRango = (pagina - 1) * cartasPorPagina + 1;
     const finRango = pagina * cartasPorPagina;
@@ -361,6 +358,9 @@ function renderizarLibro(pagina) {
     }
 }
 
+// =============================================================================
+// 🎨 MOTOR DE RENDERIZADO ANIMADO PARA IMÁGENES Y BARAJITAS (CANVAS DINÁMICO)
+// =============================================================================
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let config = {};
     try {
@@ -371,14 +371,6 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         config = {};
     }
 
-    if (typeof datosCarta?.imagen_url === 'string' && datosCarta.imagen_url.startsWith('data:image')) {
-        const img = document.createElement('img');
-        img.src = datosCarta.imagen_url;
-        img.className = 'img-slot-carta';
-        contenedor.appendChild(img);
-        return;
-    }
-
     const canvas = document.createElement('canvas');
     canvas.width = 120;
     canvas.height = 160;
@@ -387,29 +379,108 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     canvas.style.borderRadius = "4px";
 
     const ctx = canvas.getContext('2d');
+    
+    let objetoImagen = null;
+    let esImagen = false;
 
-    ctx.fillStyle = config.fondoColor || config.colorFondo || "#1e293b";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Detectar si la carta posee una URL o Data URL de Imagen
+    if (typeof datosCarta?.imagen_url === 'string' && (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http'))) {
+        esImagen = true;
+        objetoImagen = new Image();
+        objetoImagen.crossOrigin = "anonymous";
+        objetoImagen.src = datosCarta.imagen_url;
+    }
 
-    ctx.font = "38px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(config.simbolo || "👾", canvas.width / 2, (canvas.height / 2) - 10);
-
-    ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#64748b";
-    ctx.lineWidth = 6;
-    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
-
-    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-    ctx.fillRect(5, canvas.height - 28, canvas.width - 10, 22);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "6px 'Press Start 2P', monospace";
-    ctx.textAlign = "center";
-    const nombreVisual = datosCarta?.nombre || `CARTA #${idCarta}`;
-    ctx.fillText(nombreVisual.substring(0, 10), canvas.width / 2, canvas.height - 14);
+    // Guardar referencia en el registro global para animación interactiva
+    canvasAnimados.push({
+        canvas: canvas,
+        ctx: ctx,
+        datosCarta: datosCarta,
+        idCarta: idCarta,
+        config: config,
+        esImagen: esImagen,
+        img: objetoImagen
+    });
 
     contenedor.appendChild(canvas);
+}
+
+// BUCLE GLOBAL DE ANIMACIÓN (60 FPS)
+function iniciarBucleAnimacionGlobal() {
+    function animar(timestamp) {
+        const tiempo = timestamp * 0.003; // Control de velocidad de animación
+
+        canvasAnimados.forEach(item => {
+            const { canvas, ctx, datosCarta, idCarta, config, esImagen, img } = item;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Fondo base Neón Synthwave
+            ctx.fillStyle = config.fondoColor || config.colorFondo || "#090a14";
+            ctx.fillRect(0, 0, w, h);
+
+            if (esImagen && img && img.complete) {
+                // EFECTO ANIMACIÓN EN IMÁGENES: Zoom suave y flotación senoidal
+                ctx.save();
+                
+                const offsetY = Math.sin(tiempo + idCarta) * 3;
+                const scale = 1 + Math.sin(tiempo * 0.8 + idCarta) * 0.03;
+
+                ctx.translate(w / 2, h / 2 + offsetY);
+                ctx.scale(scale, scale);
+
+                // Dibujar imagen principal
+                ctx.drawImage(img, -w / 2, -h / 2, w, h);
+                ctx.restore();
+
+                // Efecto Barrido Holográfico Neón sobre la Imagen
+                const holoGradient = ctx.createLinearGradient(0, (tiempo * 40) % (h * 2) - h, w, (tiempo * 40) % (h * 2));
+                holoGradient.addColorStop(0, "rgba(255,0,127,0)");
+                holoGradient.addColorStop(0.5, "rgba(0,243,255,0.25)");
+                holoGradient.addColorStop(1, "rgba(255,0,127,0)");
+                
+                ctx.fillStyle = holoGradient;
+                ctx.fillRect(0, 0, w, h);
+            } else {
+                // EFECTO ANIMACIÓN SIMBOLOGÍA PIXEL ART: Flotación + Brillo Respiratorio
+                ctx.save();
+                
+                const offsetY = Math.sin(tiempo * 1.5 + idCarta) * 4;
+                
+                ctx.font = "38px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                // Sombra Neón Flotante
+                ctx.shadowColor = config.marcoColor || config.colorPrimario || "#00f3ff";
+                ctx.shadowBlur = 10 + Math.sin(tiempo * 2) * 5;
+
+                ctx.fillText(config.simbolo || "👾", w / 2, (h / 2) - 10 + offsetY);
+                ctx.restore();
+            }
+
+            // MARCO CON PULSO NEÓN DINÁMICO
+            ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#00f3ff";
+            ctx.lineWidth = 4 + Math.sin(tiempo * 2 + idCarta) * 2;
+            ctx.strokeRect(2, 2, w - 4, h - 4);
+
+            // ZÓCALO DE IDENTIFICACIÓN CYBER
+            ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
+            ctx.fillRect(4, h - 26, w - 8, 22);
+
+            ctx.fillStyle = "#00f3ff";
+            ctx.font = "6px 'Press Start 2P', monospace";
+            ctx.textAlign = "center";
+            const nombreVisual = datosCarta?.nombre || `CYBER #${idCarta}`;
+            ctx.fillText(nombreVisual.substring(0, 10), w / 2, h - 12);
+        });
+
+        requestAnimationFrame(animar);
+    }
+
+    requestAnimationFrame(animar);
 }
 
 function desplegarVisor(datosCarta, idCarta, cantidad) {
@@ -417,28 +488,28 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     const contenidoFrontal = document.getElementById('contenido-carta-frontal');
     if (!modalVisor || !contenidoFrontal) return;
 
-    const nombre = datosCarta?.nombre || `CARTA #${idCarta}`;
+    const nombre = datosCarta?.nombre || `CYBER #${idCarta}`;
     const rareza = datosCarta?.rareza || 'Común';
-    const lore = datosCarta?.lore || 'Sin descripción disponible.';
+    const lore = datosCarta?.lore || 'Sin datos de archivos disponibles.';
 
     let config = {};
     try {
         config = typeof datosCarta?.imagen_url === 'string' ? JSON.parse(datosCarta.imagen_url) : (datosCarta?.imagen_url || {});
     } catch(e){}
 
-    const colorFondo = config.fondoColor || config.colorFondo || '#0f172a';
-    const colorMarco = config.marcoColor || config.colorPrimario || '#00ff66';
+    const colorFondo = config.fondoColor || config.colorFondo || '#090a14';
+    const colorMarco = config.marcoColor || config.colorPrimario || '#00f3ff';
     const simbolo = config.simbolo || '👾';
 
     contenidoFrontal.innerHTML = `
         <div style="text-align:center;">
-            <h3 style="font-size:10px; color:#ffcc00; margin-bottom:8px;">${nombre.toUpperCase()}</h3>
-            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${colorFondo}; border:3px solid ${colorMarco}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:70px; box-shadow:0 0 10px ${colorMarco};">
+            <h3 style="font-size:10px; color:#00f3ff; margin-bottom:8px; text-shadow:0 0 5px #00f3ff;">${nombre.toUpperCase()}</h3>
+            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${colorFondo}; border:3px solid ${colorMarco}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:70px; box-shadow:0 0 15px ${colorMarco};">
                 ${simbolo}
             </div>
-            <p style="font-size:7px; color:#38bdf8; margin-bottom:4px;">Rareza: ${rareza} | Copias: ${cantidad}</p>
-            <p style="font-size:6px; color:#aaa; margin-bottom:8px;">${lore}</p>
-            <p style="font-size:7px; color:#555;">#${String(idCarta).padStart(4, '0')}</p>
+            <p style="font-size:7px; color:#ff007f; margin-bottom:4px; text-shadow:0 0 3px #ff007f;">Rareza: ${rareza} | Copias: ${cantidad}</p>
+            <p style="font-size:6px; color:#a5b4fc; margin-bottom:8px; line-height:1.3;">${lore}</p>
+            <p style="font-size:7px; color:#64748b;">#${String(idCarta).padStart(4, '0')}</p>
         </div>
     `;
 
@@ -485,15 +556,17 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        background: #00ff66;
+        background: #00f3ff;
         color: #000;
         padding: 12px 20px;
         border-radius: 8px;
         font-weight: bold;
-        box-shadow: 0 4px 15px rgba(0,255,102,0.4);
+        box-shadow: 0 0 15px #00f3ff;
         z-index: 9999;
+        font-family: 'Press Start 2P', monospace;
+        font-size: 8px;
     `;
-    toast.innerText = `🎉 ¡Has recibido una nueva carta! (ID: #${datosNuevos?.carta_id || ''})`;
+    toast.innerText = `🎉 ¡DATOS RECIBIDOS! (ID: #${datosNuevos?.carta_id || ''})`;
     document.body.appendChild(toast);
 
     setTimeout(() => toast.remove(), 4000);

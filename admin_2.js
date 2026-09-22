@@ -416,65 +416,144 @@ function iniciarSuscripcionRealtimeAlbum() {
         });
 }
 
-// 4. ASIGNAR / REGALAR CARTA A USUARIO
+// Función auxiliar para parsear entradas como "1-10", "1; 7; 12", "1,2,3"
+function parsearIdsCartasEntrada(inputStr) {
+    if (!inputStr) return [];
+    
+    const idsSet = new Set();
+    // Separar por comas, puntos y comas o espacios
+    const segmentos = inputStr.split(/[,;\s]+/);
+
+    segmentos.forEach(seg => {
+        const item = seg.trim();
+        if (!item) return;
+
+        // Verificar si es un rango del tipo "1-10"
+        if (item.includes('-')) {
+            const partes = item.split('-');
+            if (partes.length === 2) {
+                const inicio = parseInt(partes[0], 10);
+                const fin = parseInt(partes[1], 10);
+
+                if (!isNaN(inicio) && !isNaN(fin)) {
+                    const min = Math.min(inicio, fin);
+                    const max = Math.max(inicio, fin);
+                    for (let i = min; i <= max; i++) {
+                        if (i >= 1 && i <= 2000) idsSet.add(i);
+                    }
+                }
+            }
+        } else {
+            // Es un ID individual
+            const idNum = parseInt(item, 10);
+            if (!isNaN(idNum) && idNum >= 1 && idNum <= 2000) {
+                idsSet.add(idNum);
+            }
+        }
+    });
+
+    return Array.from(idsSet).sort((a, b) => a - b);
+}
+
+// 4. ASIGNAR / REGALAR CARTAS A USUARIO (RANGOS Y LISTAS MULTIPLES)
 async function regalarCartaAUsuario() {
     const targetUser = DOM.findInput(['target-user', 'regalo-usuario', 'usuario-destino'])?.value?.trim();
-    const idCartaInput = DOM.findInput(['target-carta-id', 'regalo-carta-id', 'id-carta-regalo']);
-    const idCarta = parseInt(idCartaInput?.value, 10);
+    const inputCartas = DOM.findInput(['target-cartas-input', 'target-carta-id'])?.value?.trim();
     const cantidadAñadir = parseInt(DOM.findInput(['target-cantidad', 'regalo-cantidad'])?.value, 10) || 1;
 
-    if (!targetUser || !idCarta || isNaN(idCarta)) {
-        alert("Ingresa un usuario válido y un ID numérico de carta.");
+    if (!targetUser) {
+        alert("Ingresa un usuario válido.");
+        return;
+    }
+
+    const listaIds = parsearIdsCartasEntrada(inputCartas);
+
+    if (listaIds.length === 0) {
+        alert("Formato de cartas inválido. Usa un rango (ej: 1-10) o una lista separada por comas/puntos y comas (ej: 1; 7; 12; 14).");
         return;
     }
 
     const idLimpio = targetUser.replace(/^@/, '').trim().toLowerCase();
-    logEstado(`Verificando existencia de Carta #${idCarta}...`);
+    logEstado(`Verificando existencia de ${listaIds.length} carta(s)...`);
 
     try {
-        const { data: cartaExistente, error: errCarta } = await supabaseClient
+        // 1. Validar qué cartas existen en la base de datos
+        const { data: cartasExistentes, error: errCartas } = await supabaseClient
             .from('Cartas')
-            .select('id, nombre, rareza')
-            .eq('id', idCarta)
-            .maybeSingle();
+            .select('id')
+            .in('id', listaIds);
 
-        if (errCarta || !cartaExistente) {
-            alert(`❌ La Carta #${idCarta} no existe en la BD. Créala primero.`);
+        if (errCartas) {
+            alert("Error consultando las cartas en BD: " + errCartas.message);
             return;
         }
 
-        const { data: registroExistente } = await supabaseClient
+        const idsValidos = cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : [];
+
+        if (idsValidos.length === 0) {
+            alert("Ninguna de las cartas especificadas existe en la base de datos.");
+            return;
+        }
+
+        logEstado(`Procesando asignación de ${idsValidos.length} carta(s) para @${idLimpio}...`);
+
+        // 2. Obtener registros existentes en la colección del usuario para esas cartas
+        const { data: registrosExistentes } = await supabaseClient
             .from('Coleccion_Usuario')
-            .select('id, cantidad')
+            .select('id, carta_id, cantidad')
             .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`)
-            .eq('carta_id', idCarta)
-            .maybeSingle();
+            .in('carta_id', idsValidos);
 
-        let errorRespuesta = null;
-
-        if (registroExistente) {
-            const nuevaCantidad = (Number(registroExistente.cantidad) || 0) + cantidadAñadir;
-            const { error } = await supabaseClient
-                .from('Coleccion_Usuario')
-                .update({ cantidad: nuevaCantidad })
-                .eq('id', registroExistente.id);
-            errorRespuesta = error;
-        } else {
-            const { error } = await supabaseClient
-                .from('Coleccion_Usuario')
-                .insert([{ usuario_id: idLimpio, carta_id: idCarta, cantidad: cantidadAñadir }]);
-            errorRespuesta = error;
+        const mapaExistentes = new Map();
+        if (registrosExistentes) {
+            registrosExistentes.forEach(r => mapaExistentes.set(Number(r.carta_id), r));
         }
 
-        if (errorRespuesta) {
-            alert("Error al asignar carta: " + errorRespuesta.message);
-        } else {
-            alert(`🎉 Carta #${idCarta} entregada exitosamente a @${idLimpio}.`);
-            logEstado(`✅ Asignación completada: Carta #${idCarta} -> @${idLimpio}`);
-            await cargarMetricasServidor();
+        const aActualizar = [];
+        const aInsertar = [];
+
+        idsValidos.forEach(cartaId => {
+            if (mapaExistentes.has(cartaId)) {
+                const reg = mapaExistentes.get(cartaId);
+                aActualizar.push({
+                    id: reg.id,
+                    cantidad: (Number(reg.cantidad) || 0) + cantidadAñadir
+                });
+            } else {
+                aInsertar.push({
+                    usuario_id: idLimpio,
+                    carta_id: cartaId,
+                    cantidad: cantidadAñadir
+                });
+            }
+        });
+
+        // 3. Ejecutar actualizaciones
+        for (const item of aActualizar) {
+            await supabaseClient
+                .from('Coleccion_Usuario')
+                .update({ cantidad: item.cantidad })
+                .eq('id', item.id);
         }
+
+        // 4. Ejecutar inserciones
+        if (aInsertar.length > 0) {
+            const { error: errIns } = await supabaseClient
+                .from('Coleccion_Usuario')
+                .insert(aInsertar);
+
+            if (errIns) {
+                alert("Error durante la inserción masiva: " + errIns.message);
+                return;
+            }
+        }
+
+        alert(`🎉 ¡Éxito! Se asignaron ${idsValidos.length} carta(s) a @${idLimpio}.\n\nCartas entregadas: [${idsValidos.join(', ')}]`);
+        logEstado(`✅ Regalo masivo completado: [${idsValidos.join(', ')}] -> @${idLimpio}`);
+        await cargarMetricasServidor();
+
     } catch (e) {
-        alert("Error en la operación: " + e.message);
+        alert("Error en la operación de regalo: " + e.message);
     }
 }
 

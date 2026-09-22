@@ -327,7 +327,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await Promise.all([
         cargarMetricasServidor(),
-        cargarCatalogoCartas()
+        cargarCatalogoCartas(),
+        cargarTablaPremiosServidor()
     ]);
     
     iniciarSuscripcionRealtimeAlbum();
@@ -470,6 +471,7 @@ async function regalarCartaAUsuario() {
         } else {
             alert(`🎉 Carta #${idCarta} entregada exitosamente a @${idLimpio}.`);
             logEstado(`✅ Asignación completada: Carta #${idCarta} -> @${idLimpio}`);
+            await cargarMetricasServidor();
         }
     } catch (e) {
         alert("Error en la operación: " + e.message);
@@ -605,7 +607,6 @@ function iniciarBucleAnimacionCatalogo() {
 // 6. GENERADOR CANVAS EN VIVO ANIMADO
 function escucharDibujoCanvas() {
     DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
-    DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
 }
 
@@ -1042,12 +1043,68 @@ async function cargarMetricasServidor() {
             DOM.setValue(['carta-id', 'id-carta'], primerIdLibre);
         }
 
+        await cargarTablaPremiosServidor();
+
         logEstado(`🟢 Servidor activo | Cartas en BD: ${creadasReales}/2000 | Próximo ID disponible: #${primerIdLibre}`);
     } catch (e) {
         DOM.setText('status-supabase', "● DESCONECTADO");
         const statusEl = DOM.get('status-supabase');
         if (statusEl) statusEl.style.color = "#ef4444";
         logEstado(`❌ Error procesando métricas: ${e.message}`);
+    }
+}
+
+async function cargarTablaPremiosServidor() {
+    const tbody = DOM.get('tabla-servidor-premios');
+    if (!tbody) return;
+
+    try {
+        const { data: reclamaciones, error } = await supabaseClient
+            .from('reclamaciones_premios')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error || !reclamaciones || reclamaciones.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #666;">No hay solicitudes de premios registradas.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = reclamaciones.map(rec => `
+            <tr style="border-bottom: 1px solid #222;">
+                <td style="padding: 4px; color: #00ffcc;">@${rec.usuario_id || 'anónimo'}</td>
+                <td style="padding: 4px;">${rec.premio_nombre || 'Hito Desconocido'}</td>
+                <td style="padding: 4px; color: ${rec.estado === 'completado' ? '#22c55e' : '#eab308'};">${(rec.estado || 'pendiente').toUpperCase()}</td>
+                <td style="padding: 4px; text-align: center;">
+                    ${rec.estado !== 'completado' 
+                        ? `<button onclick="procesarReclamacionPremio('${rec.id}', 'completado')" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:2px 4px; cursor:pointer;">APROBAR</button>`
+                        : `<span style="color:#888;">✓</span>`
+                    }
+                </td>
+            </tr>
+        `).join('');
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #ef4444;">Error al cargar solicitudes: ${e.message}</td></tr>`;
+    }
+}
+
+async function procesarReclamacionPremio(idReclamacion, nuevoEstado) {
+    logEstado(`⏳ Actualizando estado de premio #${idReclamacion} a ${nuevoEstado}...`);
+    try {
+        const { error } = await supabaseClient
+            .from('reclamaciones_premios')
+            .update({ estado: nuevoEstado })
+            .eq('id', idReclamacion);
+
+        if (error) {
+            alert("Error al actualizar la reclamación: " + error.message);
+        } else {
+            alert(`✅ Reclamación #${idReclamacion} actualizada.`);
+            await cargarMetricasServidor();
+        }
+    } catch (e) {
+        alert("Error procesando premio: " + e.message);
     }
 }
 
@@ -1142,3 +1199,4 @@ window.limpiarStorageHuerfano = limpiarStorageHuerfano;
 window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
+window.procesarReclamacionPremio = procesarReclamacionPremio;

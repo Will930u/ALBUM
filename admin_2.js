@@ -29,6 +29,240 @@ const PALETAS_ERA = Object.freeze({
     antiguo:    { fondo: '#1c120c', borde: '#d4af37', acento: '#ff4500', texto: '#f3e5ab' }
 });
 
+// =============================================================================
+// 🎨 PALETAS Y PROCEDIMIENTOS DE PERSONAJES PIXEL ART ANIME (CANVAS 32x32)
+// =============================================================================
+const skinPalettes = [
+    { base: '#ffe0bd', shadow: '#ffd0a1', blush: '#ffb3b3' },
+    { base: '#fcd5b5', shadow: '#e5b38f', blush: '#f8a5a5' },
+    { base: '#dca271', shadow: '#b87c4c', blush: '#d06e6e' },
+    { base: '#7c5230', shadow: '#59381e', blush: '#8e4848' }
+];
+
+const hairPalettes = [
+    { base: '#3b82f6', light: '#93c5fd', shadow: '#1d4ed8' }, // Azul
+    { base: '#ec4899', light: '#fbcfe8', shadow: '#be185d' }, // Rosa
+    { base: '#a855f7', light: '#e9d5ff', shadow: '#6b21a8' }, // Púrpura
+    { base: '#eab308', light: '#fef08a', shadow: '#a16207' }, // Rubio
+    { base: '#10b981', light: '#a7f3d0', shadow: '#047857' }, // Verde Menta
+    { base: '#ef4444', light: '#fca5a5', shadow: '#991b1b' }, // Rojo
+    { base: '#1e293b', light: '#64748b', shadow: '#0f172a' }, // Negro
+    { base: '#f97316', light: '#fed7aa', shadow: '#c2410c' }  // Naranja
+];
+
+const eyeColors = ['#2563eb', '#dc2626', '#059669', '#9333ea', '#d97706', '#ec4899', '#06b6d4'];
+const clothesColors = ['#1e1b4b', '#831843', '#064e3b', '#431407', '#312e81', '#0f172a', '#4a044e', '#1e3a8a'];
+const backgroundStyles = ['cyberpunk', 'sunset', 'forest', 'space', 'cherry_blossom', 'neon_grid'];
+
+function getRandomItem(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generarDatosPersonajeAnime() {
+    return {
+        skin: getRandomItem(skinPalettes),
+        hair: getRandomItem(hairPalettes),
+        eyeColor: getRandomItem(eyeColors),
+        clothColor: getRandomItem(clothesColors),
+        bgType: getRandomItem(backgroundStyles),
+        hasCatEars: Math.random() > 0.6,
+        hasGlasses: Math.random() > 0.7,
+        hairstyle: Math.floor(Math.random() * 3), // 0: corto, 1: largo, 2: coletas
+        animSpeed: 0.05 + Math.random() * 0.05,
+        animOffset: Math.random() * Math.PI * 2
+    };
+}
+
+function drawAnimeBackground(ctx, bgType, time) {
+    ctx.save();
+    if (bgType === 'cyberpunk') {
+        ctx.fillStyle = '#0f051d';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#f43f5e';
+        const shift = Math.floor(Math.sin(time) * 2);
+        ctx.fillRect(0, 20 + shift, 32, 12);
+        ctx.fillStyle = '#06b6d4';
+        for (let i = 0; i < 32; i += 4) {
+            ctx.fillRect(i, 20 + shift, 2, 12);
+        }
+    } else if (bgType === 'sunset') {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 32);
+        gradient.addColorStop(0, '#f97316');
+        gradient.addColorStop(0.5, '#e11d48');
+        gradient.addColorStop(1, '#4c0519');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(12, 14, 8, 8);
+    } else if (bgType === 'forest') {
+        ctx.fillStyle = '#022c22';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#059669';
+        ctx.fillRect(2, 8, 6, 24);
+        ctx.fillRect(24, 6, 6, 26);
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(4, 12, 2, 20);
+        ctx.fillRect(26, 10, 2, 22);
+    } else if (bgType === 'space') {
+        ctx.fillStyle = '#030712';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#ffffff';
+        if (Math.sin(time * 2) > 0) ctx.fillRect(4, 5, 1, 1);
+        if (Math.cos(time * 3) > 0) ctx.fillRect(25, 8, 1, 1);
+        if (Math.sin(time * 1.5) > 0) ctx.fillRect(12, 22, 1, 1);
+        if (Math.cos(time * 2.5) > 0) ctx.fillRect(28, 26, 1, 1);
+    } else if (bgType === 'cherry_blossom') {
+        ctx.fillStyle = '#fbcfe8';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#f472b6';
+        const p1Y = (Math.floor(time * 10) % 32);
+        const p2Y = (Math.floor(time * 12 + 10) % 32);
+        ctx.fillRect(6, p1Y, 2, 2);
+        ctx.fillRect(22, p2Y, 2, 2);
+    } else { // neon_grid
+        ctx.fillStyle = '#18181b';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#a855f7';
+        for (let i = 0; i < 32; i += 6) {
+            ctx.fillRect(i, 0, 1, 32);
+            ctx.fillRect(0, i, 32, 1);
+        }
+    }
+    ctx.restore();
+}
+
+function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+
+    const t = isAnimated ? (time * data.animSpeed + data.animOffset) : 0;
+    const breathY = isAnimated ? Math.round(Math.sin(t) * 0.8) : 0;
+
+    // 1. Dibujar Fondo Animado
+    drawAnimeBackground(ctx, data.bgType, t);
+
+    // 2. Cabello Posterior (Largo o Coletas)
+    if (data.hairstyle === 1 || data.hairstyle === 2) {
+        ctx.fillStyle = data.hair.shadow;
+        ctx.fillRect(7, 12 + breathY, 18, 16);
+        ctx.fillStyle = data.hair.base;
+        ctx.fillRect(8, 12 + breathY, 16, 15);
+
+        if (data.hairstyle === 2) {
+            const sideWiggle = isAnimated ? Math.round(Math.cos(t * 2) * 0.6) : 0;
+            ctx.fillRect(3 + sideWiggle, 10 + breathY, 5, 14);
+            ctx.fillRect(24 - sideWiggle, 10 + breathY, 5, 14);
+        }
+    }
+
+    // 3. Cuello y Hombros / Uniforme
+    ctx.fillStyle = data.clothColor;
+    ctx.fillRect(8, 24 + breathY, 16, 8);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(13, 24 + breathY, 6, 4);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(15, 26 + breathY, 2, 3);
+
+    // Cuello
+    ctx.fillStyle = data.skin.shadow;
+    ctx.fillRect(14, 21 + breathY, 4, 4);
+    ctx.fillStyle = data.skin.base;
+    ctx.fillRect(14, 21 + breathY, 4, 2);
+
+    // 4. Rostro Base Anime
+    ctx.fillStyle = data.skin.base;
+    ctx.fillRect(10, 10 + breathY, 12, 11);
+    ctx.fillRect(11, 21 + breathY, 10, 1);
+    ctx.fillRect(12, 22 + breathY, 8, 1);
+    ctx.fillRect(13, 23 + breathY, 6, 1);
+
+    // Sombra rostro
+    ctx.fillStyle = data.skin.shadow;
+    ctx.fillRect(10, 10 + breathY, 1, 11);
+    ctx.fillRect(21, 10 + breathY, 1, 11);
+
+    // Rubor (Blush)
+    ctx.fillStyle = data.skin.blush;
+    ctx.fillRect(11, 17 + breathY, 3, 1);
+    ctx.fillRect(18, 17 + breathY, 3, 1);
+
+    // 5. Ojos Anime (Parpadeo)
+    const isBlinking = isAnimated && Math.sin(t * 3) > 0.95;
+
+    if (isBlinking) {
+        ctx.fillStyle = data.hair.shadow;
+        ctx.fillRect(11, 15 + breathY, 3, 1);
+        ctx.fillRect(18, 15 + breathY, 3, 1);
+    } else {
+        // Ojo Izquierdo
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(11, 14 + breathY, 3, 4);
+        ctx.fillStyle = data.eyeColor;
+        ctx.fillRect(12, 14 + breathY, 2, 3);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(12, 14 + breathY, 1, 1);
+
+        // Ojo Derecho
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(18, 14 + breathY, 3, 4);
+        ctx.fillStyle = data.eyeColor;
+        ctx.fillRect(18, 14 + breathY, 2, 3);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(18, 14 + breathY, 1, 1);
+
+        // Pestañas
+        ctx.fillStyle = data.hair.shadow;
+        ctx.fillRect(10, 13 + breathY, 5, 1);
+        ctx.fillRect(17, 13 + breathY, 5, 1);
+    }
+
+    // Boca
+    ctx.fillStyle = '#b91c1c';
+    ctx.fillRect(15, 20 + breathY, 2, 1);
+
+    // 6. Cabello Frontal (Flequillo)
+    ctx.fillStyle = data.hair.shadow;
+    ctx.fillRect(9, 8 + breathY, 14, 5);
+    ctx.fillStyle = data.hair.base;
+    ctx.fillRect(10, 7 + breathY, 12, 5);
+
+    // Mechones
+    ctx.fillRect(10, 11 + breathY, 2, 3);
+    ctx.fillRect(13, 11 + breathY, 2, 4);
+    ctx.fillRect(17, 11 + breathY, 2, 4);
+    ctx.fillRect(20, 11 + breathY, 2, 3);
+
+    // Brillo del cabello
+    ctx.fillStyle = data.hair.light;
+    ctx.fillRect(11, 8 + breathY, 10, 1);
+
+    // 7. Gafas (Accesorio)
+    if (data.hasGlasses) {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(10, 14 + breathY, 5, 4);
+        ctx.fillRect(17, 14 + breathY, 5, 4);
+        ctx.fillRect(14, 15 + breathY, 4, 1);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(11, 15 + breathY, 1, 1);
+        ctx.fillRect(18, 15 + breathY, 1, 1);
+    }
+
+    // 8. Orejas de Gato
+    if (data.hasCatEars) {
+        ctx.fillStyle = data.hair.base;
+        ctx.fillRect(8, 4 + breathY, 3, 4);
+        ctx.fillRect(9, 3 + breathY, 2, 2);
+        ctx.fillRect(21, 4 + breathY, 3, 4);
+        ctx.fillRect(21, 3 + breathY, 2, 2);
+
+        ctx.fillStyle = data.skin.blush;
+        ctx.fillRect(9, 5 + breathY, 1, 2);
+        ctx.fillRect(22, 5 + breathY, 1, 2);
+    }
+
+    ctx.restore();
+}
+
 // AYUDANTES DE DOM (DOM HELPERS)
 const DOM = {
     get: (id) => document.getElementById(id),
@@ -55,149 +289,6 @@ const DOM = {
     toggleClass: (id, className, force) => { const el = document.getElementById(id); if (el) el.classList.toggle(className, force); }
 };
 
-// =============================================================================
-// 🎨 MOTOR DE GENERACIÓN DE PERSONAJES Y AVATARES VECTORIALES 2D (PROCEDURAL)
-// =============================================================================
-
-function stringToSeed(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return Math.abs(hash);
-}
-
-function generateAvatar(ctx, cx, cy, seed, paleta) {
-    ctx.save();
-    
-    // Generador pseudoaleatorio basado en la semilla
-    const random = function() {
-        let x = Math.sin(seed++) * 10000;
-        return x - Math.floor(x);
-    };
-
-    const coloresSkin = [paleta.acento, '#38bdf8', '#a855f7', '#22c55e', '#f59e0b', '#ec4899'];
-    const skinColor = coloresSkin[Math.floor(random() * coloresSkin.length)];
-    const eyeColor = '#ffffff';
-
-    // 1. Cuerpo / Hombros
-    ctx.fillStyle = paleta.borde;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + 35, 30, 20, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 2. Cabeza
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(cx, cy - 5, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#000000';
-    ctx.stroke();
-
-    // 3. Ojos 2D
-    const eyeOffset = 9;
-    const eyeY = cy - 10;
-    
-    // Ojo Izquierdo
-    ctx.fillStyle = eyeColor;
-    ctx.beginPath();
-    ctx.arc(cx - eyeOffset, eyeY, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(cx - eyeOffset + 1, eyeY, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Ojo Derecho
-    ctx.fillStyle = eyeColor;
-    ctx.beginPath();
-    ctx.arc(cx + eyeOffset, eyeY, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(cx + eyeOffset - 1, eyeY, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 4. Boca / Expresión
-    const bocaTipo = Math.floor(random() * 3);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (bocaTipo === 0) {
-        ctx.arc(cx, cy + 5, 8, 0.1 * Math.PI, 0.9 * Math.PI, false); // Sonrisa
-    } else if (bocaTipo === 1) {
-        ctx.moveTo(cx - 6, cy + 8);
-        ctx.lineTo(cx + 6, cy + 8); // Linea seria
-    } else {
-        ctx.arc(cx, cy + 7, 4, 0, Math.PI * 2); // Boca sorprendida
-        ctx.fillStyle = '#000';
-        ctx.fill();
-    }
-    ctx.stroke();
-
-    // 5. Detalles extra (Antenas o Cuernos si es cyber/espacial)
-    if (random() > 0.4) {
-        ctx.fillStyle = paleta.acento;
-        ctx.beginPath();
-        ctx.arc(cx, cy - 32, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - 30);
-        ctx.lineTo(cx, cy - 25);
-        ctx.strokeStyle = paleta.acento;
-        ctx.stroke();
-    }
-
-    ctx.restore();
-}
-
-function generateCharacter(ctx, cx, cy, seed, paleta) {
-    ctx.save();
-    
-    const random = function() {
-        let x = Math.sin(seed++) * 10000;
-        return x - Math.floor(x);
-    };
-
-    const cBody = paleta.acento;
-    const cDetail = paleta.borde;
-
-    // 1. Torso
-    ctx.fillStyle = cBody;
-    ctx.beginPath();
-    ctx.roundRect(cx - 20, cy - 10, 40, 45, 8);
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // 2. Cabeza estilo Criatura 2D
-    ctx.fillStyle = cDetail;
-    ctx.beginPath();
-    ctx.roundRect(cx - 22, cy - 45, 44, 32, 6);
-    ctx.fill();
-    ctx.stroke();
-
-    // 3. Ojo Visor Central o Múltiples Ojos
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(cx, cy - 30, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#00ffcc';
-    ctx.beginPath();
-    ctx.arc(cx, cy - 30, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 4. Detalle de Armadura / Pecho
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(cx - 12, cy, 24, 15);
-    ctx.strokeStyle = paleta.borde;
-    ctx.strokeRect(cx - 12, cy, 24, 15);
-
-    ctx.restore();
-}
-
 // 1. INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', async () => {
     logEstado("Inicializando Panel de Mando...");
@@ -209,8 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await Promise.all([
         cargarMetricasServidor(),
-        cargarCatalogoCartas(),
-        cargarContadorPlantillas()
+        cargarCatalogoCartas()
     ]);
     
     iniciarSuscripcionRealtimeAlbum();
@@ -222,14 +312,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             .select('*');
 
         if (plantillas && plantillas.length > 0) {
-            // Seleccionar una plantilla al azar de la lista
             const plantillaAleatoria = plantillas[Math.floor(Math.random() * plantillas.length)];
             
             Estado.cartaPreviewActual = {
-                nombre: plantillaAleatoria.nombre || "Criatura",
+                nombre: plantillaAleatoria.nombre || "Criatura Anime",
                 simbolo: plantillaAleatoria.emoji || plantillaAleatoria.simbolo || "👾",
                 rareza: plantillaAleatoria.rareza || "Común",
-                seed: stringToSeed(plantillaAleatoria.nombre || "Criatura")
+                personajeData: generarDatosPersonajeAnime()
             };
             dibujarCartaCanvas();
         }
@@ -436,6 +525,14 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     const ctx = canvas.getContext('2d');
     const rareza = (carta.rareza || 'Común').toLowerCase();
     const paleta = PALETAS_ERA[rareza] || PALETAS_ERA.cyber;
+    let simbolo = '👾';
+
+    if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(carta.imagen_url);
+            if (parsed.simbolo) simbolo = parsed.simbolo;
+        } catch (e) {}
+    }
 
     const width = canvas.width;
     const height = canvas.height;
@@ -473,14 +570,10 @@ function animarFondoMiniCanvas(canvas, carta, tiempo) {
     ctx.strokeRect(3, 3, width - 6, height - 6);
 
     const offsetFlotacion = Math.sin(t * 2) * 3;
-    const seed = stringToSeed(carta.nombre || 'carta');
-    
-    // Renderizado 2D Vectorial en mini Canvas en lugar de Emoji
-    if (seed % 2 === 0) {
-        generateAvatar(ctx, width / 2, height / 2 + offsetFlotacion, seed, paleta);
-    } else {
-        generateCharacter(ctx, width / 2, height / 2 + offsetFlotacion + 10, seed, paleta);
-    }
+    ctx.font = "32px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(simbolo, width / 2, height / 2 + offsetFlotacion);
 }
 
 function iniciarBucleAnimacionCatalogo(cartas) {
@@ -496,7 +589,7 @@ function iniciarBucleAnimacionCatalogo(cartas) {
     Estado.animacionCatalogoId = requestAnimationFrame(loop);
 }
 
-// 6. GENERADOR CANVAS EN VIVO ANIMADO CON PERSONAJES 2D
+// 6. GENERADOR CANVAS EN VIVO ANIMADO CON PERSONAJE PIXEL ART
 function escucharDibujoCanvas() {
     DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
@@ -515,67 +608,62 @@ function dibujarCartaCanvas() {
     function loopPreview(tiempo) {
         const ctx = canvas.getContext('2d');
         const carta = Estado.cartaPreviewActual || {
-            nombre: "Carta Misteriosa",
+            nombre: "Carta Anime",
             simbolo: "👾",
             rareza: "Común",
-            seed: 12345
+            personajeData: generarDatosPersonajeAnime()
         };
 
-        const nombre = carta.nombre || "Carta Misteriosa";
+        if (!carta.personajeData) {
+            carta.personajeData = generarDatosPersonajeAnime();
+        }
+
+        const nombre = carta.nombre || "Carta Anime";
         const rareza = carta.rareza || "Común";
         const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
-        const seed = carta.seed || stringToSeed(nombre);
 
         const width = canvas.width;
         const height = canvas.height;
 
         ctx.clearRect(0, 0, width, height);
 
-        const t = tiempo * 0.002;
-        const gradiente = ctx.createLinearGradient(
-            (Math.sin(t) * 0.5 + 0.5) * width,
-            0,
-            (Math.cos(t) * 0.5 + 0.5) * width,
-            height
-        );
-        gradiente.addColorStop(0, paleta.fondo);
-        gradiente.addColorStop(0.5, paleta.acento + '33');
-        gradiente.addColorStop(1, '#000000');
-
-        ctx.fillStyle = gradiente;
+        // Frame de Marco Exterior de la Carta
+        ctx.fillStyle = paleta.fondo;
         ctx.fillRect(0, 0, width, height);
-
-        ctx.fillStyle = paleta.borde;
-        const size = 18;
-
-        for (let x = 10; x < width; x += size) {
-            for (let y = 10; y < height; y += size) {
-                let alpha = Math.sin((x * 0.05 + y * 0.05 + tiempo * 0.003)) * 0.4 + 0.5;
-                ctx.globalAlpha = alpha;
-                ctx.fillRect(x - 1, y - 1, 3, 3);
-            }
-        }
-        ctx.globalAlpha = 1.0;
 
         ctx.strokeStyle = paleta.borde;
         ctx.lineWidth = 4;
         ctx.strokeRect(6, 6, width - 12, height - 12);
 
-        const offsetFlotacion = Math.sin(t * 2) * 4;
-        
-        // 🚀 RENDERIZADO PROCEDURAL VECTORIAL 2D (REEMPLAZA ctx.fillText EMOJI)
-        if (seed % 2 === 0) {
-            generateAvatar(ctx, width / 2, height / 2 - 10 + offsetFlotacion, seed, paleta);
-        } else {
-            generateCharacter(ctx, width / 2, height / 2 + 10 + offsetFlotacion, seed, paleta);
-        }
+        // Renderizado del Personaje Pixel Art 32x32 dentro del Canvas de la Carta
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = 32;
+        offscreenCanvas.height = 32;
+        const offCtx = offscreenCanvas.getContext('2d');
 
+        renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
+
+        // Escalar de 32x32px al tamaño del contenedor de la carta (ej. 180x180px centrado)
+        ctx.imageSmoothingEnabled = false;
+        const targetSize = 180;
+        const targetX = (width - targetSize) / 2;
+        const targetY = 30;
+
+        ctx.drawImage(offscreenCanvas, targetX, targetY, targetSize, targetSize);
+
+        // Borde alrededor del personaje
+        ctx.strokeStyle = paleta.acento;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(targetX, targetY, targetSize, targetSize);
+
+        // Texto con el Nombre de la Carta
         ctx.fillStyle = paleta.texto;
         ctx.font = "10px 'Press Start 2P', monospace";
         ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
         ctx.fillText(nombre.substring(0, 14), width / 2, height - 30);
 
-        DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Semilla: ${seed}`);
+        DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Pelo: ${carta.personajeData.hair.base}`);
 
         if (Estado.modoRenderActual === 'canvas') {
             Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
@@ -610,22 +698,8 @@ async function generarImagenPollinationsDirecta() {
     }
 }
 
-async function cargarContadorPlantillas() {
-    try {
-        const { count, error } = await supabaseClient
-            .from('plantillas_criaturas')
-            .select('*', { count: 'exact', head: true });
-
-        if (!error) {
-            DOM.setText('count-plantillas', count ?? 0);
-        }
-    } catch (e) {
-        console.warn("Error leyendo contador de plantillas:", e);
-    }
-}
-
 async function procesarYGuardarPlantillas() {
-    const textarea = DOM.get('textarea-plantillas') || DOM.get('input-texto-plantillas') || document.querySelector('textarea');
+    const textarea = DOM.get('textarea-plantillas') || document.querySelector('textarea');
     if (!textarea || !textarea.value.trim()) {
         alert("Por favor, ingresa el texto plano de las plantillas.");
         return;
@@ -639,14 +713,12 @@ async function procesarYGuardarPlantillas() {
     let descripcionGeneral = "Plantilla cargada masivamente";
     const registrosAInsertar = [];
 
-    // Dividir por líneas para identificar zonas o bloques
     const lineas = textoBruto.split('\n');
 
     for (let linea of lineas) {
         linea = linea.trim();
         if (!linea) continue;
 
-        // Si la línea contiene una descripción o contexto general
         if (linea.includes(':') && !linea.includes('/')) {
             const partes = linea.split(':');
             zonaActual = partes[0].trim();
@@ -654,17 +726,14 @@ async function procesarYGuardarPlantillas() {
             continue;
         }
 
-        // Procesar elementos separados por '/'
         const elementos = linea.split('/');
         for (let item of elementos) {
             item = item.trim();
             if (!item) continue;
 
-            // Extraer el emoji (primeros caracteres UTF-16/32)
             const matchEmoji = item.match(/(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u);
             const emoji = matchEmoji ? matchEmoji[0] : "👾";
 
-            // Extraer el nombre (removiendo el emoji y posibles descripciones tras ':')
             let textoLimpio = item.replace(emoji, '').trim();
             let loreItem = descripcionGeneral;
 
@@ -692,7 +761,6 @@ async function procesarYGuardarPlantillas() {
     }
 
     try {
-        // Inserción masiva en Supabase (tabla plantillas_criaturas)
         const { data, error } = await supabaseClient
             .from('plantillas_criaturas')
             .insert(registrosAInsertar);
@@ -706,48 +774,13 @@ async function procesarYGuardarPlantillas() {
         logEstado(`✅ Se registraron ${registrosAInsertar.length} plantillas con éxito.`);
         alert(`✅ ¡Proceso completado! Se guardaron ${registrosAInsertar.length} plantillas en la base de datos.`);
         
-        // Limpiar area y actualizar contador
         textarea.value = '';
-        await cargarContadorPlantillas();
+        if (typeof cargarContadorPlantillas === 'function') {
+            cargarContadorPlantillas();
+        }
 
     } catch (err) {
         logEstado(`❌ Excepción al insertar plantillas: ${err.message}`);
-    }
-}
-
-async function limpiarTablaPlantillas() {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas vaciar completamente la tabla 'plantillas_criaturas'?")) {
-        return;
-    }
-
-    logEstado("⏳ Eliminando registros de la tabla plantillas_criaturas...");
-
-    try {
-        const { error } = await supabaseClient
-            .from('plantillas_criaturas')
-            .delete()
-            .neq('id', 0); // Borra todos los registros válidos
-
-        if (error) {
-            alert("Error al vaciar la tabla: " + error.message);
-            logEstado(`❌ Error vaciando plantillas: ${error.message}`);
-        } else {
-            alert("🗑️ Tabla 'plantillas_criaturas' vaciada correctamente.");
-            logEstado("✅ Se han eliminado todas las plantillas de la base de datos.");
-            await cargarContadorPlantillas();
-        }
-    } catch (e) {
-        logEstado(`❌ Error en la solicitud de eliminación: ${e.message}`);
-    }
-}
-
-async function limpiarStorageHuerfano() {
-    logEstado("🧹 Analizando almacenamiento huérfano...");
-    try {
-        // Ejecución simulada/diagnóstico de limpieza del Storage
-        logEstado("✅ Limpieza de Storage completada sin archivos huérfanos.");
-    } catch (e) {
-        logEstado(`❌ Error al limpiar storage: ${e.message}`);
     }
 }
 
@@ -764,7 +797,7 @@ function actualizarTextoTituloId(cantidadActualBD) {
 }
 
 async function seleccionarPlantillaAleatoria() {
-    logEstado("🎲 Consultando plantillas en Supabase...");
+    logEstado("🎲 Consultando plantillas en Supabase y randomizando personaje anime...");
 
     try {
         // 1. Obtener cartas existentes
@@ -816,20 +849,21 @@ async function seleccionarPlantillaAleatoria() {
             return;
         }
 
-        // 3. Seleccionar plantilla al azar
+        // 3. Seleccionar plantilla al azar y generar nuevos atributos procedurales de Personaje Anime
         const plantillaElegida = plantillasDisponibles[Math.floor(Math.random() * plantillasDisponibles.length)];
         const emojiCarta = plantillaElegida.emoji || plantillaElegida.simbolo || "👾";
+        const nuevosDatosAnime = generarDatosPersonajeAnime();
 
-        // Visualizar en Canvas con personaje 2D mediante semilla
+        // Visualizar en Canvas
         Estado.cartaPreviewActual = {
             nombre: plantillaElegida.nombre || "Criatura",
             simbolo: emojiCarta,
             rareza: plantillaElegida.rareza || "Común",
-            seed: stringToSeed(plantillaElegida.nombre || "Criatura")
+            personajeData: nuevosDatosAnime
         };
         dibujarCartaCanvas();
 
-        // 4. Guardar instantáneamente en la base de datos
+        // 4. Guardar instantáneamente la imagen generada en la base de datos Supabase
         const canvas = DOM.get('canvasCartaGenerada');
         const imagenUrlData = canvas ? canvas.toDataURL("image/png") : "";
 
@@ -857,7 +891,7 @@ async function seleccionarPlantillaAleatoria() {
         actualizarTextoTituloId(nuevoTotal);
         DOM.setText('total-cartas-count', nuevoTotal);
 
-        logEstado(`✅ Carta #${proximoIdLibre} "${plantillaElegida.nombre}" guardada automáticamente desde plantilla.`);
+        logEstado(`✅ Carta #${proximoIdLibre} "${plantillaElegida.nombre}" con personaje Anime Pixel Art guardada en Supabase.`);
         await cargarCatalogoCartas();
         await cargarMetricasServidor();
 
@@ -986,7 +1020,6 @@ function logEstado(mensaje) {
 
 function configurarEventosUI() {
     DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
-    DOM.get('btn-limpiar-plantillas')?.addEventListener('click', limpiarTablaPlantillas);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
@@ -1004,7 +1037,3 @@ window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.testearConexionSupabase = testearConexionSupabase;
-window.limpiarTablaPlantillas = limpiarTablaPlantillas;
-window.limpiarStorageHuerfano = limpiarStorageHuerfano;
-window.generateAvatar = generateAvatar;
-window.generateCharacter = generateCharacter;

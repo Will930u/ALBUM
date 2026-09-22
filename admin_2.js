@@ -707,87 +707,6 @@ async function generarImagenPollinationsDirecta() {
     }
 }
 
-async function procesarYGuardarPlantillas() {
-    const textarea = DOM.get('textarea-plantillas') || document.querySelector('textarea');
-    if (!textarea || !textarea.value.trim()) {
-        alert("Por favor, ingresa el texto plano de las plantillas.");
-        return;
-    }
-
-    const textoBruto = textarea.value.trim();
-    logEstado("⏳ Parseando e insertando plantillas en Supabase...");
-
-    let zonaActual = "Zona Desconocida";
-    let eraSugerida = "cotidianos";
-    let descripcionGeneral = "Plantilla cargada masivamente";
-    const registrosAInsertar = [];
-
-    const lineas = textoBruto.split('\n');
-
-    for (let linea of lineas) {
-        linea = linea.trim();
-        if (!linea) continue;
-
-        if (linea.includes(':') && !linea.includes('/')) {
-            const partes = linea.split(':');
-            zonaActual = partes[0].trim();
-            descripcionGeneral = partes[1].trim();
-            continue;
-        }
-
-        const elementos = linea.split('/');
-        for (let item of elementos) {
-            item = item.trim();
-            if (!item) continue;
-
-            const matchEmoji = item.match(/(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u);
-            const emoji = matchEmoji ? matchEmoji[0] : "";
-
-            let textoLimpio = item.replace(emoji, '').trim();
-            let loreItem = descripcionGeneral;
-
-            if (textoLimpio.includes(':')) {
-                const partesItem = textoLimpio.split(':');
-                textoLimpio = partesItem[0].trim();
-                loreItem = partesItem[1].trim();
-            }
-
-            if (textoLimpio.length > 0) {
-                registrosAInsertar.push({
-                    emoji: emoji,
-                    nombre: textoLimpio,
-                    lore: loreItem,
-                    zona: zonaActual,
-                    era_sugerida: eraSugerida
-                });
-            }
-        }
-    }
-
-    if (registrosAInsertar.length === 0) {
-        alert("No se pudieron extraer plantillas válidas del texto.");
-        return;
-    }
-
-    try {
-        const { data, error } = await supabaseClient
-            .from('plantillas_criaturas')
-            .insert(registrosAInsertar);
-
-        if (error) {
-            alert("Error al guardar en Supabase: " + error.message);
-            logEstado(`❌ Error guardando plantillas: ${error.message}`);
-            return;
-        }
-
-        logEstado(`✅ Se registraron ${registrosAInsertar.length} plantillas con éxito.`);
-        alert(`✅ ¡Proceso completado! Se guardaron ${registrosAInsertar.length} plantillas en la base de datos.`);
-        textarea.value = '';
-    } catch (err) {
-        logEstado(`❌ Excepción al insertar plantillas: ${err.message}`);
-    }
-}
-
 // =============================================================================
 // 🎲 GENERADOR INDIVIDUAL Y GENERACIÓN MASIVA AUTÓNOMA (HASTA 2000 CARTAS)
 // =============================================================================
@@ -1178,8 +1097,6 @@ function logEstado(mensaje) {
 }
 
 function configurarEventosUI() {
-    DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
-    DOM.get('btn-limpiar-plantillas')?.addEventListener('click', vaciarTablaPlantillas);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
@@ -1189,10 +1106,7 @@ function configurarEventosUI() {
 window.cambiarPestana = cambiarPestana;
 window.seleccionarModoRender = seleccionarModoRender;
 window.generar2000CombinacionesEnLote = generar2000CombinacionesEnLote;
-window.generarImagenPollinationsDirecta = generarImagenPollinationsDirecta;
-window.procesarYGuardarPlantillas = procesarYGuardarPlantillas;
-window.vaciarTablaPlantillas = vaciarTablaPlantillas;
-window.regalarCartaAUsuario = regalarCartaAUsuario;
+window.generarImagenPollinationsDirecta = generarImagenPollinationsDirecta;window.regalarCartaAUsuario = regalarCartaAUsuario;
 window.cargarMetricasServidor = cargarMetricasServidor;
 window.testearConexionSupabase = testearConexionSupabase;
 window.limpiarStorageHuerfano = limpiarStorageHuerfano;

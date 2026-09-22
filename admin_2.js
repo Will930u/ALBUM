@@ -343,6 +343,13 @@ function cambiarPestana(idPestana) {
     );
     if (botonActivo) botonActivo.classList.add('activo');
 
+    // 🚀 REACTIVAR BUCLE DE ANIMACIÓN DEL CATÁLOGO AL CAMBIAR DE PESTAÑA
+    if (idPestana === 'tab-catalogo') {
+        setTimeout(() => {
+            iniciarBucleAnimacionCatalogo();
+        }, 50);
+    }
+
     try {
         localStorage.setItem('admin_pestana_activa', idPestana);
     } catch (e) {
@@ -456,7 +463,7 @@ async function regalarCartaAUsuario() {
     }
 }
 
-// 5. RENDERIZADO DEL CATÁLOGO DINÁMICO EN MOVIENTO (CANVAS EN VIVO)
+// 5. RENDERIZADO DEL CATÁLOGO DINÁMICO EN MOVIMIENTO (CANVAS EN VIVO)
 async function cargarCatalogoCartas() {
     const grid = DOM.get('grid-catalogo-admin');
     if (!grid) return;
@@ -499,7 +506,11 @@ async function cargarCatalogoCartas() {
     });
 
     grid.innerHTML = Estado.cartasCatalogoCache.map(carta => renderizarCartaDesdeBD(carta)).join('');
-    iniciarBucleAnimacionCatalogo();
+    
+    // Esperar a que los elementos Canvas se consoliden en el DOM antes de animar
+    setTimeout(() => {
+        iniciarBucleAnimacionCatalogo();
+    }, 50);
 }
 
 function renderizarCartaDesdeBD(carta) {
@@ -537,6 +548,10 @@ function renderizarCartaDesdeBD(carta) {
 
 function animarMiniCanvasCarta(canvas, carta, tiempo) {
     if (!canvas || !canvas.getContext) return;
+    
+    // Omitir renderizado si el canvas no tiene dimensiones reales en pantalla
+    if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
+
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
@@ -560,6 +575,11 @@ function animarMiniCanvasCarta(canvas, carta, tiempo) {
 }
 
 function iniciarBucleAnimacionCatalogo() {
+    if (Estado.animacionCatalogoId) {
+        cancelAnimationFrame(Estado.animacionCatalogoId);
+        Estado.animacionCatalogoId = null;
+    }
+
     function loop(tiempo) {
         if (Estado.cartasCatalogoCache && Estado.cartasCatalogoCache.length > 0) {
             Estado.cartasCatalogoCache.forEach(carta => {

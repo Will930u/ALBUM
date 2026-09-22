@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL - ANIMACIONES FACIALES Y CORPORALES AVANZADAS
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL - ANIMACIONES Y VISOR DE IMAGEN LIMPIO
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -24,9 +24,8 @@ const cartasPorPagina = 25;
 const totalPaginas = 80;
 
 let inventarioUsuarioCache = new Map();
-let canvasAnimados = []; // Registro activo de Canvas con bucles de animación
+let canvasAnimados = []; // Registro de Canvas activos (miniatura y visor)
 
-// Rangos Oficiales de Premios
 const RANGOS_PREMIOS = [
     { nivel: 1, inicio: 1, fin: 500, nombre: "1er Premio ($200 Tasa BCV)" },
     { nivel: 2, inicio: 501, fin: 1000, nombre: "2do Premio ($200 Tasa BCV)" },
@@ -68,7 +67,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (visor) visor.style.display = 'none';
     });
 
-    // Iniciar bucle global de animación Canvas avanzado
     iniciarBucleAnimacionGlobal();
 });
 
@@ -144,7 +142,7 @@ async function cargarInventarioInicial() {
                         inventarioUsuarioCache.set(idCartaNum, { 
                             carta_id: idCartaNum, 
                             cantidad: cantidadNum,
-                            datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
+                            datosCarta: infoCarta || { id: idCartaNum }
                         });
                     }
                 }
@@ -334,7 +332,7 @@ function renderizarLibro(pagina) {
         if (itemPoseido) {
             slot.classList.add('poseida');
 
-            dibujarBarajitaAlgoritmicaSlot(slot, itemPoseido.datosCarta, idCarta);
+            dibujarBarajitaAlgoritmicaSlot(slot, itemPoseido.datosCarta, idCarta, 120, 160, false);
 
             if (itemPoseido.cantidad > 1) {
                 const badge = document.createElement('span');
@@ -345,7 +343,7 @@ function renderizarLibro(pagina) {
 
             slot.addEventListener('click', (e) => {
                 e.stopPropagation();
-                desplegarVisor(itemPoseido.datosCarta, idCarta, itemPoseido.cantidad);
+                desplegarVisor(itemPoseido.datosCarta, idCarta);
             });
         } else {
             slot.innerText = idCarta;
@@ -356,9 +354,9 @@ function renderizarLibro(pagina) {
 }
 
 // =============================================================================
-// 🎨 MOTOR AVANZADO DE ANIMACIÓN FACIAL Y CORPORAL (DEFORMACIÓN & PARPADEO 2D)
+// 🎨 MOTOR DE ANIMACIÓN FACIAL Y DIBUJO DE CANVAS LIMPIO (SIN NOMBRES NI TEXTOS)
 // =============================================================================
-function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
+function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta, ancho = 120, alto = 160, esVisor = false) {
     let config = {};
     try {
         config = typeof datosCarta?.imagen_url === 'string' 
@@ -369,32 +367,33 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 120;
-    canvas.height = 160;
+    canvas.width = ancho;
+    canvas.height = alto;
     canvas.style.width = "100%";
     canvas.style.height = "100%";
-    canvas.style.borderRadius = "4px";
+    canvas.style.borderRadius = "6px";
 
     const ctx = canvas.getContext('2d');
     
     let objetoImagen = null;
     let esImagen = false;
 
-    if (typeof datosCarta?.imagen_url === 'string' && (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http'))) {
+    const urlRaw = datosCarta?.imagen_url;
+    if (typeof urlRaw === 'string' && (urlRaw.startsWith('data:image') || urlRaw.startsWith('http'))) {
         esImagen = true;
         objetoImagen = new Image();
         objetoImagen.crossOrigin = "anonymous";
-        objetoImagen.src = datosCarta.imagen_url;
+        objetoImagen.src = urlRaw;
     }
 
     canvasAnimados.push({
         canvas: canvas,
         ctx: ctx,
-        datosCarta: datosCarta,
         idCarta: idCarta,
         config: config,
         esImagen: esImagen,
-        img: objetoImagen
+        img: objetoImagen,
+        esVisor: esVisor
     });
 
     contenedor.appendChild(canvas);
@@ -402,10 +401,10 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
 
 function iniciarBucleAnimacionGlobal() {
     function animar(timestamp) {
-        const t = timestamp * 0.0025; // Control de tiempo general
+        const t = timestamp * 0.0025;
 
         canvasAnimados.forEach(item => {
-            const { canvas, ctx, datosCarta, idCarta, config, esImagen, img } = item;
+            const { canvas, ctx, idCarta, config, esImagen, img, esVisor } = item;
             const w = canvas.width;
             const h = canvas.height;
 
@@ -418,19 +417,18 @@ function iniciarBucleAnimacionGlobal() {
             if (esImagen && img && img.complete) {
                 ctx.save();
 
-                // 1. GIRO DE CABEZA / INCLINACIÓN CORPORAL (Eje central)
-                const anguloGiro = Math.sin(t * 0.8 + idCarta) * 0.05; 
+                // 1. INCLINACIÓN Y MOVIMIENTO (Giro suave de cabeza/cuerpo)
+                const anguloGiro = Math.sin(t * 0.8 + idCarta) * 0.04; 
                 const traslacionX = Math.cos(t * 0.5 + idCarta) * 2;
                 const traslacionY = Math.sin(t * 1.2 + idCarta) * 2;
 
                 ctx.translate(w / 2 + traslacionX, h / 2 + traslacionY);
                 ctx.rotate(anguloGiro);
 
-                // Dibujar Cuerpo Principal / Fondo de Personaje
+                // Dibujar Imagen Completa Proporcional
                 ctx.drawImage(img, 0, 0, img.width, img.height, -w / 2, -h / 2, w, h);
 
-                // 2. PARPADEO DE OJOS (Recorte y escala vertical acelerada)
-                // Se genera un pulso de parpadeo cada cierto intervalo usando senos de alta frecuencia
+                // 2. PARPADEO DE OJOS (Seno de alta frecuencia)
                 const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
                 let escalaOjoY = 1;
                 if (tiempoParpadeo > 3.7) { 
@@ -438,7 +436,6 @@ function iniciarBucleAnimacionGlobal() {
                 }
 
                 if (escalaOjoY < 0.95) {
-                    // Region del ojo (30% a 45% de la altura de la imagen)
                     const ojoSrcY = img.height * 0.30;
                     const ojoSrcH = img.height * 0.15;
                     const ojoDestY = -h / 2 + h * 0.30;
@@ -446,7 +443,7 @@ function iniciarBucleAnimacionGlobal() {
 
                     ctx.save();
                     ctx.translate(0, ojoDestY + ojoDestH / 2);
-                    ctx.scale(1, escalaOjoY); // Compresión Y para cerrar párpado
+                    ctx.scale(1, escalaOjoY);
                     ctx.drawImage(
                         img, 
                         0, ojoSrcY, img.width, ojoSrcH, 
@@ -455,8 +452,7 @@ function iniciarBucleAnimacionGlobal() {
                     ctx.restore();
                 }
 
-                // 3. MOVIMIENTO DE BOCA (Gesticulación / Habla)
-                // Recorte de región bucal (52% a 68% de la altura de la imagen)
+                // 3. MOVIMIENTO DE BOCA
                 const aperturaBoca = Math.sin(t * 3.5 + idCarta) * 0.12;
                 if (aperturaBoca > 0.02) {
                     const bocaSrcY = img.height * 0.52;
@@ -466,7 +462,7 @@ function iniciarBucleAnimacionGlobal() {
 
                     ctx.save();
                     ctx.translate(0, bocaDestY + bocaDestH / 2);
-                    ctx.scale(1 + aperturaBoca * 0.2, 1 + aperturaBoca); // Deformación rítmica
+                    ctx.scale(1 + aperturaBoca * 0.2, 1 + aperturaBoca);
                     ctx.drawImage(
                         img, 
                         0, bocaSrcY, img.width, bocaSrcH, 
@@ -480,23 +476,22 @@ function iniciarBucleAnimacionGlobal() {
                 // Efecto Barrido Holográfico Neón
                 const holoGradient = ctx.createLinearGradient(0, (t * 50) % (h * 2) - h, w, (t * 50) % (h * 2));
                 holoGradient.addColorStop(0, "rgba(255,0,127,0)");
-                holoGradient.addColorStop(0.5, "rgba(0,243,255,0.2)");
+                holoGradient.addColorStop(0.5, "rgba(0,243,255,0.15)");
                 holoGradient.addColorStop(1, "rgba(255,0,127,0)");
                 
                 ctx.fillStyle = holoGradient;
                 ctx.fillRect(0, 0, w, h);
 
             } else {
-                // ANIMACIÓN PIXEL ART: Flotación + Cierre de ojos Pixel
+                // Alternativa Pixel Art cuando no hay imagen externa
                 ctx.save();
-                
                 const offsetY = Math.sin(t * 1.5 + idCarta) * 4;
                 const rotacionPixel = Math.cos(t * 0.8 + idCarta) * 0.08;
 
-                ctx.translate(w / 2, h / 2 - 10 + offsetY);
+                ctx.translate(w / 2, h / 2 + offsetY);
                 ctx.rotate(rotacionPixel);
 
-                ctx.font = "38px sans-serif";
+                ctx.font = esVisor ? "80px sans-serif" : "38px sans-serif";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
 
@@ -507,20 +502,21 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.restore();
             }
 
-            // MARCO NEÓN CON PULSACIÓN DE BORDE
+            // MARCO NEÓN PERIMETRAL
             ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#00f3ff";
-            ctx.lineWidth = 4 + Math.sin(t * 2 + idCarta) * 2;
+            ctx.lineWidth = esVisor ? 5 : 3;
             ctx.strokeRect(2, 2, w - 4, h - 4);
 
-            // ZÓCALO DE IDENTIFICACIÓN CYBER
+            // ETIQUETA EXCLUSIVA CON EL NÚMERO
+            const altoEtiqueta = esVisor ? 28 : 18;
             ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
-            ctx.fillRect(4, h - 26, w - 8, 22);
+            ctx.fillRect(4, h - altoEtiqueta - 4, w - 8, altoEtiqueta);
 
             ctx.fillStyle = "#00f3ff";
-            ctx.font = "6px 'Press Start 2P', monospace";
+            ctx.font = esVisor ? "12px 'Press Start 2P', monospace" : "7px 'Press Start 2P', monospace";
             ctx.textAlign = "center";
-            const nombreVisual = datosCarta?.nombre || `CYBER #${idCarta}`;
-            ctx.fillText(nombreVisual.substring(0, 10), w / 2, h - 12);
+            ctx.textBaseline = "middle";
+            ctx.fillText(`#${String(idCarta).padStart(4, '0')}`, w / 2, h - (altoEtiqueta / 2) - 4);
         });
 
         requestAnimationFrame(animar);
@@ -529,35 +525,28 @@ function iniciarBucleAnimacionGlobal() {
     requestAnimationFrame(animar);
 }
 
-function desplegarVisor(datosCarta, idCarta, cantidad) {
+// =============================================================================
+// 🔍 VISOR EN TAMAÑO NORMAL (SOLO IMAGEN ANIMADA Y NÚMERO)
+// =============================================================================
+function desplegarVisor(datosCarta, idCarta) {
     const modalVisor = document.getElementById('modal-visor');
     const contenidoFrontal = document.getElementById('contenido-carta-frontal');
     if (!modalVisor || !contenidoFrontal) return;
 
-    const nombre = datosCarta?.nombre || `CYBER #${idCarta}`;
-    const rareza = datosCarta?.rareza || 'Común';
-    const lore = datosCarta?.lore || 'Sin datos de archivos disponibles.';
+    // Filtrar instancias previas del visor del arreglo de animación
+    canvasAnimados = canvasAnimados.filter(item => !item.esVisor);
 
-    let config = {};
-    try {
-        config = typeof datosCarta?.imagen_url === 'string' ? JSON.parse(datosCarta.imagen_url) : (datosCarta?.imagen_url || {});
-    } catch(e){}
+    contenidoFrontal.innerHTML = "";
 
-    const colorFondo = config.fondoColor || config.colorFondo || '#090a14';
-    const colorMarco = config.marcoColor || config.colorPrimario || '#00f3ff';
-    const simbolo = config.simbolo || '👾';
+    const contenedorVisor = document.createElement('div');
+    contenedorVisor.style.width = "260px";
+    contenedorVisor.style.height = "350px";
+    contenedorVisor.style.margin = "0 auto";
 
-    contenidoFrontal.innerHTML = `
-        <div style="text-align:center;">
-            <h3 style="font-size:10px; color:#00f3ff; margin-bottom:8px; text-shadow:0 0 5px #00f3ff;">${nombre.toUpperCase()}</h3>
-            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${colorFondo}; border:3px solid ${colorMarco}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:70px; box-shadow:0 0 15px ${colorMarco};">
-                ${simbolo}
-            </div>
-            <p style="font-size:7px; color:#ff007f; margin-bottom:4px; text-shadow:0 0 3px #ff007f;">Rareza: ${rareza} | Copias: ${cantidad}</p>
-            <p style="font-size:6px; color:#a5b4fc; margin-bottom:8px; line-height:1.3;">${lore}</p>
-            <p style="font-size:7px; color:#64748b;">#${String(idCarta).padStart(4, '0')}</p>
-        </div>
-    `;
+    contenidoFrontal.appendChild(contenedorVisor);
+
+    // Dibujar lienzo Canvas de alta resolución en tamaño normal con animaciones
+    dibujarBarajitaAlgoritmicaSlot(contenedorVisor, datosCarta, idCarta, 260, 350, true);
 
     modalVisor.style.display = 'flex';
 }

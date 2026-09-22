@@ -68,8 +68,9 @@
         <!-- PESTAÑA 2: CARGA Y PARSER DE PLANTILLAS ESTA LA QUITE  YA NO ME SERVIA -->
 
         <!-- PESTAÑA 3: ASIGNAR CARTA A USUARIO -->
+        <!-- PESTAÑA 3: ASIGNAR CARTA A USUARIO -->
         <div id="tab-asignar" class="contenido-pestana">
-            <div class="subtitulo-admin">ENTREGAR CARTA DIRECTA A COLECCIÓN</div>
+            <div class="subtitulo-admin">ENTREGAR CARTAS DIRECTAS A COLECCIÓN</div>
             
             <div class="form-grupo">
                 <label for="target-user">USUARIO TELEGRAM (CON O SIN @):</label>
@@ -77,16 +78,16 @@
             </div>
 
             <div class="form-grupo">
-                <label for="target-carta-id">ID DE CARTA A REGALAR:</label>
-                <input type="number" id="target-carta-id" placeholder="Ej: 1">
+                <label for="target-cartas-input">CARTAS A REGALAR (RANGO "1-10" O LISTA "1;7;12;14"):</label>
+                <input type="text" id="target-cartas-input" placeholder="Ej: 1-10  ó  1; 7; 12; 14; 20">
             </div>
 
             <div class="form-grupo">
-                <label for="target-cantidad">CANTIDAD:</label>
+                <label for="target-cantidad">CANTIDAD POR CADA CARTA:</label>
                 <input type="number" id="target-cantidad" value="1" min="1">
             </div>
 
-            <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;" onclick="regalarCartaAUsuario()">🎁 ASIGNAR CARTA A USUARIO</button>
+            <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;" onclick="regalarCartaAUsuario()">🎁 ASIGNAR CARTAS A USUARIO</button>
         </div>
 
         <!-- PESTAÑA 4: CATÁLOGO DE CARTAS REGISTRADAS LA ELIMINE POR QUE  AL ESTAR HAY  SE QUEDABA PEGADO -->

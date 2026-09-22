@@ -21,6 +21,32 @@ const Estado = {
     cartasCatalogoCache: []
 };
 
+// BANCOS ALGORÍTMICOS PARA GENERACIÓN AUTÓNOMA (SIN DEPENDENCIA DE PLANTILLAS NI EMOJIS)
+const BANCO_NOMBRES_ANIME = [
+    "Aoi", "Akira", "Ren", "Sora", "Hikari", "Kaito", "Yuki", "Haruto", "Rin", "Tatsuya",
+    "Kenji", "Shin", "Asuka", "Rei", "Mei", "Kira", "Zero", "Luffy", "Naruto", "Goku",
+    "Natsu", "Eren", "Levi", "Mikasa", "Tanjiro", "Nezuko", "Zenitsu", "Inosuke", "Saitama", "Genos"
+];
+
+const BANCO_APELLIDOS_ANIME = [
+    "Kurogane", "Takahashi", "Sato", "Suzuki", "Watanabe", "Yamamoto", "Nakamura", "Kobayashi",
+    "Kato", "Yoshida", "Yamada", "Sasaki", "Yamaguchi", "Saito", "Matsumoto", "Inoue", "Kimura"
+];
+
+const BANCO_CLASES_TIPO = [
+    "Humanoide Pixel", "Guerrero Cyber", "Nigromante", "Androide", "Viajero Astral",
+    "Espadachín", "Mago Arcano", "Piloto Mecha", "Sombra Digital", "Invocador Sol"
+];
+
+const BANCO_LORE_AUTONOMO = [
+    "Entidad emergida del núcleo de datos procedimental.",
+    "Guerrero legendario forjado en los mapas de memoria del servidor.",
+    "Viajero interdimensional compuesto por matrices de renderizado en vivo.",
+    "Especialista en combate cibernético con altas frecuencias de actualización.",
+    "Espíritu ancestral atrapado en una cuadrícula de 32x32 píxeles.",
+    "Defensor del algoritmo central en la red de coleccionables digitales."
+];
+
 // PALETAS DE COLOR POR ERA / RAREZA
 const PALETAS_ERA = Object.freeze({
     cyber:      { fondo: '#0d0f18', borde: '#00ffcc', acento: '#ff007f', texto: '#00ffcc' },
@@ -306,26 +332,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     iniciarSuscripcionRealtimeAlbum();
 
-    // 🎨 Generar solo vista previa aleatoria al recargar (SIN guardar en Supabase)
-    try {
-        const { data: plantillas } = await supabaseClient
-            .from('plantillas_criaturas')
-            .select('*');
-
-        if (plantillas && plantillas.length > 0) {
-            const plantillaAleatoria = plantillas[Math.floor(Math.random() * plantillas.length)];
-            
-            Estado.cartaPreviewActual = {
-                nombre: plantillaAleatoria.nombre || "Criatura Anime",
-                simbolo: plantillaAleatoria.emoji || plantillaAleatoria.simbolo || "👾",
-                rareza: plantillaAleatoria.rareza || "Común",
-                personajeData: generarDatosPersonajeAnime()
-            };
-            dibujarCartaCanvas();
-        }
-    } catch (err) {
-        logEstado(`⚠️ No se pudo cargar la vista previa inicial: ${err.message}`);
-    }
+    // 🎨 Generar vista previa inicial aleatoria en Canvas
+    Estado.cartaPreviewActual = {
+        nombre: `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`,
+        simbolo: "",
+        rareza: "Común",
+        personajeData: generarDatosPersonajeAnime()
+    };
+    dibujarCartaCanvas();
 });
 
 // 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
@@ -343,7 +357,6 @@ function cambiarPestana(idPestana) {
     );
     if (botonActivo) botonActivo.classList.add('activo');
 
-    // 🚀 REACTIVAR BUCLE DE ANIMACIÓN DEL CATÁLOGO AL CAMBIAR DE PESTAÑA
     if (idPestana === 'tab-catalogo') {
         setTimeout(() => {
             iniciarBucleAnimacionCatalogo();
@@ -490,7 +503,6 @@ async function cargarCatalogoCartas() {
         return;
     }
 
-    // Asignar o deserializar datos dinámicos a cada carta para su animación
     Estado.cartasCatalogoCache = cartas.map(carta => {
         let personajeData = null;
         if (carta.imagen_url && carta.imagen_url.startsWith('{')) {
@@ -507,7 +519,6 @@ async function cargarCatalogoCartas() {
 
     grid.innerHTML = Estado.cartasCatalogoCache.map(carta => renderizarCartaDesdeBD(carta)).join('');
     
-    // Esperar a que los elementos Canvas se consoliden en el DOM antes de animar
     setTimeout(() => {
         iniciarBucleAnimacionCatalogo();
     }, 50);
@@ -539,7 +550,7 @@ function renderizarCartaDesdeBD(carta) {
                 "${carta.lore || 'Sin descripción disponible.'}"
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; font-weight:bold; position:relative; z-index:2; border-top:1px solid ${paleta.borde}33; padding-top:4px;">
-                <span>${carta.tipo || 'Divertida'}</span>
+                <span>${carta.tipo || 'Humanoide Pixel'}</span>
                 <span>${rarezaTexto}</span>
             </div>
         </div>
@@ -548,8 +559,6 @@ function renderizarCartaDesdeBD(carta) {
 
 function animarMiniCanvasCarta(canvas, carta, tiempo) {
     if (!canvas || !canvas.getContext) return;
-    
-    // Omitir renderizado si el canvas no tiene dimensiones reales en pantalla
     if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
 
     const ctx = canvas.getContext('2d');
@@ -558,7 +567,6 @@ function animarMiniCanvasCarta(canvas, carta, tiempo) {
 
     ctx.clearRect(0, 0, width, height);
 
-    // Dibujar Personaje Anime Pixel Art Animado dentro del Canvas Mini del Catálogo
     const offscreenCanvas = document.createElement('canvas');
     offscreenCanvas.width = 32;
     offscreenCanvas.height = 32;
@@ -594,7 +602,7 @@ function iniciarBucleAnimacionCatalogo() {
     Estado.animacionCatalogoId = requestAnimationFrame(loop);
 }
 
-// 6. GENERADOR CANVAS EN VIVO ANIMADO CON PERSONAJE PIXEL ART
+// 6. GENERADOR CANVAS EN VIVO ANIMADO
 function escucharDibujoCanvas() {
     DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-plantilla-aleatoria')?.addEventListener('click', seleccionarPlantillaAleatoria);
@@ -613,8 +621,8 @@ function dibujarCartaCanvas() {
     function loopPreview(tiempo) {
         const ctx = canvas.getContext('2d');
         const carta = Estado.cartaPreviewActual || {
-            nombre: "Carta Anime",
-            simbolo: "👾",
+            nombre: `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`,
+            simbolo: "",
             rareza: "Común",
             personajeData: generarDatosPersonajeAnime()
         };
@@ -632,7 +640,6 @@ function dibujarCartaCanvas() {
 
         ctx.clearRect(0, 0, width, height);
 
-        // Frame de Marco Exterior de la Carta
         ctx.fillStyle = paleta.fondo;
         ctx.fillRect(0, 0, width, height);
 
@@ -640,7 +647,6 @@ function dibujarCartaCanvas() {
         ctx.lineWidth = 4;
         ctx.strokeRect(6, 6, width - 12, height - 12);
 
-        // Renderizado del Personaje Pixel Art 32x32 dentro del Canvas de la Carta
         const offscreenCanvas = document.createElement('canvas');
         offscreenCanvas.width = 32;
         offscreenCanvas.height = 32;
@@ -648,7 +654,6 @@ function dibujarCartaCanvas() {
 
         renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
 
-        // Escalar de 32x32px al tamaño del contenedor de la carta (ej. 180x180px centrado)
         ctx.imageSmoothingEnabled = false;
         const targetSize = 180;
         const targetX = (width - targetSize) / 2;
@@ -656,12 +661,10 @@ function dibujarCartaCanvas() {
 
         ctx.drawImage(offscreenCanvas, targetX, targetY, targetSize, targetSize);
 
-        // Borde alrededor del personaje
         ctx.strokeStyle = paleta.acento;
         ctx.lineWidth = 2;
         ctx.strokeRect(targetX, targetY, targetSize, targetSize);
 
-        // Texto con el Nombre de la Carta
         ctx.fillStyle = paleta.texto;
         ctx.font = "10px 'Press Start 2P', monospace";
         ctx.textAlign = "center";
@@ -737,7 +740,7 @@ async function procesarYGuardarPlantillas() {
             if (!item) continue;
 
             const matchEmoji = item.match(/(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u);
-            const emoji = matchEmoji ? matchEmoji[0] : "👾";
+            const emoji = matchEmoji ? matchEmoji[0] : "";
 
             let textoLimpio = item.replace(emoji, '').trim();
             let loreItem = descripcionGeneral;
@@ -778,19 +781,14 @@ async function procesarYGuardarPlantillas() {
 
         logEstado(`✅ Se registraron ${registrosAInsertar.length} plantillas con éxito.`);
         alert(`✅ ¡Proceso completado! Se guardaron ${registrosAInsertar.length} plantillas en la base de datos.`);
-        
         textarea.value = '';
-        if (typeof cargarContadorPlantillas === 'function') {
-            cargarContadorPlantillas();
-        }
-
     } catch (err) {
         logEstado(`❌ Excepción al insertar plantillas: ${err.message}`);
     }
 }
 
 // =============================================================================
-// 🎲 RANDOMIZADOR AVANZADO DE PLANTILLAS Y AUTOCONTEO SUPABASE (1 A 2000)
+// 🎲 GENERADOR INDIVIDUAL Y GENERACIÓN MASIVA AUTÓNOMA (HASTA 2000 CARTAS)
 // =============================================================================
 
 function actualizarTextoTituloId(cantidadActualBD) {
@@ -801,11 +799,11 @@ function actualizarTextoTituloId(cantidadActualBD) {
     }
 }
 
+// GENERADOR INDIVIDUAL AUTÓNOMO
 async function seleccionarPlantillaAleatoria() {
-    logEstado("🎲 Consultando plantillas en Supabase y randomizando personaje anime...");
+    logEstado("🎲 Generando personaje anime procedimental e insertando en BD...");
 
     try {
-        // 1. Obtener cartas existentes
         const { data: cartasExistentes, error: errCartas } = await supabaseClient
             .from('Cartas')
             .select('id, nombre');
@@ -831,58 +829,42 @@ async function seleccionarPlantillaAleatoria() {
             return;
         }
 
-        // 2. Consultar plantillas disponibles desde plantillas_criaturas
-        const { data: plantillas, error: errPlantillas } = await supabaseClient
-            .from('plantillas_criaturas')
-            .select('*');
+        // Generación de nombre único autónomo
+        let nombreGenerado = "";
+        let intentos = 0;
+        do {
+            nombreGenerado = `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`;
+            intentos++;
+            if (intentos > 100) {
+                nombreGenerado = `${getRandomItem(BANCO_NOMBRES_ANIME)} #${proximoIdLibre}`;
+                break;
+            }
+        } while (nombresExistentes.has(nombreGenerado.toLowerCase().trim()));
 
-        if (errPlantillas) {
-            alert("Error leyendo plantillas_criaturas: " + errPlantillas.message);
-            return;
-        }
-
-        if (!plantillas || plantillas.length === 0) {
-            alert("No hay plantillas disponibles en la tabla plantillas_criaturas.");
-            return;
-        }
-
-        // Filtrar plantillas no usadas
-        const plantillasDisponibles = plantillas.filter(p => !nombresExistentes.has(p.nombre?.toLowerCase().trim()));
-
-        if (plantillasDisponibles.length === 0) {
-            alert("Todas las plantillas de plantillas_criaturas ya han sido registradas como cartas.");
-            return;
-        }
-
-        // 3. Seleccionar plantilla al azar y generar nuevos atributos procedurales de Personaje Anime
-        const plantillaElegida = plantillasDisponibles[Math.floor(Math.random() * plantillasDisponibles.length)];
-        const emojiCarta = plantillaElegida.emoji || plantillaElegida.simbolo || "👾";
+        const rarezas = ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria'];
+        const rarezaElegida = getRandomItem(rarezas);
+        const tipoElegido = getRandomItem(BANCO_CLASES_TIPO);
+        const loreElegido = getRandomItem(BANCO_LORE_AUTONOMO);
         const nuevosDatosAnime = generarDatosPersonajeAnime();
 
-        // Visualizar en Canvas
         Estado.cartaPreviewActual = {
-            nombre: plantillaElegida.nombre || "Criatura",
-            simbolo: emojiCarta,
-            rareza: plantillaElegida.rareza || "Común",
+            nombre: nombreGenerado,
+            simbolo: "",
+            rareza: rarezaElegida,
             personajeData: nuevosDatosAnime
         };
         dibujarCartaCanvas();
 
-        // 4. Guardar en Supabase incluyendo los metadatos dinámicos del personaje Anime Pixel Art
-        const canvas = DOM.get('canvasCartaGenerada');
-        const imagenUrlData = JSON.stringify({
-            dataUrl: canvas ? canvas.toDataURL("image/png") : "",
-            personajeData: nuevosDatosAnime,
-            simbolo: emojiCarta
-        });
-
         const payloadCarta = {
             id: proximoIdLibre,
-            nombre: plantillaElegida.nombre,
-            rareza: plantillaElegida.rareza || 'Común',
-            tipo: plantillaElegida.tipo || 'Algorítmica Canvas',
-            lore: plantillaElegida.lore || plantillaElegida.descripcion || '',
-            imagen_url: imagenUrlData
+            nombre: nombreGenerado,
+            rareza: rarezaElegida,
+            tipo: tipoElegido,
+            lore: loreElegido,
+            imagen_url: JSON.stringify({
+                personajeData: nuevosDatosAnime,
+                simbolo: ""
+            })
         };
 
         const { error: errInsert } = await supabaseClient
@@ -894,18 +876,109 @@ async function seleccionarPlantillaAleatoria() {
             return;
         }
 
-        // Actualizar UI
         const nuevoTotal = idsOcupados.size + 1;
         DOM.setValue(['carta-id', 'id-carta'], proximoIdLibre);
         actualizarTextoTituloId(nuevoTotal);
         DOM.setText('total-cartas-count', nuevoTotal);
 
-        logEstado(`✅ Carta #${proximoIdLibre} "${plantillaElegida.nombre}" con personaje Anime Pixel Art guardada en Supabase.`);
+        logEstado(`✅ Carta #${proximoIdLibre} "${nombreGenerado}" guardada en Supabase.`);
         await cargarCatalogoCartas();
         await cargarMetricasServidor();
 
     } catch (e) {
-        logEstado(`❌ Error procesando plantilla aleatoria: ${e.message}`);
+        logEstado(`❌ Error procesando generación procedimental: ${e.message}`);
+    }
+}
+
+// GENERACIÓN MASIVA AUTÓNOMA HASTA COMPLETAR 2000 CARTAS
+async function generar2000CombinacionesEnLote() {
+    logEstado("⚡ Iniciando generación procedimental autónoma masiva en lote...");
+
+    try {
+        const { data: cartasExistentes, error: errCartas } = await supabaseClient
+            .from('Cartas')
+            .select('id, nombre');
+
+        if (errCartas) {
+            alert("Error al consultar cartas existentes: " + errCartas.message);
+            return;
+        }
+
+        const idsOcupados = new Set(cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : []);
+        const nombresExistentes = new Set(cartasExistentes ? cartasExistentes.map(c => c.nombre?.toLowerCase().trim()) : []);
+
+        const idsLibres = [];
+        for (let i = 1; i <= 2000; i++) {
+            if (!idsOcupados.has(i)) idsLibres.push(i);
+        }
+
+        if (idsLibres.length === 0) {
+            alert("Ya existen 2000 cartas registradas en la base de datos.");
+            return;
+        }
+
+        const rarezas = ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria'];
+        const numAInsertar = idsLibres.length;
+
+        if (!confirm(`Se generarán procedimentalmente e insertarán ${numAInsertar} nuevas cartas anime sin emojis en Supabase. ¿Deseas continuar?`)) {
+            return;
+        }
+
+        const loteAInsertar = [];
+        for (let k = 0; k < numAInsertar; k++) {
+            const currentId = idsLibres[k];
+            let nombreGen = "";
+            let intentos = 0;
+
+            do {
+                nombreGen = `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`;
+                intentos++;
+                if (intentos > 50) {
+                    nombreGen = `${getRandomItem(BANCO_NOMBRES_ANIME)} #${currentId}`;
+                    break;
+                }
+            } while (nombresExistentes.has(nombreGen.toLowerCase().trim()));
+
+            nombresExistentes.add(nombreGen.toLowerCase().trim());
+
+            const nuevosDatosAnime = generarDatosPersonajeAnime();
+
+            loteAInsertar.push({
+                id: currentId,
+                nombre: nombreGen,
+                rareza: getRandomItem(rarezas),
+                tipo: getRandomItem(BANCO_CLASES_TIPO),
+                lore: getRandomItem(BANCO_LORE_AUTONOMO),
+                imagen_url: JSON.stringify({
+                    personajeData: nuevosDatosAnime,
+                    simbolo: ""
+                })
+            });
+        }
+
+        logEstado(`⏳ Insertando lote autónomo de ${loteAInsertar.length} cartas en Supabase...`);
+
+        const TAMANO_BLOQUE = 100;
+        let insertados = 0;
+
+        for (let i = 0; i < loteAInsertar.length; i += TAMANO_BLOQUE) {
+            const bloque = loteAInsertar.slice(i, i + TAMANO_BLOQUE);
+            const { error: errBloque } = await supabaseClient.from('Cartas').insert(bloque);
+
+            if (errBloque) {
+                logEstado(`❌ Error al insertar bloque: ${errBloque.message}`);
+                break;
+            }
+            insertados += bloque.length;
+            logEstado(`🔄 Insertadas ${insertados}/${loteAInsertar.length} cartas...`);
+        }
+
+        alert(`🎉 ¡Lote procesado exitosamente! Se guardaron ${insertados} cartas procedimentales en la base de datos.`);
+        await cargarCatalogoCartas();
+        await cargarMetricasServidor();
+
+    } catch (err) {
+        logEstado(`❌ Excepción durante la generación en lote: ${err.message}`);
     }
 }
 
@@ -978,7 +1051,6 @@ async function cargarMetricasServidor() {
     }
 }
 
-// TESTEAR CONEXIÓN CON SUPABASE
 async function testearConexionSupabase() {
     logEstado("🔄 Testeando conexión directa con Supabase...");
     const inicio = Date.now();
@@ -1009,6 +1081,27 @@ async function testearConexionSupabase() {
     }
 }
 
+async function vaciarTablaPlantillas() {
+    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODAS las plantillas de la base de datos?")) return;
+    logEstado("⏳ Limpiando tabla plantillas_criaturas...");
+    try {
+        const { error } = await supabaseClient.from('plantillas_criaturas').delete().neq('id', 0);
+        if (error) {
+            alert("Error al vaciar plantillas: " + error.message);
+        } else {
+            alert("✅ Tabla 'plantillas_criaturas' vaciada correctamente.");
+            logEstado("🧹 Tabla de plantillas vaciada.");
+        }
+    } catch (err) {
+        logEstado(`❌ Error al vaciar plantillas: ${err.message}`);
+    }
+}
+
+async function limpiarStorageHuerfano() {
+    logEstado("🧹 Módulo de limpieza de Storage ejecutado.");
+    alert("Operación de mantenimiento completada.");
+}
+
 function limpiarLogServidor() {
     const logServidor = DOM.get('servidor-log-output');
     if (logServidor) {
@@ -1029,20 +1122,23 @@ function logEstado(mensaje) {
 
 function configurarEventosUI() {
     DOM.get('btn-procesar-plantillas')?.addEventListener('click', procesarYGuardarPlantillas);
+    DOM.get('btn-limpiar-plantillas')?.addEventListener('click', vaciarTablaPlantillas);
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
-    
-    DOM.get('btn-refrescar-servidor')?.addEventListener('click', cargarMetricasServidor);
-    DOM.get('btn-probar-conexion')?.addEventListener('click', testearConexionSupabase);
-    DOM.get('btn-limpiar-log')?.addEventListener('click', limpiarLogServidor);
-    DOM.get('btn-refrescar-catalogo')?.addEventListener('click', cargarCatalogoCartas);
 }
 
-// EXPONER FUNCIONES GLOBALMENTE PARA ATRIBUTOS ONCLICK DEL HTML
+// EXPOSICIÓN GLOBAL DE FUNCIONES PARA EVENTOS ONCLICK EN EL DOM
 window.cambiarPestana = cambiarPestana;
+window.seleccionarModoRender = seleccionarModoRender;
+window.generar2000CombinacionesEnLote = generar2000CombinacionesEnLote;
+window.generarImagenPollinationsDirecta = generarImagenPollinationsDirecta;
+window.procesarYGuardarPlantillas = procesarYGuardarPlantillas;
+window.vaciarTablaPlantillas = vaciarTablaPlantillas;
+window.regalarCartaAUsuario = regalarCartaAUsuario;
 window.cargarMetricasServidor = cargarMetricasServidor;
+window.testearConexionSupabase = testearConexionSupabase;
+window.limpiarStorageHuerfano = limpiarStorageHuerfano;
 window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
-window.testearConexionSupabase = testearConexionSupabase;

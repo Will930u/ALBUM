@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Álbum Digital de Barajitas</title>
+    <title>Álbum Digital - Cyberpunk Synthwave Edition</title>
     <!-- SDK Oficial de Telegram Mini Apps -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Fuente Pixel Art Retro -->
+    <!-- Fuentes Retro Futuristas -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="album-style.css">
 </head>
 <body>
 
     <div class="interfaz-juego">
-        <!-- Cabecera del Álbum -->
+        <!-- Cabecera Temática Cyberpunk -->
         <div class="cabecera-album">
-            <h1 class="titulo-album">ÁLBUM DIGITAL DE BARAJITAS</h1>
-            <div class="temporada-tag">★ TEMPORADA <span id="ano-actual">2026</span> ★</div>
+            <h1 class="titulo-album">NEON CYBER ALBUM</h1>
+            <div class="temporada-tag">★ SYNTHWAVE ERA <span id="ano-actual">2026</span> ★</div>
         </div>
 
-        <!-- Marcador de Progreso Dinámico Estilo Arcade -->
+        <!-- Marcador de Progreso Estilo HUD Neón -->
         <div class="marcador-progreso">
-            <div class="linea-era"><span id="titulo-bloque">ERA 1: COTIDIANOS</span></div>
+            <div class="linea-era"><span id="titulo-bloque">SECTOR 1: CYBERNETICS</span></div>
             <div class="linea-conteo">
                 <span id="contador-progreso" class="resaltado-oro">PROGRESO: 000 / 2000</span>
             </div>
             <div class="controles-navegacion">
-                <button class="btn-retro" id="btn-anterior">◄ ATRÁS</button>
+                <button class="btn-retro" id="btn-anterior">◄ ANTERIOR</button>
                 <button class="btn-retro" id="btn-siguiente">SIGUIENTE ►</button>
             </div>
         </div>
@@ -44,7 +44,7 @@
         <div class="panel-usuario-telegram">
             <span class="indicador-pagina" id="indicador-pagina">PÁGINA 1/80</span>
             <div class="perfil-telegram">
-                <img id="user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='%2300ff66'><circle cx='12' cy='8' r='4'/><path d='M12 14c-6.1 0-8 4-8 4v2h16v-2s-1.9-4-8-4z'/></svg>" alt="Avatar" class="avatar-tg">
+                <img id="user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='%2300f3ff'><circle cx='12' cy='8' r='4'/><path d='M12 14c-6.1 0-8 4-8 4v2h16v-2s-1.9-4-8-4z'/></svg>" alt="Avatar" class="avatar-tg">
                 <div class="datos-tg">
                     <span id="user-username" class="tg-username">@Cargando...</span>
                     <span id="user-fullname" class="tg-fullname">Jugador</span>
@@ -63,22 +63,22 @@
     </div>
 
     <!-- VENTANA MODAL GANADOR DE PREMIO -->
-    <div class="modal-visor" id="modal-ganador-premio" style="display: none; background: rgba(0, 0, 0, 0.85); z-index: 10000; align-items: center; justify-content: center;">
-        <div style="background: #0d1117; border: 3px solid #ffcc00; border-radius: 12px; padding: 20px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 0 20px #ffcc00; font-family: 'Press Start 2P', monospace;">
-            <h2 style="color: #ffcc00; font-size: 11px; margin-bottom: 12px; line-height: 1.4;">🎉 ¡ÁLBUM COMPLETADO! 🎉</h2>
-            <p id="premio-titulo-nivel" style="color: #00ff66; font-size: 9px; margin-bottom: 8px;"></p>
-            <p id="premio-rango-cartas" style="color: #aaa; font-size: 7px; margin-bottom: 16px;"></p>
+    <div class="modal-visor" id="modal-ganador-premio" style="display: none; background: rgba(5, 5, 12, 0.9); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: #090a14; border: 2px solid #ff007f; border-radius: 12px; padding: 20px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 0 25px rgba(255, 0, 127, 0.6); font-family: 'Press Start 2P', monospace;">
+            <h2 style="color: #ff007f; font-size: 11px; margin-bottom: 12px; line-height: 1.4; text-shadow: 0 0 8px #ff007f;">🎉 ¡MATRIZ COMPLETADA! 🎉</h2>
+            <p id="premio-titulo-nivel" style="color: #00f3ff; font-size: 9px; margin-bottom: 8px; text-shadow: 0 0 5px #00f3ff;"></p>
+            <p id="premio-rango-cartas" style="color: #a5b4fc; font-size: 7px; margin-bottom: 16px;"></p>
 
             <form id="form-reclamo-premio" onsubmit="event.preventDefault(); enviarSolicitudPremio();" style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="hidden" id="input-premio-nivel" value="">
                 
-                <input type="text" id="input-premio-cedula" placeholder="Cédula de Identidad" required style="background: #161b22; border: 1px solid #38bdf8; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
+                <input type="text" id="input-premio-cedula" placeholder="Cédula de Identidad" required style="background: #121324; border: 1px solid #00f3ff; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
                 
-                <input type="tel" id="input-premio-telefono" placeholder="Teléfono Pago Móvil" required style="background: #161b22; border: 1px solid #38bdf8; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
+                <input type="tel" id="input-premio-telefono" placeholder="Teléfono Pago Móvil" required style="background: #121324; border: 1px solid #00f3ff; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
                 
-                <input type="text" id="input-premio-banco" placeholder="Banco (Ej: Banesco, Venezuela)" required style="background: #161b22; border: 1px solid #38bdf8; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
+                <input type="text" id="input-premio-banco" placeholder="Banco (Ej: Banesco, Venezuela)" required style="background: #121324; border: 1px solid #00f3ff; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
 
-                <button type="submit" id="btn-enviar-premio" class="btn-retro" style="background: #00ff66; color: #000; border: none; padding: 10px; font-size: 8px; font-weight: bold; cursor: pointer; margin-top: 6px; border-radius: 4px;">
+                <button type="submit" id="btn-enviar-premio" class="btn-retro" style="background: linear-gradient(135deg, #ff007f, #7928ca); color: #fff; border: none; padding: 10px; font-size: 8px; font-weight: bold; cursor: pointer; margin-top: 6px; border-radius: 4px; text-shadow: 0 0 5px #000;">
                     ENVIAR Y RECLAMAR PREMIO
                 </button>
             </form>
@@ -86,23 +86,23 @@
     </div>
 
     <!-- VENTANA MODAL COMPROBANTE DE PAGO -->
-    <div class="modal-visor" id="modal-comprobante-pago" style="display: none; background: rgba(0, 0, 0, 0.85); z-index: 10001; align-items: center; justify-content: center;">
-        <div style="background: #0d1117; border: 3px solid #00ff66; border-radius: 12px; padding: 20px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 0 20px #00ff66; font-family: 'Press Start 2P', monospace;">
-            <h2 style="color: #00ff66; font-size: 11px; margin-bottom: 12px; line-height: 1.4;">✅ ¡PAGO PROCESADO!</h2>
-            <p id="comp-nombre-premio" style="color: #ffcc00; font-size: 8px; margin-bottom: 10px;"></p>
+    <div class="modal-visor" id="modal-comprobante-pago" style="display: none; background: rgba(5, 5, 12, 0.9); z-index: 10001; align-items: center; justify-content: center;">
+        <div style="background: #090a14; border: 2px solid #00f3ff; border-radius: 12px; padding: 20px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 0 25px rgba(0, 243, 255, 0.5); font-family: 'Press Start 2P', monospace;">
+            <h2 style="color: #00f3ff; font-size: 11px; margin-bottom: 12px; line-height: 1.4; text-shadow: 0 0 8px #00f3ff;">✅ ¡CRÉDITOS TRANSFERIDOS!</h2>
+            <p id="comp-nombre-premio" style="color: #ff007f; font-size: 8px; margin-bottom: 10px;"></p>
             
-            <div style="background: #161b22; border: 1px dashed #38bdf8; padding: 12px; border-radius: 6px; margin-bottom: 14px; text-align: left;">
-                <p style="color: #aaa; font-size: 6px; margin-bottom: 6px;">MONTO PAGADO:</p>
-                <p id="comp-monto-bs" style="color: #00ff66; font-size: 10px; margin-bottom: 10px; font-weight: bold;"></p>
+            <div style="background: #121324; border: 1px dashed #7928ca; padding: 12px; border-radius: 6px; margin-bottom: 14px; text-align: left;">
+                <p style="color: #a5b4fc; font-size: 6px; margin-bottom: 6px;">MONTO ABONADO:</p>
+                <p id="comp-monto-bs" style="color: #00f3ff; font-size: 10px; margin-bottom: 10px; font-weight: bold;"></p>
                 
-                <p style="color: #aaa; font-size: 6px; margin-bottom: 6px;">Nº REFERENCIA:</p>
+                <p style="color: #a5b4fc; font-size: 6px; margin-bottom: 6px;">Nº TRANSACCIÓN:</p>
                 <p id="comp-referencia" style="color: #fff; font-size: 8px; margin-bottom: 10px; font-weight: bold; word-break: break-all;"></p>
 
-                <p style="color: #aaa; font-size: 6px; margin-bottom: 6px;">FECHA:</p>
-                <p id="comp-fecha" style="color: #aaa; font-size: 7px;"></p>
+                <p style="color: #a5b4fc; font-size: 6px; margin-bottom: 6px;">TIMESTAMP:</p>
+                <p id="comp-fecha" style="color: #a5b4fc; font-size: 7px;"></p>
             </div>
 
-            <button class="btn-retro" onclick="document.getElementById('modal-comprobante-pago').style.display='none';" style="background: #38bdf8; color: #000; border: none; padding: 8px 16px; font-size: 8px; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%;">
+            <button class="btn-retro" onclick="document.getElementById('modal-comprobante-pago').style.display='none';" style="background: #00f3ff; color: #000; border: none; padding: 8px 16px; font-size: 8px; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%;">
                 ENTENDIDO
             </button>
         </div>

@@ -1,5 +1,5 @@
 /* =============================================================================
-   🎮 TIENDA RETRO ARCADE - HOJA DE ESTILOS OPTIMIZADA (TEMA ÁLBUM VYLON)
+   🎮 TIENDA RETRO ARCADE - HOJA DE ESTILOS OPTIMIZADA (TEMA PÚRPURA & AZUL NEÓN)
    ============================================================================= */
 
 * {
@@ -9,7 +9,7 @@
 }
 
 body {
-    background-color: #050811;
+    background-color: #080312;
     color: #ffffff;
     font-family: 'Press Start 2P', monospace;
     display: flex;
@@ -21,9 +21,9 @@ body {
 
 /* Contenedor Principal tipo Consola del Álbum */
 .consola-tienda {
-    background-color: #0b132b;
-    border: 3px solid #1c2a4a;
-    box-shadow: inset 0px 0px 12px #000000, 0px 4px 15px rgba(0, 0, 0, 0.8);
+    background-color: #160a29;
+    border: 3px solid #3d1c6d;
+    box-shadow: inset 0px 0px 12px #000000, 0px 4px 15px rgba(0, 0, 0, 0.8), 0 0 10px rgba(138, 43, 226, 0.2);
     padding: 20px 14px;
     max-width: 420px;
     width: 100%;
@@ -31,29 +31,29 @@ body {
     text-align: center;
 }
 
-/* Títulos con marco neón cyan/verde */
+/* Títulos con marco neón cyan/azul */
 .titulo-tienda {
     font-size: 11px;
-    color: #00ff9d;
-    text-shadow: 0 0 8px rgba(0, 255, 157, 0.5);
+    color: #00d9ff;
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
     margin-bottom: 8px;
     letter-spacing: 0.5px;
 }
 
 .titulo-retiros {
-    color: #ffcc00;
-    text-shadow: 0 0 8px rgba(255, 204, 0, 0.4);
+    color: #bd00ff;
+    text-shadow: 0 0 8px rgba(189, 0, 255, 0.6);
 }
 
 .precio-unidad {
     font-size: 8px;
-    color: #8fa0ba;
+    color: #b3a0cd;
     margin-bottom: 18px;
     line-height: 1.4;
 }
 
-.resaltado-verde { color: #00ff9d; font-weight: bold; }
-.resaltado-oro { color: #ffcc00; font-weight: bold; }
+.resaltado-verde { color: #00d9ff; font-weight: bold; }
+.resaltado-oro { color: #e0a0ff; font-weight: bold; }
 
 /* Selector de Cantidad */
 .control-cantidad {
@@ -65,9 +65,9 @@ body {
 }
 
 .btn-cantidad {
-    background-color: #121f3d;
-    color: #00f0ff;
-    border: 2px solid #23416d;
+    background-color: #230d43;
+    color: #00d9ff;
+    border: 2px solid #5821a0;
     font-family: 'Press Start 2P', monospace;
     font-size: 16px;
     width: 44px;
@@ -85,9 +85,9 @@ body {
 #cantidad-sobres {
     width: 70px;
     height: 44px;
-    background-color: #040711;
-    border: 2px solid #23416d;
-    color: #00ff9d;
+    background-color: #0b0318;
+    border: 2px solid #5821a0;
+    color: #00d9ff;
     font-family: 'Press Start 2P', monospace;
     font-size: 14px;
     text-align: center;
@@ -97,8 +97,8 @@ body {
 
 /* Pantalla LCD de Totales */
 .pantalla-totales {
-    background-color: #03060c;
-    border: 2px solid #162440;
+    background-color: #0a0216;
+    border: 2px solid #381566;
     padding: 12px 14px;
     margin-bottom: 18px;
     border-radius: 4px;
@@ -110,7 +110,7 @@ body {
     justify-content: space-between;
     font-size: 8px;
     margin-bottom: 8px;
-    color: #a0b2ce;
+    color: #c9b4e6;
 }
 
 .fila-total:last-child {
@@ -129,25 +129,25 @@ body {
     display: flex;
     align-items: center;
     font-size: 8px;
-    color: #c5d4eb;
+    color: #dbcaef;
     cursor: pointer;
-    background-color: #070e20;
+    background-color: #1f0b3b;
     padding: 10px 12px;
-    border: 2px solid #1c2a4a;
+    border: 2px solid #431b79;
     border-radius: 4px;
     width: 100%;
 }
 
 .opcion-contenedor input {
     margin-right: 10px;
-    accent-color: #00ff9d;
+    accent-color: #00d9ff;
     transform: scale(1.2);
 }
 
 /* Botón Comprar */
 .btn-comprar-final {
-    background: #00ff9d;
-    color: #000000;
+    background: #00d9ff;
+    color: #0a0216;
     border: 2px solid #ffffff;
     font-family: 'Press Start 2P', monospace;
     font-size: 9px;
@@ -156,18 +156,18 @@ body {
     width: 100%;
     cursor: pointer;
     border-radius: 4px;
-    box-shadow: 0 4px 0 #00995e, 0 0 10px rgba(0, 255, 157, 0.4);
+    box-shadow: 0 4px 0 #0088a3, 0 0 10px rgba(0, 217, 255, 0.4);
 }
 
 .btn-comprar-final:active {
     transform: translateY(2px);
-    box-shadow: 0 2px 0 #00995e;
+    box-shadow: 0 2px 0 #0088a3;
 }
 
 /* Sección Retiros */
 .consola-retiros-retro {
     margin-top: 25px;
-    border-top: 2px dashed #1c2a4a;
+    border-top: 2px dashed #431b79;
     padding-top: 20px;
 }
 
@@ -179,9 +179,9 @@ body {
 
 .btn-metodo-tab {
     flex: 1;
-    background-color: #121f3d;
-    color: #6b7d96;
-    border: 2px solid #1c2a4a;
+    background-color: #230d43;
+    color: #8c73ab;
+    border: 2px solid #431b79;
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
     padding: 10px 4px;
@@ -190,11 +190,11 @@ body {
 }
 
 .btn-metodo-tab.activo {
-    background-color: #ffcc00;
-    color: #000000;
+    background-color: #bd00ff;
+    color: #ffffff;
     font-weight: bold;
     border-color: #ffffff;
-    box-shadow: 0 3px 0 #b38f00;
+    box-shadow: 0 3px 0 #7700a3, 0 0 8px rgba(189, 0, 255, 0.5);
 }
 
 /* Formulario de Retiros */
@@ -212,15 +212,15 @@ body {
 
 .label-retro {
     font-size: 7px;
-    color: #8fa0ba;
+    color: #b3a0cd;
     margin-bottom: 6px;
     line-height: 1.3;
 }
 
 .input-retro, .select-retro {
     width: 100%;
-    background-color: #03060c;
-    border: 2px solid #1c2a4a;
+    background-color: #0a0216;
+    border: 2px solid #431b79;
     color: #ffffff;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
@@ -230,86 +230,23 @@ body {
 }
 
 .input-retro:focus, .select-retro:focus {
-    border-color: #00ff9d;
+    border-color: #00d9ff;
 }
 
 .txt-verde-input {
-    color: #00ff9d;
+    color: #00d9ff;
 }
 
 .nota-verde {
     font-size: 6px;
-    color: #00ff9d;
+    color: #00d9ff;
     margin-top: 6px;
     line-height: 1.5;
     text-align: left;
 }
 
 .btn-guardar-perfil {
-    background-color: #ffcc00;
-    color: #000000;
-    border: 2px solid #ffffff;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    font-weight: bold;
-    padding: 12px;
-    width: 100%;
-    cursor: pointer;
-    border-radius: 4px;
-    box-shadow: 0 3px 0 #b38f00;
-}
-
-.btn-guardar-perfil:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #b38f00;
-}
-
-/* Ventana Modal Pasarela */
-.modal-pago-movil {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(3, 6, 12, 0.92);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 999;
-    padding: 15px;
-}
-
-.caja-pago-retro {
-    background-color: #0b132b;
-    border: 3px solid #ff3366;
-    padding: 18px;
-    max-width: 360px;
-    width: 100%;
-    border-radius: 8px;
-    box-shadow: 0px 0px 20px rgba(255, 51, 102, 0.3);
-    text-align: center;
-}
-
-.titulo-pm {
-    font-size: 9px;
-    color: #ff3366;
-    margin-bottom: 12px;
-    text-shadow: 0 0 6px rgba(255, 51, 102, 0.5);
-}
-
-.datos-plataforma-box {
-    background-color: #03060c;
-    border: 2px solid #1c2a4a;
-    border-radius: 4px;
-    padding: 10px;
-    text-align: left;
-    font-size: 7px;
-    line-height: 1.8;
-    margin-bottom: 15px;
-}
-
-.txt-oro { color: #ffcc00; }
-.txt-verde { color: #00ff9d; font-size: 8px; font-weight: bold; }
-
-.btn-confirmar-pm {
-    background-color: #ff3366;
+    background-color: #bd00ff;
     color: #ffffff;
     border: 2px solid #ffffff;
     font-family: 'Press Start 2P', monospace;
@@ -319,12 +256,75 @@ body {
     width: 100%;
     cursor: pointer;
     border-radius: 4px;
-    box-shadow: 0 3px 0 #990026;
+    box-shadow: 0 3px 0 #7700a3;
+}
+
+.btn-guardar-perfil:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #7700a3;
+}
+
+/* Ventana Modal Pasarela */
+.modal-pago-movil {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(8, 3, 18, 0.92);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    padding: 15px;
+}
+
+.caja-pago-retro {
+    background-color: #160a29;
+    border: 3px solid #00d9ff;
+    padding: 18px;
+    max-width: 360px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0px 0px 20px rgba(0, 217, 255, 0.3);
+    text-align: center;
+}
+
+.titulo-pm {
+    font-size: 9px;
+    color: #00d9ff;
+    margin-bottom: 12px;
+    text-shadow: 0 0 6px rgba(0, 217, 255, 0.5);
+}
+
+.datos-plataforma-box {
+    background-color: #0a0216;
+    border: 2px solid #431b79;
+    border-radius: 4px;
+    padding: 10px;
+    text-align: left;
+    font-size: 7px;
+    line-height: 1.8;
+    margin-bottom: 15px;
+}
+
+.txt-oro { color: #e0a0ff; }
+.txt-verde { color: #00d9ff; font-size: 8px; font-weight: bold; }
+
+.btn-confirmar-pm {
+    background-color: #00d9ff;
+    color: #0a0216;
+    border: 2px solid #ffffff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 12px;
+    width: 100%;
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 3px 0 #0088a3;
 }
 
 .btn-confirmar-pm:active {
     transform: translateY(2px);
-    box-shadow: 0 1px 0 #990026;
+    box-shadow: 0 1px 0 #0088a3;
 }
 
 /* Menú Fijo Inferior */
@@ -333,8 +333,8 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    background-color: #070e20;
-    border-top: 2px solid #1c2a4a;
+    background-color: #0d041e;
+    border-top: 2px solid #431b79;
     display: flex;
     justify-content: center;
     gap: 6px;
@@ -343,9 +343,9 @@ body {
 }
 
 .btn-nav {
-    background-color: #121f3d;
-    color: #a0b2ce;
-    border: 2px solid #1c2a4a;
+    background-color: #230d43;
+    color: #c9b4e6;
+    border: 2px solid #431b79;
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
     padding: 10px 4px;
@@ -357,9 +357,9 @@ body {
 }
 
 .btn-nav.activo {
-    background-color: #00ff9d;
-    color: #000000;
+    background-color: #00d9ff;
+    color: #0a0216;
     font-weight: bold;
     border-color: #ffffff;
-    box-shadow: 0 0 8px rgba(0, 255, 157, 0.6);
+    box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
 }

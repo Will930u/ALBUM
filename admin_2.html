@@ -17,7 +17,6 @@
         <!-- BARRA DE PESTAÑAS SPA -->
         <div class="barra-pestanas">
             <button class="tab-btn activo" onclick="cambiarPestana('tab-crear')">🎨 CREAR CARTA</button>
-            <button class="tab-btn" onclick="cambiarPestana('tab-plantillas')">📋 PLANTILLAS</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-asignar')">🎁 REGALAR</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-catalogo')">📖 CATÁLOGO</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-servidor')">🖥️ SERVIDOR</button>
@@ -67,27 +66,7 @@
             </div>
         </div>
 
-        <!-- PESTAÑA 2: CARGA Y PARSER DE PLANTILLAS -->
-        <div id="tab-plantillas" class="contenido-pestana">
-            <div class="subtitulo-admin">CARGA MASIVA DE PLANTILLAS Y CATEGORÍAS</div>
-            <p style="font-size:7px; color:#aaa; margin-bottom:10px; line-height:1.4;">
-                Pega el texto estructurado con las Zonas (encabezados) y las listas de emojis con sus nombres y descripciones. El parser lo procesará e insertará en la tabla <code>plantillas_criaturas</code>.
-            </p>
-
-            <div class="form-grupo">
-                <label for="textarea-plantillas">LISTA DE TEXTO PLANO:</label>
-                <textarea id="textarea-plantillas" rows="12" style="width:100%; background:#090a0f; color:#00ff66; border:1px solid #1e293b; padding:10px; font-family:monospace; font-size:10px; resize:vertical;" placeholder="🌋 Zona del Caos y Criaturas de la Noche&#10;👾 Monstruo alienígena / 👽 Alienígena / 🤖 Robot: Invasores del espacio exterior.&#10;..."></textarea>
-            </div>
-
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button id="btn-procesar-plantillas" class="btn-admin-final" style="background:#10b981;" onclick="procesarYGuardarPlantillas()">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
-                <button id="btn-limpiar-plantillas" class="btn-admin-final" style="background:#ef4444;" onclick="vaciarTablaPlantillas()">🗑️ VACIAR TABLA PLANTILLAS</button>
-            </div>
-            
-            <div id="resumen-plantillas" style="margin-top:10px; font-size:8px; color:#38bdf8;">
-                Plantillas registradas actualmente: <span id="count-plantillas">0</span>
-            </div>
-        </div>
+        <!-- PESTAÑA 2: CARGA Y PARSER DE PLANTILLAS ESTA LA QUITE  YA NO ME SERVIA -->
 
         <!-- PESTAÑA 3: ASIGNAR CARTA A USUARIO -->
         <div id="tab-asignar" class="contenido-pestana">

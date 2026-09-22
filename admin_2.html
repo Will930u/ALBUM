@@ -8,6 +8,50 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin-style_2.css">
+    <style>
+        /* ESTILOS DE SOPORTE PARA CANVAS DINÁMICO EN CATÁLOGO */
+        .grid-cartas-admin {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 10px 0;
+        }
+
+        .tarjeta-carta {
+            position: relative;
+            background: #0d0f18;
+            border: 2px solid #00ffcc;
+            border-radius: 6px;
+            padding: 8px;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Renderizado Pixel Art sin desenfoque */
+        .tarjeta-carta canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            display: block;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 4px;
+        }
+
+        .tarjeta-carta img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .badge-rareza {
+            text-transform: uppercase;
+            font-size: 7px;
+        }
+    </style>
 </head>
 <body>
 
@@ -37,15 +81,15 @@
                 <div class="label-previa" id="label-modo-previa">EN VIVO: RENDERIZADO CANVAS MATEMÁTICO</div>
                 
                 <div class="canvas-wrapper">
-                    <canvas id="canvasCartaGenerada" width="220" height="308"></canvas>
-                    <img id="imgPollinationsPreview" class="img-pollinations-preview" alt="Preview IA">
-                    <div id="spinnerIA" class="spinner-ia">GENERANDO IA...</div>
+                    <canvas id="canvasCartaGenerada" width="220" height="308" style="image-rendering: pixelated; image-rendering: crisp-edges;"></canvas>
+                    <img id="imgPollinationsPreview" class="img-pollinations-preview" alt="Preview IA" style="display:none;">
+                    <div id="spinnerIA" class="spinner-ia" style="display:none;">GENERANDO IA...</div>
                 </div>
 
                 <div class="info-semilla-box" id="info-semilla">Semilla: - | Era: -</div>
                 
                 <div style="display:flex; gap:8px; width:100%; margin-top:10px;">
-                    <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="flex:1; padding:10px;" onclick="generar2000CombinacionesEnLote()">🎲 GENERAR Y GUARDAR 2000 CARTAS EN LOTE</button>
+                    <button type="button" id="btn-randomizar" class="btn-mini-admin btn-mini-drop" style="flex:1; padding:10px;">🎲 RANDOMIZAR DESDE PLANTILLAS</button>
                     <button type="button" id="btn-generar-ia" class="btn-mini-admin" style="background:#38bdf8; color:#000; display:none; padding:10px;" onclick="generarImagenPollinationsDirecta()">⚡ GENERAR IA</button>
                 </div>
             </div>
@@ -77,7 +121,7 @@
             </div>
 
             <div style="display:flex; gap:10px; margin-top:10px;">
-                <button id="btn-procesar-plantillas" class="btn-admin-final" style="background:#10b981;" onclick="procesarYGuardarPlantillas()">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
+                <button id="btn-procesar-plantillas" class="btn-admin-final" style="background:#10b981;">⚡ PARSEAR Y GUARDAR PLANTILLAS</button>
                 <button id="btn-limpiar-plantillas" class="btn-admin-final" style="background:#ef4444;">🗑️ VACIAR TABLA PLANTILLAS</button>
             </div>
             
@@ -105,14 +149,17 @@
                 <input type="number" id="target-cantidad" value="1" min="1">
             </div>
 
-            <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;" onclick="regalarCartaAUsuario()">🎁 ASIGNAR CARTA A USUARIO</button>
+            <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;">🎁 ASIGNAR CARTA A USUARIO</button>
         </div>
 
-        <!-- PESTAÑA 4: CATÁLOGO DE CARTAS REGISTRADAS -->
+        <!-- PESTAÑA 4: CATÁLOGO DE CARTAS REGISTRADAS (CANVAS EN VIVO ANIMADO) -->
         <div id="tab-catalogo" class="contenido-pestana">
-            <div class="subtitulo-admin">CATÁLOGO GLOBAL DE RECETAS PUBLICADAS</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div class="subtitulo-admin" style="margin-bottom:0;">CATÁLOGO GLOBAL DE RECETAS PUBLICADAS</div>
+                <button id="btn-refrescar-catalogo" class="btn-mini-admin" style="background:#00ffcc; color:#000; font-size:8px; padding:6px 10px;">🔄 REFRESCAR CATÁLOGO</button>
+            </div>
             <div class="grid-cartas-admin" id="grid-catalogo-admin">
-                <!-- Se puebla dinámicamente -->
+                <!-- Se puebla dinámicamente mediante el bucle renderAnimeCharacterPixelArt de admin_2.js -->
             </div>
         </div>
 
@@ -155,9 +202,9 @@
 
             <!-- ACCIONES RÁPIDAS -->
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #22c55e;" onclick="testearConexionSupabase()">🔌 PROBAR CONEXIÓN</button>
-                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #ef4444;" onclick="limpiarStorageHuerfano()">🧹 LIMPIAR STORAGE</button>
-                <button type="button" class="btn-admin-final" style="flex: 1; background-color: #a855f7;" onclick="cargarMetricasServidor()">🔄 REFRESCAR MÉTRICAS</button>
+                <button type="button" id="btn-probar-conexion" class="btn-admin-final" style="flex: 1; background-color: #22c55e;">🔌 PROBAR CONEXIÓN</button>
+                <button type="button" id="btn-limpiar-log" class="btn-admin-final" style="flex: 1; background-color: #ef4444;">🧹 LIMPIAR LOGS</button>
+                <button type="button" id="btn-refrescar-servidor" class="btn-admin-final" style="flex: 1; background-color: #a855f7;">🔄 REFRESCAR MÉTRICAS</button>
             </div>
 
             <!-- SOLICITUDES DE PREMIOS -->
@@ -192,8 +239,8 @@
         </div>
     </div>
 
-    <!-- SDK SUPABASE -->
+    <!-- SDK SUPABASE Y SCRIPT DE CONTROL -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="admin_2.js"></script>
+    <script src="admin_2.js" defer></script>
 </body>
 </html>

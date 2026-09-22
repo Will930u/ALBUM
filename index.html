@@ -33,29 +33,6 @@
             </div>
         </div>
 
-        <!-- PANEL DE CONTROL ADMINISTRATIVO / GENERACIÓN EN LOTE DE 2000 CARTAS -->
-        <div class="panel-administracion-lote" style="margin: 10px auto; max-width: 90%; text-align: center; background: rgba(9, 10, 20, 0.85); border: 1px solid #00f3ff; border-radius: 8px; padding: 10px; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);">
-            <div style="font-family: 'Press Start 2P', monospace; font-size: 8px; color: #00f3ff; margin-bottom: 8px;" id="label-carta-id">
-                GENERADOR MASIVO EN LOTE (2000 COMBINACIONES):
-            </div>
-            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-                <button type="button" 
-                        id="btn-plantilla-aleatoria" 
-                        class="btn-retro" 
-                        onclick="generar2000CombinacionesEnLote()" 
-                        style="background: linear-gradient(135deg, #00f3ff, #7928ca); color: #fff; border: none; padding: 8px 12px; font-size: 8px; cursor: pointer; font-family: 'Press Start 2P', monospace; border-radius: 4px;">
-                    🎲 GENERAR 2000 CARTAS (SUPABASE)
-                </button>
-                <button type="button" 
-                        id="btn-randomizar" 
-                        class="btn-retro" 
-                        onclick="generar2000CombinacionesEnLote()" 
-                        style="background: linear-gradient(135deg, #ff007f, #00f3ff); color: #fff; border: none; padding: 8px 12px; font-size: 8px; cursor: pointer; font-family: 'Press Start 2P', monospace; border-radius: 4px;">
-                    ⚡ EJECUTAR BULK INSERT
-                </button>
-            </div>
-        </div>
-
         <!-- Libro y Cuadrícula de 25 casilleros (5x5) -->
         <div class="libro-contenedor">
             <div class="pagina-cuadrula" id="grilla-cartas">
@@ -138,9 +115,8 @@
         <button class="btn-nav" onclick="window.location.href='subastas.html'">🔨 SUBASTAS</button>
     </div>
 
-    <!-- Carga de Librerías y Scripts del Sistema -->
+    <!-- Carga de Librerías -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="admin_2_2.js"></script>
     <script src="album.js"></script>
 </body>
 </html>

@@ -85,6 +85,12 @@ body {
     text-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
 
+.subtitulo-admin.sin-margin {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
 .form-grupo {
     display: flex;
     flex-direction: column;
@@ -138,32 +144,26 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 16px rgba(224, 242, 254, 0.5), 4px 4px 0px #0f172a;
 }
 
+.btn-exito { background-color: #22c55e !important; }
+.btn-peligro { background-color: #ef4444 !important; }
+.btn-info { background-color: #38bdf8 !important; }
+.btn-purple { background-color: #a855f7 !important; }
+
 .btn-mini-admin {
-    background-color: #0f172a;
-    color: #00d2ff;
-    border: 2px solid #00d2ff;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #f0f9ff;
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
+    padding: 8px;
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.2s ease;
 }
 
 .btn-mini-admin:hover {
-    background-color: #00d2ff;
-    color: #020617;
-    box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
-}
-
-.btn-mini-drop {
-    background-color: #1e293b;
-    color: #38bdf8;
-    border-color: #38bdf8;
-}
-
-.btn-mini-drop:hover {
-    background-color: #38bdf8;
-    color: #020617;
+    border-color: #00d2ff;
+    background: #0f172a;
 }
 
 /* =============================================================================
@@ -199,7 +199,14 @@ input:focus, select:focus, textarea:focus {
     position: relative;
 }
 
-#canvasCartaGenerada { width: 100%; height: 100%; display: block; }
+#canvasCartaGenerada { 
+    width: 100%; 
+    height: 100%; 
+    display: block; 
+    image-rendering: pixelated; 
+    image-rendering: crisp-edges; 
+}
+
 .img-pollinations-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
 
 .spinner-ia {
@@ -225,6 +232,16 @@ input:focus, select:focus, textarea:focus {
     word-break: break-all;
     text-align: center;
 }
+
+.grupo-acciones-previa {
+    display: flex; 
+    gap: 8px; 
+    width: 100%; 
+    margin-top: 10px;
+}
+
+.btn-mini-drop { flex: 1; padding: 10px; }
+.btn-ia-accion { background: #38bdf8; color: #000; display: none; padding: 10px; }
 
 .selector-modo-render {
     display: flex;
@@ -253,9 +270,64 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 
+.panel-ia-container {
+    display: none; 
+    background: #000; 
+    padding: 10px; 
+    border: 1px solid #333; 
+    margin-bottom: 14px; 
+    border-radius: 4px;
+}
+
+/* =============================================================================
+📋 PLANTILLAS Y OTROS PANELES
+============================================================================= */
+.texto-instruccion {
+    font-size: 7px; 
+    color: #aaa; 
+    margin-bottom: 10px; 
+    line-height: 1.4;
+}
+
+.textarea-plantillas-input {
+    background: #090a0f; 
+    color: #00ff66; 
+    border: 1px solid #1e293b; 
+    padding: 10px; 
+    font-family: monospace; 
+    font-size: 10px; 
+    resize: vertical;
+}
+
+.grupo-acciones-doble {
+    display: flex; 
+    gap: 10px; 
+    margin-top: 10px;
+}
+
+.resumen-plantillas-box {
+    margin-top: 10px; 
+    font-size: 8px; 
+    color: #38bdf8;
+}
+
 /* =============================================================================
 📖 CATÁLOGO DE RECETAS Y CARTAS REGISTRADAS (ELEGANT BLUE NEON)
 ============================================================================= */
+.cabecera-catalogo {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 10px;
+}
+
+.btn-refrescar {
+    background: #00ffcc; 
+    color: #000; 
+    font-size: 8px; 
+    padding: 6px 10px;
+}
+
 #grid-catalogo-admin {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
@@ -273,7 +345,7 @@ input:focus, select:focus, textarea:focus {
 #grid-catalogo-admin::-webkit-scrollbar-track { background: #020617; border-radius: 4px; }
 #grid-catalogo-admin::-webkit-scrollbar-thumb { background: #00d2ff; border-radius: 4px; box-shadow: 0 0 6px #00d2ff; }
 
-/* 🎴 CARTA BASE CON DISEÑO ELEGANTE */
+/* 🎴 CARTA BASE CON DISEÑO ELEGANTE Y SOPORTE DE CANVAS ANIMADO */
 .tarjeta-carta {
     background: #070e20;
     border: 2px solid #1e3a8a;
@@ -293,6 +365,28 @@ input:focus, select:focus, textarea:focus {
     border-color: #00d2ff;
     box-shadow: 0 8px 22px rgba(0, 210, 255, 0.4), 0 0 12px rgba(0, 210, 255, 0.25);
     z-index: 10;
+}
+
+/* Renderizado nítido de Canvas y Renderers dentro del catálogo */
+.tarjeta-carta canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    position: relative;
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.tarjeta-carta img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    position: relative;
+    z-index: 3;
 }
 
 /* ✨ FONDO DUAL DEGRADADO DINO/ANIMADO EN TONO AZUL */
@@ -352,21 +446,97 @@ input:focus, select:focus, textarea:focus {
     letter-spacing: 0.5px;
     box-shadow: 0 0 6px currentColor;
     display: inline-block;
+    position: relative;
+    z-index: 4;
 }
+
+/* =============================================================================
+📊 SERVIDOR Y MÉTRICAS
+============================================================================= */
+.grid-metricas {
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 15px;
+}
+
+.tarjeta-metrica {
+    flex: 1; 
+    padding: 10px; 
+    background: #111; 
+    border: 1px solid #333; 
+    text-align: center;
+}
+
+.label-metrica { font-size: 8px; color: #888; }
+.valor-metrica { font-size: 10px; margin-top: 5px; font-weight: bold; }
+
+.estado-desconectado { color: #00ff66; }
+.valor-blanco { color: #fff; }
+.valor-cyan { color: #38bdf8; }
+.valor-verde { color: #00ff66; font-size: 11px; }
+.valor-amarillo { color: #eab308; font-size: 11px; }
+
+.grupo-acciones-servidor {
+    display: flex; 
+    gap: 10px; 
+    flex-wrap: wrap; 
+    margin-bottom: 15px;
+}
+
+.grupo-acciones-servidor .btn-admin-final { flex: 1; margin-top: 0; }
+
+.contenedor-tabla-servidor {
+    background: #000; 
+    border: 1px solid #222; 
+    padding: 10px; 
+    margin-bottom: 15px; 
+    max-height: 180px; 
+    overflow-y: auto;
+}
+
+.tabla-servidor {
+    width: 100%; 
+    text-align: left; 
+    color: #fff; 
+    font-size: 8px; 
+    border-collapse: collapse;
+}
+
+.tabla-servidor th {
+    border-bottom: 1px solid #333; 
+    color: #888;
+    padding: 4px;
+}
+
+.tabla-servidor td { padding: 4px; }
+.tabla-vacia-msj { padding: 8px; text-align: center; color: #666; }
+.texto-centro { text-align: center; }
 
 /* =============================================================================
 📊 LOGS Y ESTADO DEL SERVIDOR
 ============================================================================= */
-#status-log, #servidor-log-output {
+.box-logs {
+    font-size: 8px; 
+    color: #00ff66; 
+    padding: 10px; 
+    background: #000; 
+    border: 1px solid #1a3a2a; 
+    font-family: monospace; 
+    min-height: 60px; 
+    max-height: 120px; 
+    overflow-y: auto;
+}
+
+#status-log {
     font-size: 7px;
     color: #00d2ff;
     background: #020617;
     border: 1px solid #1e293b;
     padding: 8px;
     border-radius: 4px;
-    margin-top: 10px;
-    max-height: 100px;
-    overflow-y: auto;
+    margin-top: 15px;
+    min-height: 40px;
+    word-break: break-all;
     line-height: 1.5;
 }
 

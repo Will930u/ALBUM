@@ -6,6 +6,17 @@ const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs";
 const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbyi8o0jE_x_xY/exec";
 
+// =============================================================================
+// 🚀 CONTROL DE PANTALLA DE PORTADA (SPLASH SCREEN)
+// =============================================================================
+
+function iniciarApp() {
+    const portada = document.getElementById('pantalla-portada');
+    if (portada) {
+        portada.classList.add('oculto');
+    }
+}
+
 let supabaseClient = null;
 const tg = window.Telegram?.WebApp;
 
@@ -676,14 +687,4 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
     document.body.appendChild(toast);
 
     setTimeout(() => toast.remove(), 4000);
-}
-// =============================================================================
-// 🚀 CONTROL DE PANTALLA DE PORTADA (SPLASH SCREEN)
-// =============================================================================
-
-function iniciarApp() {
-    const portada = document.getElementById('pantalla-portada');
-    if (portada) {
-        portada.classList.add('oculto');
-    }
 }

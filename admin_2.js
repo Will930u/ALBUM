@@ -329,6 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
         cargarMetricasServidor(),
         cargarCatalogoCartas(),
+        cargarRevisionPagos(),
         cargarTablaPremiosServidor()
     ]);
     
@@ -363,6 +364,10 @@ function cambiarPestana(idPestana) {
         setTimeout(() => {
             iniciarBucleAnimacionCatalogo();
         }, 50);
+    }
+
+    if (idPestana === 'tab-pagos') {
+        cargarRevisionPagos();
     }
 
     try {
@@ -429,19 +434,96 @@ function iniciarSuscripcionRealtimeAlbum() {
         });
 }
 
+// =============================================================================
+// 💳 MÓDULO DE REVISIÓN Y VERIFICACIÓN DE PAGOS MÓVILES
+// =============================================================================
+async function cargarRevisionPagos() {
+    const tbody = DOM.get('tabla-revision-pagos');
+    if (!tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #38bdf8;">Consultando pagos en Supabase...</td></tr>`;
+
+    try {
+        const { data: pagos, error } = await supabaseClient
+            .from('pagos_moviles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            // Si la tabla no existe o hay error de consulta
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #ef4444;">Error al cargar pagos: ${error.message}. (Verifica que la tabla 'pagos_moviles' exista en Supabase).</td></tr>`;
+            return;
+        }
+
+        if (!pagos || pagos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #888;">No hay referencias de pago registradas.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = pagos.map(p => {
+            const estado = (p.estado || 'pendiente').toLowerCase();
+            const colorEstado = estado === 'aprobado' ? '#22c55e' : (estado === 'rechazado' ? '#ef4444' : '#eab308');
+            
+            return `
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 8px; color: #00ffcc; font-weight: bold;">@${p.usuario_id || p.usuario || 'anónimo'}</td>
+                    <td style="padding: 8px;">${p.telefono || p.phone || 'N/D'}</td>
+                    <td style="padding: 8px; color: #38bdf8; font-weight: bold;">${p.referencia || p.ref || 'N/D'}</td>
+                    <td style="padding: 8px; color: ${colorEstado}; font-weight: bold;">${estado.toUpperCase()}</td>
+                    <td style="padding: 8px; text-align: center;">
+                        ${estado === 'pendiente' 
+                            ? `<button onclick="aprobarPagoMovil('${p.id}', '${p.usuario_id || p.usuario || ''}')" style="background:#22c55e; border:none; color:#000; font-size:7px; padding:4px 8px; cursor:pointer; font-weight:bold; border-radius:2px;">APROBAR</button>`
+                            : `<span style="color:#888; font-size:7px;">VERIFICADO</span>`
+                        }
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #ef4444;">Excepción: ${e.message}</td></tr>`;
+    }
+}
+
+async function aprobarPagoMovil(pagoId, usuarioId) {
+    if (!confirm(`¿Estás seguro de aprobar el pago del usuario @${usuarioId}? Esto actualizará el estado a aprobado.`)) {
+        return;
+    }
+
+    logEstado(`⏳ Aprobando pago ID ${pagoId} para @${usuarioId}...`);
+
+    try {
+        const { error } = await supabaseClient
+            .from('pagos_moviles')
+            .update({ estado: 'aprobado' })
+            .eq('id', pagoId);
+
+        if (error) {
+            alert("Error al actualizar el pago en Supabase: " + error.message);
+            return;
+        }
+
+        alert(`✅ Pago aprobado con éxito para @${usuarioId}.`);
+        logEstado(`✅ Pago ${pagoId} aprobado para @${usuarioId}.`);
+        await cargarRevisionPagos();
+        await cargarMetricasServidor();
+
+    } catch (e) {
+        alert("Error al procesar la aprobación: " + e.message);
+    }
+}
+
 // Función auxiliar para parsear entradas como "1-10", "1; 7; 12", "1,2,3"
 function parsearIdsCartasEntrada(inputStr) {
     if (!inputStr) return [];
     
     const idsSet = new Set();
-    // Separar por comas, puntos y comas o espacios
     const segmentos = inputStr.split(/[,;\s]+/);
 
     segmentos.forEach(seg => {
         const item = seg.trim();
         if (!item) return;
 
-        // Verificar si es un rango del tipo "1-10"
         if (item.includes('-')) {
             const partes = item.split('-');
             if (partes.length === 2) {
@@ -457,7 +539,6 @@ function parsearIdsCartasEntrada(inputStr) {
                 }
             }
         } else {
-            // Es un ID individual
             const idNum = parseInt(item, 10);
             if (!isNaN(idNum) && idNum >= 1 && idNum <= 2000) {
                 idsSet.add(idNum);
@@ -486,12 +567,10 @@ async function regalarCartaAUsuario() {
         return;
     }
 
-    // Normalizar usuario sin @ y en minúsculas
     const idLimpio = targetUser.replace(/^@/, '').trim().toLowerCase();
     logEstado(`Verificando cartas en BD para @${idLimpio}...`);
 
     try {
-        // 1. Obtener cartas válidas existentes
         const { data: cartasExistentes, error: errCartas } = await supabaseClient
             .from('Cartas')
             .select('id')
@@ -511,7 +590,6 @@ async function regalarCartaAUsuario() {
 
         logEstado(`Procesando ${idsValidos.length} carta(s) para @${idLimpio}...`);
 
-        // 2. Traer existencias actuales en la colección (buscando idLimpio exacto)
         const { data: registrosExistentes } = await supabaseClient
             .from('Coleccion_Usuario')
             .select('carta_id, cantidad')
@@ -525,7 +603,6 @@ async function regalarCartaAUsuario() {
             });
         }
 
-        // 3. Preparar payload para UPSERT (Insertar o Actualizar)
         const filasUpsert = idsValidos.map(cartaId => {
             const cantidadActual = mapaCantidades.get(cartaId) || 0;
             return {
@@ -535,13 +612,11 @@ async function regalarCartaAUsuario() {
             };
         });
 
-        // 4. Ejecutar UPSERT usando la restricción 'unique_usuario_carta'
         const { error: errUpsert } = await supabaseClient
             .from('Coleccion_Usuario')
             .upsert(filasUpsert, { onConflict: 'usuario_id,carta_id' });
 
         if (errUpsert) {
-            // Respaldar si el índice tiene otro nombre en Supabase
             const { error: errUpsertAlt } = await supabaseClient
                 .from('Coleccion_Usuario')
                 .upsert(filasUpsert);
@@ -703,7 +778,6 @@ function dibujarCartaCanvas() {
         Estado.animacionPreviewId = null;
     }
 
-    // Instanciar un offscreenCanvas reutilizable fuera del loop para optimizar memoria
     const offscreenCanvas = document.createElement('canvas');
     offscreenCanvas.width = 32;
     offscreenCanvas.height = 32;
@@ -837,7 +911,6 @@ async function seleccionarPlantillaAleatoria() {
             return;
         }
 
-        // Generación de nombre único autónomo
         let nombreGenerado = "";
         let intentos = 0;
         do {
@@ -1203,3 +1276,5 @@ window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.procesarReclamacionPremio = procesarReclamacionPremio;
+window.cargarRevisionPagos = cargarRevisionPagos;
+window.aprobarPagoMovil = aprobarPagoMovil;

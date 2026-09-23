@@ -1,5 +1,5 @@
 // =============================================================================
-// 💻 CONTROLADOR DEL ÁLBUM DIGITAL - ANIMACIONES FACIALES Y CORPORALES AVANZADAS
+// 💻 CONTROLADOR DEL ÁLBUM DIGITAL - RENDERIZADO DE CARTAS Y ADMIN
 // =============================================================================
 
 const SUPABASE_URL = "https://ddbdemxrntjqncetyrnr.supabase.co";
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (visor) visor.style.display = 'none';
     });
 
-    // Iniciar bucle global de animación Canvas avanzado
+    // Iniciar bucle global de animación Canvas
     iniciarBucleAnimacionGlobal();
 });
 
@@ -327,7 +327,6 @@ function renderizarLibro(pagina) {
     const elProgreso = document.getElementById('contador-progreso');
     if (elProgreso) elProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
 
-    // Actualizar dinámicamente el valor acumulado en USD y BS (con el 31.8% de descuento)
     const elUsd = document.getElementById('valor-usd');
     const elBs = document.getElementById('valor-bs');
     if (elUsd) elUsd.innerText = `USD: $${(poseidasTotales * VALOR_UNITARIO_USD).toFixed(2)}`;
@@ -366,7 +365,7 @@ function renderizarLibro(pagina) {
 }
 
 // =============================================================================
-// 🎨 MOTOR DE EXTRACCIÓN Y RENDERIZADO FIDELIGNO DE SUPABASE
+// 🎨 MOTOR DE LECTURA DE IMÁGENES GUARDADAS DESDE ADMIN Y CANVAS 2D
 // =============================================================================
 function extraerAtributosCarta(datosCarta) {
     let config = {};
@@ -376,14 +375,14 @@ function extraerAtributosCarta(datosCarta) {
         return { config, urlImagen: "", fondoColor: "#090a14", marcoColor: "#00f3ff" };
     }
 
-    // 1. Verificar primeramente si el Base64 o la URL viene directo en la raíz de la columna
+    // 1. Prioridad: Campos de imagen directa
     if (typeof datosCarta.imagen_base64 === 'string' && datosCarta.imagen_base64.trim() !== '') {
         urlImagen = datosCarta.imagen_base64.trim();
     } else if (typeof datosCarta.imagen === 'string' && datosCarta.imagen.trim() !== '') {
         urlImagen = datosCarta.imagen.trim();
     }
 
-    // 2. Extraer datos del campo JSON 'imagen_url' o String directo
+    // 2. Analizar campo 'imagen_url' (puede traer Base64, URL pública o JSON guardado desde Admin)
     if (typeof datosCarta.imagen_url === 'string') {
         const str = datosCarta.imagen_url.trim();
         if (str.startsWith('data:image') || str.startsWith('http')) {
@@ -397,6 +396,9 @@ function extraerAtributosCarta(datosCarta) {
             } catch (e) {
                 config = {};
             }
+        } else if (str.length > 50) {
+            // Es un string Base64 puro sin encabezado guardado desde Admin
+            if (!urlImagen) urlImagen = str;
         }
     } else if (typeof datosCarta.imagen_url === 'object' && datosCarta.imagen_url !== null) {
         config = datosCarta.imagen_url;
@@ -405,7 +407,7 @@ function extraerAtributosCarta(datosCarta) {
         }
     }
 
-    // Formatear Base64 puro si falta el encabezado MIME
+    // 3. Formatear Base64 si le falta la cabecera data:image/png;base64,
     if (urlImagen && !urlImagen.startsWith('http') && !urlImagen.startsWith('data:image')) {
         urlImagen = `data:image/png;base64,${urlImagen}`;
     }
@@ -442,7 +444,7 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         esImagen: false
     };
 
-    // Cargar la imagen específica e individual de la carta
+    // Cargar la imagen procesada guardada por el Admin
     if (infoExtraida.urlImagen && (infoExtraida.urlImagen.startsWith('data:image') || infoExtraida.urlImagen.startsWith('http'))) {
         const imgObj = new Image();
         imgObj.crossOrigin = "anonymous";
@@ -451,7 +453,7 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
             registro.esImagen = true;
         };
         imgObj.onerror = () => {
-            console.warn(`No se pudo cargar la imagen de la carta #${idCarta}`);
+            console.warn(`Error al cargar imagen de carta #${idCarta}`);
         };
         imgObj.src = infoExtraida.urlImagen;
     }
@@ -465,36 +467,81 @@ function iniciarBucleAnimacionGlobal() {
         const t = timestamp * 0.0025;
 
         canvasAnimados.forEach(item => {
-            const { canvas, ctx, idCarta, fondoColor, esImagen, img } = item;
+            const { canvas, ctx, idCarta, config, fondoColor, esImagen, img } = item;
             const w = canvas.width;
             const h = canvas.height;
 
             ctx.clearRect(0, 0, w, h);
 
-            // 1. Pintar fondo configurado en Supabase
+            // 1. Fondo
             ctx.fillStyle = fondoColor;
             ctx.fillRect(0, 0, w, h);
 
-            // 2. Si la imagen específica está lista, dibujarla
+            // 2. Si la imagen guardada desde Admin ya está cargada
             if (esImagen && img && img.complete && img.naturalWidth !== 0) {
                 ctx.save();
-                
+                const offsetY = Math.sin(t * 1.5 + idCarta) * 2;
+                ctx.translate(0, offsetY);
+                ctx.drawImage(img, 0, 0, w, h);
+                ctx.restore();
+            } else {
+                // 3. Renderizado algorítmico o Fallback mientras carga
+                ctx.save();
                 const offsetY = Math.sin(t * 1.5 + idCarta) * 2;
                 ctx.translate(0, offsetY);
 
-                ctx.drawImage(img, 0, 0, w, h);
-                
-                ctx.restore();
-            } else {
-                // Indicador visual de carga o ausencia de datos
-                ctx.save();
-                ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-                ctx.fillRect(10, 10, w - 20, h - 20);
-                
-                ctx.fillStyle = "#a5b4fc";
-                ctx.font = "8px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(`CYBER #${idCarta}`, w / 2, h / 2);
+                const pData = config?.personajeData || config;
+                const centroX = w / 2;
+                const inicioY = 25;
+
+                // Retícula algorítmica
+                ctx.strokeStyle = "rgba(0, 243, 255, 0.15)";
+                ctx.lineWidth = 1;
+                for (let gx = 5; gx < w; gx += 10) {
+                    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+                }
+
+                if (pData && (pData.skin || pData.ropa || pData.ojos)) {
+                    // Cuerpo / Ropa
+                    const colorRopa = pData?.ropa?.color || pData?.traje || "#ff007f";
+                    ctx.fillStyle = colorRopa;
+                    ctx.fillRect(centroX - 22, inicioY + 45, 44, 40);
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(centroX - 8, inicioY + 45, 16, 20);
+
+                    // Piel
+                    const colorPiel = pData?.skin?.base || pData?.skin || "#f8c291";
+                    ctx.fillStyle = colorPiel;
+                    ctx.fillRect(centroX - 6, inicioY + 40, 12, 8);
+                    ctx.fillRect(centroX - 18, inicioY + 12, 36, 32);
+
+                    // Ojos
+                    const colorOjos = pData?.ojos?.color || pData?.ojos || "#00f3ff";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(centroX - 14, inicioY + 20, 10, 12);
+                    ctx.fillRect(centroX + 4, inicioY + 20, 10, 12);
+                    
+                    ctx.fillStyle = colorOjos;
+                    ctx.fillRect(centroX - 12, inicioY + 22, 6, 8);
+                    ctx.fillRect(centroX + 6, inicioY + 22, 6, 8);
+
+                    // Cabello
+                    const colorPelo = pData?.cabello?.color || pData?.pelo || "#7928ca";
+                    ctx.fillStyle = colorPelo;
+                    ctx.fillRect(centroX - 20, inicioY + 4, 40, 12);
+                    ctx.fillRect(centroX - 16, inicioY + 14, 8, 10);
+                    ctx.fillRect(centroX + 8, inicioY + 14, 8, 10);
+                } else {
+                    // Carga de la carta guardada
+                    ctx.fillStyle = "rgba(0, 243, 255, 0.1)";
+                    ctx.fillRect(10, 10, w - 20, h - 20);
+                    ctx.fillStyle = "#00f3ff";
+                    ctx.font = "8px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(`CYBER #${idCarta}`, w / 2, h / 2);
+                }
+
                 ctx.restore();
             }
         });

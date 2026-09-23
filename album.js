@@ -441,11 +441,12 @@ function iniciarBucleAnimacionGlobal() {
                 
                 ctx.restore();
             } else {
-                // Renderizar capas completas de personajeData cuando no hay imagen base64
+                // Renderizar capas completas de personajeData con dinamismo (Respiración + Parpadeo)
                 ctx.save();
                 const pData = config?.personajeData || config;
                 const centroX = w / 2;
-                const inicioY = 25;
+                const offsetY = Math.sin(t * 1.5 + idCarta) * 2.5; // Movimiento dinámico de respiración
+                const inicioY = 25 + offsetY;
 
                 if (pData) {
                     // 1. Fondo interno con retícula neón
@@ -478,15 +479,24 @@ function iniciarBucleAnimacionGlobal() {
                     ctx.fillRect(centroX - 6, inicioY + 40, 12, 8);
                     ctx.fillRect(centroX - 18, inicioY + 12, 36, 32);
 
-                    // 4. Ojos detallados (Fondo blanco + Pupila de color)
+                    // 4. Ojos detallados (Fondo blanco + Pupila de color + Parpadeo aleatorio)
                     const colorOjos = pData?.ojos?.color || pData?.ojos || "#8b5cf6";
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(centroX - 14, inicioY + 20, 10, 12);
-                    ctx.fillRect(centroX + 4, inicioY + 20, 10, 12);
+                    const esParpadeo = Math.sin(t * 3 + idCarta * 10) > 0.96;
                     
-                    ctx.fillStyle = colorOjos;
-                    ctx.fillRect(centroX - 12, inicioY + 22, 6, 8);
-                    ctx.fillRect(centroX + 6, inicioY + 22, 6, 8);
+                    if (!esParpadeo) {
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillRect(centroX - 14, inicioY + 20, 10, 12);
+                        ctx.fillRect(centroX + 4, inicioY + 20, 10, 12);
+                        
+                        ctx.fillStyle = colorOjos;
+                        ctx.fillRect(centroX - 12, inicioY + 22, 6, 8);
+                        ctx.fillRect(centroX + 6, inicioY + 22, 6, 8);
+                    } else {
+                        // Ojos cerrados/parpadeando
+                        ctx.fillStyle = "#000000";
+                        ctx.fillRect(centroX - 14, inicioY + 25, 10, 2);
+                        ctx.fillRect(centroX + 4, inicioY + 25, 10, 2);
+                    }
 
                     // 5. Cabello / Peinado
                     const colorPelo = pData?.cabello?.color || pData?.pelo || "#ef4444";
@@ -497,6 +507,29 @@ function iniciarBucleAnimacionGlobal() {
                 }
                 ctx.restore();
             }
+
+            // Marco Neón
+            const colorMarco = config?.marcoColor || "#00f3ff";
+            ctx.strokeStyle = colorMarco;
+            ctx.lineWidth = 3 + Math.sin(t * 2 + idCarta);
+            ctx.strokeRect(2, 2, w - 4, h - 4);
+
+            // Etiqueta Nombre
+            ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
+            ctx.fillRect(4, h - 22, w - 8, 18);
+
+            ctx.fillStyle = "#00f3ff";
+            ctx.font = "6px 'Press Start 2P', monospace";
+            ctx.textAlign = "center";
+            const nombreVisual = datosCarta?.nombre || `CYBER #${idCarta}`;
+            ctx.fillText(nombreVisual.substring(0, 11), w / 2, h - 10);
+        });
+
+        requestAnimationFrame(animar);
+    }
+
+    requestAnimationFrame(animar);
+}
 
 function desplegarVisor(datosCarta, idCarta, cantidad) {
     const modalVisor = document.getElementById('modal-visor');

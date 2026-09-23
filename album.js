@@ -428,59 +428,172 @@ function extraerAtributosCarta(datosCarta) {
 }
 
 // =============================================================================
-// 👾 MOTOR PROCEDURAL DE PIXEL ART (RENDERIZADOR)
+// 👾 MOTOR PROCEDURAL DE PIXEL ART DETALLADO (VERSION AVANZADA ANIME)
 // =============================================================================
+
+function drawAnimeBackground(ctx, bgType, width = 32, height = 32) {
+    if (bgType === 'cyberpunk') {
+        let grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, '#0f051d');
+        grad.addColorStop(0.6, '#290a59');
+        grad.addColorStop(1, '#ff0055');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = 'rgba(0, 243, 255, 0.15)';
+        for (let i = 0; i < width; i += 4) {
+            ctx.fillRect(i, 0, 1, height);
+        }
+    } else if (bgType === 'matrix') {
+        ctx.fillStyle = '#020d08';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#00ff66';
+        for (let i = 0; i < 12; i++) {
+            let rx = Math.floor((Math.sin(i * 99) * 0.5 + 0.5) * width);
+            let ry = Math.floor((Math.cos(i * 33) * 0.5 + 0.5) * height);
+            ctx.globalAlpha = (i % 3 === 0) ? 0.8 : 0.3;
+            ctx.fillRect(rx, ry, 1, 2);
+        }
+        ctx.globalAlpha = 1.0;
+    } else if (bgType === 'sunset') {
+        let grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, '#2d0b3f');
+        grad.addColorStop(0.5, '#7b1e5a');
+        grad.addColorStop(0.8, '#e65c40');
+        grad.addColorStop(1, '#f7b05b');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+    } else {
+        let grad = ctx.createLinearGradient(0, 0, width, height);
+        grad.addColorStop(0, '#111827');
+        grad.addColorStop(1, '#1f2937');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+    }
+}
+
 function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
     if (!ctx || !data) return;
 
     const bgType = data.bgType || 'cyberpunk';
-    if (bgType === 'cyberpunk') {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, 32, 32);
-        ctx.fillStyle = '#1e1b4b';
-        ctx.fillRect(0, 16, 32, 16);
-    } else if (bgType === 'matrix') {
-        ctx.fillStyle = '#022c22';
-        ctx.fillRect(0, 0, 32, 32);
-    } else if (bgType === 'sunset') {
-        ctx.fillStyle = '#451a03';
-        ctx.fillRect(0, 0, 32, 32);
-        ctx.fillStyle = '#78350f';
-        ctx.fillRect(0, 16, 32, 16);
-    } else {
-        ctx.fillStyle = '#111827';
-        ctx.fillRect(0, 0, 32, 32);
-    }
+    drawAnimeBackground(ctx, bgType, 32, 32);
 
-    const skin = data.skin?.base || data.skin || '#ffe0bd';
-    const hair = data.hair?.base || data.hair || '#3b82f6';
-    const eyes = data.eyeColor || data.eyes || '#2563eb';
-    const cloth = data.clothColor || data.clothing || '#1e1b4b';
+    const skinBase = data.skin?.base || (typeof data.skin === 'string' ? data.skin : '#ffe0bd');
+    const skinShadow = data.skin?.shadow || '#d4a373';
+    const hairBase = data.hair?.base || (typeof data.hair === 'string' ? data.hair : '#3b82f6');
+    const hairShadow = data.hair?.shadow || '#1d4ed8';
+    const hairHighlight = data.hair?.highlight || '#93c5fd';
+    const eyeColor = data.eyeColor || data.eyes || '#2563eb';
+    const clothBase = data.clothColor || data.clothing || '#1e1b4b';
+    const clothDetail = data.clothDetail || '#3b82f6';
+    const accessory = data.accessory || 'none';
 
-    // Cuerpo / Ropa
-    ctx.fillStyle = cloth;
-    ctx.fillRect(10, 22, 12, 10);
+    // 1. ROPA / TORSO
+    ctx.fillStyle = clothBase;
+    ctx.fillRect(8, 22, 16, 10);
 
-    // Cabeza
-    ctx.fillStyle = skin;
-    ctx.fillRect(11, 10, 10, 11);
+    // Cuello de Camisa / Detalles
+    ctx.fillStyle = clothDetail;
+    ctx.fillRect(13, 22, 6, 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(14, 22, 4, 3);
+    ctx.fillStyle = '#ef4444'; // Corbata / Adorno
+    ctx.fillRect(15, 23, 2, 5);
 
-    // Ojos y Parpadeo
+    // 2. CUELLO Y BASE DE CABEZA
+    ctx.fillStyle = skinShadow;
+    ctx.fillRect(13, 19, 6, 4);
+
+    ctx.fillStyle = skinBase;
+    ctx.fillRect(10, 10, 12, 10);
+    ctx.fillRect(11, 20, 10, 1);
+
+    // Sombras de Rostro (Mandíbula y lateral)
+    ctx.fillStyle = skinShadow;
+    ctx.fillRect(10, 18, 1, 3);
+    ctx.fillRect(21, 18, 1, 3);
+    ctx.fillRect(12, 20, 8, 1);
+
+    // 3. OJOS ANIME DETALLADOS
     if (!blinking) {
-        ctx.fillStyle = eyes;
-        ctx.fillRect(13, 14, 2, 2);
-        ctx.fillRect(17, 14, 2, 2);
-    } else {
+        // Base Blanca del Ojo
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(12, 13, 3, 4);
+        ctx.fillRect(17, 13, 3, 4);
+
+        // Iris de Color
+        ctx.fillStyle = eyeColor;
+        ctx.fillRect(13, 14, 2, 3);
+        ctx.fillRect(17, 14, 2, 3);
+
+        // Pupila y Brillo
         ctx.fillStyle = '#000000';
-        ctx.fillRect(13, 15, 2, 1);
-        ctx.fillRect(17, 15, 2, 1);
+        ctx.fillRect(13, 15, 1, 2);
+        ctx.fillRect(17, 15, 1, 2);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(14, 13, 1, 1);
+        ctx.fillRect(18, 13, 1, 1);
+
+        // Pestañas / Parpado Superior
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(12, 13, 3, 1);
+        ctx.fillRect(17, 13, 3, 1);
+    } else {
+        // Parpadeo (Ojos Cerrados)
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(12, 15, 3, 1);
+        ctx.fillRect(17, 15, 3, 1);
     }
 
-    // Cabello
-    ctx.fillStyle = hair;
-    ctx.fillRect(10, 8, 12, 4);
-    ctx.fillRect(9, 10, 2, 6);
-    ctx.fillRect(21, 10, 2, 6);
+    // Cejas
+    ctx.fillStyle = hairShadow;
+    ctx.fillRect(12, 12, 3, 1);
+    ctx.fillRect(17, 12, 3, 1);
+
+    // Nariz y Boca
+    ctx.fillStyle = skinShadow;
+    ctx.fillRect(15, 16, 1, 1); // Nariz
+    ctx.fillStyle = '#b91c1c';
+    ctx.fillRect(15, 18, 2, 1); // Boca
+
+    // 4. CABELLO (ESTILO ANIME)
+    ctx.fillStyle = hairBase;
+    // Parte Superior
+    ctx.fillRect(9, 7, 14, 5);
+    // Mechones Laterales
+    ctx.fillRect(8, 10, 3, 8);
+    ctx.fillRect(21, 10, 3, 8);
+    // Flequillo Anime (Mechones frontales)
+    ctx.fillRect(11, 10, 3, 3);
+    ctx.fillRect(15, 10, 2, 2);
+    ctx.fillRect(18, 10, 3, 3);
+
+    // Sombras del Cabello
+    ctx.fillStyle = hairShadow;
+    ctx.fillRect(8, 15, 2, 4);
+    ctx.fillRect(22, 15, 2, 4);
+    ctx.fillRect(9, 7, 14, 1);
+
+    // Brillos del Cabello (Highlights)
+    ctx.fillStyle = hairHighlight;
+    ctx.fillRect(11, 8, 4, 1);
+    ctx.fillRect(17, 8, 4, 1);
+
+    // 5. ACCESORIOS OPIONALES
+    if (accessory === 'glasses') {
+        ctx.fillStyle = '#00f3ff';
+        ctx.fillRect(11, 13, 4, 3);
+        ctx.fillRect(17, 13, 4, 3);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(12, 14, 1, 1);
+        ctx.fillRect(18, 14, 1, 1);
+    } else if (accessory === 'cyber_vr') {
+        ctx.fillStyle = '#ff007f';
+        ctx.fillRect(11, 12, 10, 4);
+        ctx.fillStyle = '#00f3ff';
+        ctx.fillRect(13, 13, 6, 2);
+    }
 }
 
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
@@ -608,7 +721,7 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.fillRect(0, 0, w, h);
 
             } else if (personajeData) {
-                // RENDERIZADO PROCEDURAL PIXEL ART DESDE JSON
+                // RENDERIZADO PROCEDURAL PIXEL ART DESDE JSON AVANZADO
                 ctx.save();
                 const offCanvas = document.createElement('canvas');
                 offCanvas.width = 32;

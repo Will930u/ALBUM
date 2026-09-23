@@ -381,9 +381,10 @@ function renderizarLibro(pagina) {
 function extraerAtributosCarta(datosCarta) {
     let config = {};
     let urlImagen = "";
+    let personajeData = null;
 
     if (!datosCarta) {
-        return { config, urlImagen: "", fondoColor: "#090a14", marcoColor: "#00f3ff" };
+        return { config, urlImagen: "", personajeData: null, fondoColor: "#090a14", marcoColor: "#00f3ff" };
     }
 
     // 1. Prioridad: Campos de imagen directa
@@ -401,6 +402,9 @@ function extraerAtributosCarta(datosCarta) {
         } else if (str.startsWith('{')) {
             try {
                 config = JSON.parse(str);
+                if (config.personajeData) {
+                    personajeData = config.personajeData;
+                }
                 if (!urlImagen) {
                     urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
                 }
@@ -413,6 +417,7 @@ function extraerAtributosCarta(datosCarta) {
         }
     } else if (typeof datosCarta.imagen_url === 'object' && datosCarta.imagen_url !== null) {
         config = datosCarta.imagen_url;
+        if (config.personajeData) personajeData = config.personajeData;
         if (!urlImagen) {
             urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
         }
@@ -426,9 +431,66 @@ function extraerAtributosCarta(datosCarta) {
     return {
         config: config,
         urlImagen: urlImagen,
+        personajeData: personajeData,
         fondoColor: config.fondoColor || config.colorFondo || datosCarta.fondoColor || "#090a14",
         marcoColor: config.marcoColor || config.colorPrimario || datosCarta.marcoColor || "#00f3ff"
     };
+}
+
+// =============================================================================
+// 👾 MOTOR PROCEDURAL DE PIXEL ART (RENDERIZADOR)
+// =============================================================================
+function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
+    if (!ctx || !data) return;
+
+    const bgType = data.bgType || 'cyberpunk';
+    if (bgType === 'cyberpunk') {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#1e1b4b';
+        ctx.fillRect(0, 16, 32, 16);
+    } else if (bgType === 'matrix') {
+        ctx.fillStyle = '#022c22';
+        ctx.fillRect(0, 0, 32, 32);
+    } else if (bgType === 'sunset') {
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(0, 16, 32, 16);
+    } else {
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(0, 0, 32, 32);
+    }
+
+    const skin = data.skin?.base || '#ffe0bd';
+    const hair = data.hair?.base || '#3b82f6';
+    const eyes = data.eyeColor || '#2563eb';
+    const cloth = data.clothColor || '#1e1b4b';
+
+    // Cuerpo / Ropa
+    ctx.fillStyle = cloth;
+    ctx.fillRect(10, 22, 12, 10);
+
+    // Cabeza
+    ctx.fillStyle = skin;
+    ctx.fillRect(11, 10, 10, 11);
+
+    // Ojos y Parpadeo
+    if (!blinking) {
+        ctx.fillStyle = eyes;
+        ctx.fillRect(13, 14, 2, 2);
+        ctx.fillRect(17, 14, 2, 2);
+    } else {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(13, 15, 2, 1);
+        ctx.fillRect(17, 15, 2, 1);
+    }
+
+    // Cabello
+    ctx.fillStyle = hair;
+    ctx.fillRect(10, 8, 12, 4);
+    ctx.fillRect(9, 10, 2, 6);
+    ctx.fillRect(21, 10, 2, 6);
 }
 
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
@@ -450,6 +512,7 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         datosCarta: datosCarta,
         idCarta: idCarta,
         config: infoExtraida.config,
+        personajeData: infoExtraida.personajeData,
         fondoColor: infoExtraida.fondoColor,
         img: null,
         esImagen: false
@@ -478,7 +541,7 @@ function iniciarBucleAnimacionGlobal() {
         const t = timestamp * 0.0025; // Control de tiempo general
 
         canvasAnimados.forEach(item => {
-            const { canvas, ctx, datosCarta, idCarta, config, esImagen, img } = item;
+            const { canvas, ctx, datosCarta, idCarta, config, personajeData, esImagen, img } = item;
             const w = canvas.width;
             const h = canvas.height;
 
@@ -503,7 +566,6 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.drawImage(img, 0, 0, img.width, img.height, -w / 2, -h / 2, w, h);
 
                 // 2. PARPADEO DE OJOS (Recorte y escala vertical acelerada)
-                // Se genera un pulso de parpadeo cada cierto intervalo usando senos de alta frecuencia
                 const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
                 let escalaOjoY = 1;
                 if (tiempoParpadeo > 3.7) { 
@@ -511,7 +573,6 @@ function iniciarBucleAnimacionGlobal() {
                 }
 
                 if (escalaOjoY < 0.95) {
-                    // Region del ojo (30% a 45% de la altura de la imagen)
                     const ojoSrcY = img.height * 0.30;
                     const ojoSrcH = img.height * 0.15;
                     const ojoDestY = -h / 2 + h * 0.30;
@@ -519,7 +580,7 @@ function iniciarBucleAnimacionGlobal() {
 
                     ctx.save();
                     ctx.translate(0, ojoDestY + ojoDestH / 2);
-                    ctx.scale(1, escalaOjoY); // Compresión Y para cerrar párpado
+                    ctx.scale(1, escalaOjoY);
                     ctx.drawImage(
                         img, 
                         0, ojoSrcY, img.width, ojoSrcH, 
@@ -529,7 +590,6 @@ function iniciarBucleAnimacionGlobal() {
                 }
 
                 // 3. MOVIMIENTO DE BOCA (Gesticulación / Habla)
-                // Recorte de región bucal (52% a 68% de la altura de la imagen)
                 const aperturaBoca = Math.sin(t * 3.5 + idCarta) * 0.12;
                 if (aperturaBoca > 0.02) {
                     const bocaSrcY = img.height * 0.52;
@@ -539,7 +599,7 @@ function iniciarBucleAnimacionGlobal() {
 
                     ctx.save();
                     ctx.translate(0, bocaDestY + bocaDestH / 2);
-                    ctx.scale(1 + aperturaBoca * 0.2, 1 + aperturaBoca); // Deformación rítmica
+                    ctx.scale(1 + aperturaBoca * 0.2, 1 + aperturaBoca);
                     ctx.drawImage(
                         img, 
                         0, bocaSrcY, img.width, bocaSrcH, 
@@ -559,8 +619,28 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.fillStyle = holoGradient;
                 ctx.fillRect(0, 0, w, h);
 
+            } else if (personajeData) {
+                // RENDERIZADO PROCEDURAL PIXEL ART DESDE JSON
+                ctx.save();
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = 32;
+                offCanvas.height = 32;
+                const offCtx = offCanvas.getContext('2d');
+
+                const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
+                const estaParpadeando = tiempoParpadeo > 3.7;
+
+                renderAnimeCharacterPixelArt(offCtx, personajeData, t, estaParpadeando);
+
+                const targetSize = Math.min(w, h) - 20;
+                const targetX = (w - targetSize) / 2;
+                const targetY = (h - targetSize) / 2 - 10;
+
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(offCanvas, targetX, targetY, targetSize, targetSize);
+                ctx.restore();
             } else {
-                // ANIMACIÓN PIXEL ART: Flotación + Cierre de ojos Pixel
+                // ANIMACIÓN EMOJI FALLBACK: Flotación
                 ctx.save();
                 
                 const offsetY = Math.sin(t * 1.5 + idCarta) * 4;
@@ -614,9 +694,14 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     const info = extraerAtributosCarta(datosCarta);
     const simbolo = info.config.simbolo || '👾';
 
-    const elementoVisual = info.urlImagen 
-        ? `<img src="${info.urlImagen}" style="width:100%; height:100%; object-fit:contain; image-rendering:pixelated;" />` 
-        : `<span style="font-size:70px;">${simbolo}</span>`;
+    let elementoVisual = "";
+    if (info.urlImagen) {
+        elementoVisual = `<img src="${info.urlImagen}" style="width:100%; height:100%; object-fit:contain; image-rendering:pixelated;" />`;
+    } else if (info.personajeData) {
+        elementoVisual = `<canvas id="canvas-visor-${idCarta}" width="160" height="160" style="width:100%; height:100%; image-rendering:pixelated;"></canvas>`;
+    } else {
+        elementoVisual = `<span style="font-size:70px;">${simbolo}</span>`;
+    }
 
     contenidoFrontal.innerHTML = `
         <div style="text-align:center;">
@@ -629,6 +714,17 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
             <p style="font-size:7px; color:#64748b;">#${String(idCarta).padStart(4, '0')}</p>
         </div>
     `;
+
+    if (info.personajeData) {
+        setTimeout(() => {
+            const canvasVisor = document.getElementById(`canvas-visor-${idCarta}`);
+            if (canvasVisor) {
+                const ctxV = canvasVisor.getContext('2d');
+                ctxV.imageSmoothingEnabled = false;
+                renderAnimeCharacterPixelArt(ctxV, info.personajeData, 0, false);
+            }
+        }, 50);
+    }
 
     modalVisor.style.display = 'flex';
 }

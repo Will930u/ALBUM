@@ -677,3 +677,13 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
 
     setTimeout(() => toast.remove(), 4000);
 }
+// =============================================================================
+// 🚀 CONTROL DE PANTALLA DE PORTADA (SPLASH SCREEN)
+// =============================================================================
+
+function iniciarApp() {
+    const portada = document.getElementById('pantalla-portada');
+    if (portada) {
+        portada.classList.add('oculto');
+    }
+}

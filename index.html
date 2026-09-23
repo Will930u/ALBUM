@@ -147,6 +147,29 @@
         </div>
     </div>
 
+    <!-- VENTANA MODAL FELICITACIÓN Y REINICIO POR ÁLBUM COMPLETADO -->
+    <div class="modal-visor" id="modal-album-completado" style="display: none; background: rgba(5, 5, 12, 0.95); z-index: 10005; align-items: center; justify-content: center;">
+        <div style="background: #090a14; border: 2px solid #00f3ff; border-radius: 12px; padding: 22px; max-width: 340px; width: 90%; text-align: center; box-shadow: 0 0 30px rgba(0, 243, 255, 0.7); font-family: 'Press Start 2P', monospace;">
+            <h2 style="color: #00f3ff; font-size: 11px; margin-bottom: 12px; line-height: 1.5; text-shadow: 0 0 8px #00f3ff;">
+                🏆 ¡HITO HISTÓRICO COMPLETADO! 🏆
+            </h2>
+            <p style="color: #ff007f; font-size: 8px; margin-bottom: 14px; line-height: 1.4; text-shadow: 0 0 5px #ff007f;">
+                ¡FELICITACIONES, LEYENDA!
+            </p>
+            <p style="color: #a5b4fc; font-size: 7px; margin-bottom: 16px; line-height: 1.6; text-align: justify;">
+                Has demostrado una dedicación absoluta al completar las 2000 barajitas de la matriz. Tu nombre ha quedado registrado entre los grandes coleccionistas.
+            </p>
+            <div style="background: rgba(0, 243, 255, 0.05); border: 1px dashed #00f3ff; padding: 10px; border-radius: 6px; margin-bottom: 16px;">
+                <p style="color: #ffffff; font-size: 6.5px; line-height: 1.4;">
+                    ✨ El álbum se reiniciará ahora para dar paso a un nuevo comienzo y nuevos desafíos. ¡Gracias por ser parte de esta era!
+                </p>
+            </div>
+            <button class="btn-retro" onclick="reiniciarAlbumUsuario()" style="background: linear-gradient(135deg, #00f3ff, #7928ca); color: #fff; border: none; padding: 10px 14px; font-size: 8px; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%; text-shadow: 0 0 4px #000;">
+                INICIAR NUEVA ERA ►
+            </button>
+        </div>
+    </div>
+
     <!-- BARRA DE NAVEGACIÓN FIJA INFERIOR -->
     <div class="menu-navegacion-fijo">
         <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>

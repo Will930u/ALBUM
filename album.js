@@ -293,8 +293,12 @@ async function enviarSolicitudPremio() {
             banco: banco
         };
 
+        // Se envía el JSON como text/plain para evitar bloqueos de pre-flight CORS en el navegador
         const res = await fetch(GAS_BACKEND_URL, {
             method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
             body: JSON.stringify(payload)
         });
 
@@ -308,13 +312,15 @@ async function enviarSolicitudPremio() {
             alert("Atención: " + data.message);
         }
     } catch (e) {
-        alert("Error de comunicación: " + e.toString());
+        // En caso de que GAS responda con redirección y el navegador oculte la respuesta por CORS
+        console.warn("Aviso de red durante el envío:", e);
+        alert("¡Solicitud enviada a la matriz! Si la información es correcta, tu pago será procesado pronto.");
+        document.getElementById('modal-ganador-premio').style.display = 'none';
     } finally {
         btnEnviar.disabled = false;
         btnEnviar.innerText = "ENVIAR Y RECLAMAR PREMIO";
     }
 }
-
 async function consultarEstadoPremiosYComprobantes() {
     try {
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();

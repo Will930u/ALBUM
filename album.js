@@ -427,7 +427,8 @@ function renderizarLibro(pagina) {
 // =============================================================================
 
 function generarPersonajeProceduralAutomatico(idCarta) {
-    const esFemenino = (idCarta % 2 === 0);
+    // Alternancia estricta de género: Cartas pares femeninas, impares masculinas
+    const esFemenino = (Number(idCarta) % 2 === 0);
 
     const fondos = ['cyberpunk', 'matrix', 'sunset', 'neon_grid', 'deep_space', 'city_night'];
     const ojosColores = ['#00f3ff', '#ff007f', '#a855f7', '#22c55e', '#eab308', '#3b82f6'];
@@ -441,16 +442,17 @@ function generarPersonajeProceduralAutomatico(idCarta) {
         { base: '#64748b', shadow: '#334155', highlight: '#cbd5e1' }
     ];
 
-    // Opciones de Ropa separadas por género
-    const trajesFemeninos = ['dress_cyber', 'dress_gothic', 'top_skirt', 'kimono'];
+    // Vestuarios
+    const trajesFemeninos = ['dress_cyber', 'top_skirt', 'kimono'];
     const trajesMasculinos = ['cyber_suit', 'casual_jacket', 'sport_hoodie', 'sport_sleeveless'];
 
-    // Peinados femeninos juveniles (doble moño, un moño, cabello largo)
-    const peinadosFemeninos = ['twin_buns', 'single_bun', 'long_hair', 'short_bob'];
-    const peinadosMasculinos = ['spiky', 'short_crop', 'undercut', 'messy'];
+    // Peinados Femeninos (Juveniles) y Masculinos
+    const peinadosFemeninos = ['twin_buns', 'single_bun', 'long_hair'];
+    const peinadosMasculinos = ['spiky', 'short_crop', 'undercut'];
 
-    // Decoraciones (corazones, estrellas, destellos)
-    const decoraciones = ['hearts', 'stars', 'sparks', 'none'];
+    // Decoraciones (Corazones/Estrellas para femeninas, destellos/ninguno para masculinos)
+    const decoracionesFemeninas = ['hearts', 'stars', 'sparks'];
+    const decoracionesMasculinas = ['sparks', 'none'];
 
     const bgType = fondos[idCarta % fondos.length];
     const eyeColor = ojosColores[idCarta % ojosColores.length];
@@ -465,10 +467,10 @@ function generarPersonajeProceduralAutomatico(idCarta) {
         : peinadosMasculinos[idCarta % peinadosMasculinos.length];
 
     const decor = esFemenino 
-        ? decoraciones[idCarta % decoraciones.length] 
-        : (idCarta % 3 === 0 ? 'sparks' : 'none');
+        ? decoracionesFemeninas[idCarta % decoracionesFemeninas.length] 
+        : decoracionesMasculinas[idCarta % decoracionesMasculinas.length];
 
-    // Expresión: Risa/Sonrisa o Serio
+    // Expresión: Risas, sonrisas o serio
     const expresion = (idCarta % 3 === 0) ? 'laughing' : ((idCarta % 2 === 0) ? 'smiling' : 'serious');
 
     return {
@@ -506,7 +508,7 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
 
     if (typeof rawImagen === 'object' && rawImagen !== null) {
         config = rawImagen;
-        personajeData = config.personajeData || config.personaje || config;
+        personajeData = config.personajeData || config.personaje || null;
         urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
     } else if (typeof rawImagen === 'string') {
         const str = rawImagen.trim();
@@ -514,7 +516,7 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
         if (str.startsWith('{')) {
             try {
                 config = JSON.parse(str);
-                personajeData = config.personajeData || config.personaje || config;
+                personajeData = config.personajeData || config.personaje || null;
                 urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
             } catch (e) {
                 config = {};
@@ -530,7 +532,8 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
         urlImagen = `data:image/png;base64,${urlImagen}`;
     }
 
-    if (!personajeData && !urlImagen) {
+    // Forzar la regeneración procedural si el objeto carece de datos válidos de personaje
+    if (!personajeData || typeof personajeData !== 'object' || !personajeData.gender) {
         personajeData = generarPersonajeProceduralAutomatico(idCarta);
     }
 
@@ -611,25 +614,24 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
     const bgType = data.bgType || 'cyberpunk';
     drawAnimeBackground(ctx, bgType, 32, 32);
 
-    const skinBase = data.skin?.base || '#ffe0bd';
-    const skinShadow = data.skin?.shadow || '#d4a373';
+    const skinBase = data.skin?.base || (gender === 'female' ? '#ffe4e1' : '#ffe0bd');
+    const skinShadow = data.skin?.shadow || (gender === 'female' ? '#f3a6a1' : '#d4a373');
     const hairBase = data.hair?.base || '#3b82f6';
-    const hairShadow = data.hair?.shadow || '#1d4ed8';
     const hairHighlight = data.hair?.highlight || '#93c5fd';
     const eyeColor = data.eyeColor || '#2563eb';
     const clothBase = data.clothColor || '#1e1b4b';
     const clothDetail = data.clothDetail || '#3b82f6';
-    const clothType = data.clothType || 'casual_jacket';
-    const hairStyle = data.hairStyle || 'spiky';
+    const clothType = data.clothType || (gender === 'female' ? 'dress_cyber' : 'cyber_suit');
+    const hairStyle = data.hairStyle || (gender === 'female' ? 'twin_buns' : 'spiky');
     const expression = data.expression || 'smiling';
     const decoration = data.decoration || 'none';
 
     // 1. DECORACIONES DE FONDO (CORAZONES / ESTRELLAS / SPARKS)
-    if (decoration === 'hearts') {
+    if (decoration === 'hearts' && gender === 'female') {
         ctx.fillStyle = '#ff0055';
         ctx.fillRect(3, 4, 3, 2); ctx.fillRect(2, 5, 5, 2); ctx.fillRect(3, 7, 3, 1); ctx.fillRect(4, 8, 1, 1);
         ctx.fillRect(25, 6, 3, 2); ctx.fillRect(24, 7, 5, 2); ctx.fillRect(25, 9, 3, 1); ctx.fillRect(26, 10, 1, 1);
-    } else if (decoration === 'stars') {
+    } else if (decoration === 'stars' && gender === 'female') {
         ctx.fillStyle = '#facc15';
         ctx.fillRect(4, 5, 1, 3); ctx.fillRect(3, 6, 3, 1);
         ctx.fillRect(26, 8, 1, 3); ctx.fillRect(25, 9, 3, 1);
@@ -638,7 +640,7 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(5, 5, 1, 1); ctx.fillRect(26, 6, 1, 1); ctx.fillRect(4, 18, 1, 1);
     }
 
-    // 2. VESTUARIO EXCLUSIVO (FEMENINO: VESTIDOS / MASCULINO: SUITS, CASUAL, SPORT)
+    // 2. VESTUARIO EXCLUSIVO SEGÚN GÉNERO
     ctx.fillStyle = clothBase;
     ctx.fillRect(8, 22, 16, 10);
 
@@ -682,7 +684,7 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         }
     }
 
-    // 3. CUELLO Y ROSTRO
+    // 3. CUELLO Y ROSTRO (Femenino más estilizado / Masculino más firme)
     ctx.fillStyle = skinShadow;
     ctx.fillRect(13, 19, 6, 3);
 
@@ -699,10 +701,9 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(12, 20, 8, 1);
     }
 
-    // 4. OJOS Y EXPRESIONES (RISA / CARCAJADA / SERIO)
+    // 4. OJOS Y EXPRESIONES
     if (!blinking) {
         if (expression === 'laughing') {
-            // Ojos cerrados de felicidad ^ ^
             ctx.fillStyle = '#0f172a';
             ctx.fillRect(12, 13, 3, 1); ctx.fillRect(11, 14, 1, 1); ctx.fillRect(15, 14, 1, 1);
             ctx.fillRect(17, 13, 3, 1); ctx.fillRect(16, 14, 1, 1); ctx.fillRect(20, 14, 1, 1);
@@ -742,22 +743,19 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(14, 18, 4, 1);
     }
 
-    // 5. PEINADOS JUVENILES Y VARIADOS
+    // 5. PEINADOS POR GÉNERO
     ctx.fillStyle = hairBase;
 
     if (gender === 'female') {
         if (hairStyle === 'twin_buns') {
-            // Doble moño (Twin Buns)
-            ctx.fillRect(6, 4, 5, 5); ctx.fillRect(21, 4, 5, 5); // Moños
+            ctx.fillRect(6, 4, 5, 5); ctx.fillRect(21, 4, 5, 5);
             ctx.fillRect(9, 6, 14, 5);
-            ctx.fillRect(8, 10, 3, 10); ctx.fillRect(21, 10, 3, 10); // Coletas
+            ctx.fillRect(8, 10, 3, 10); ctx.fillRect(21, 10, 3, 10);
         } else if (hairStyle === 'single_bun') {
-            // Un Moño Alto
-            ctx.fillRect(13, 3, 6, 5); // Moño
+            ctx.fillRect(13, 3, 6, 5);
             ctx.fillRect(9, 7, 14, 5);
             ctx.fillRect(8, 10, 3, 8); ctx.fillRect(21, 10, 3, 8);
         } else {
-            // Cabello Largo / Bob Suelto
             ctx.fillRect(8, 6, 16, 6);
             ctx.fillRect(7, 11, 4, 11); ctx.fillRect(21, 11, 4, 11);
         }

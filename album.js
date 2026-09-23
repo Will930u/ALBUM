@@ -360,12 +360,26 @@ function renderizarLibro(pagina) {
 // =============================================================================
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let config = {};
-    try {
-        config = typeof datosCarta?.imagen_url === 'string' 
-            ? JSON.parse(datosCarta.imagen_url) 
-            : (datosCarta?.imagen_url || {});
-    } catch (e) {
-        config = {};
+    let urlImagenReal = "";
+
+    // 1. Extraer la URL / Base64 real de la imagen guardada en la BD
+    if (datosCarta?.imagen_base64) {
+        urlImagenReal = datosCarta.imagen_base64;
+    } else if (typeof datosCarta?.imagen_url === 'string') {
+        if (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http')) {
+            urlImagenReal = datosCarta.imagen_url;
+        } else {
+            try {
+                config = JSON.parse(datosCarta.imagen_url);
+                if (config.imagen_base64) urlImagenReal = config.imagen_base64;
+                else if (config.imagen_url) urlImagenReal = config.imagen_url;
+            } catch (e) {
+                config = {};
+            }
+        }
+    } else if (typeof datosCarta?.imagen_url === 'object' && datosCarta?.imagen_url !== null) {
+        config = datosCarta.imagen_url;
+        urlImagenReal = config.imagen_base64 || config.imagen_url || "";
     }
 
     const canvas = document.createElement('canvas');
@@ -380,11 +394,12 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let objetoImagen = null;
     let esImagen = false;
 
-    if (typeof datosCarta?.imagen_url === 'string' && (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http'))) {
+    // 2. Si detecta la cadena de la imagen, la carga para renderizar los movimientos
+    if (urlImagenReal && (urlImagenReal.startsWith('data:image') || urlImagenReal.startsWith('http'))) {
         esImagen = true;
         objetoImagen = new Image();
         objetoImagen.crossOrigin = "anonymous";
-        objetoImagen.src = datosCarta.imagen_url;
+        objetoImagen.src = urlImagenReal;
     }
 
     canvasAnimados.push({
@@ -399,7 +414,6 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
 
     contenedor.appendChild(canvas);
 }
-
 function iniciarBucleAnimacionGlobal() {
     function animar(timestamp) {
         const t = timestamp * 0.0025; // Control de tiempo general
@@ -547,11 +561,18 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     const colorMarco = config.marcoColor || config.colorPrimario || '#00f3ff';
     const simbolo = config.simbolo || '👾';
 
+    // Obtener imagen guardada
+    const imagenSrc = datosCarta?.imagen_base64 || config.imagen_base64 || (typeof datosCarta?.imagen_url === 'string' && datosCarta.imagen_url.startsWith('data:') ? datosCarta.imagen_url : null);
+
+    const elementoVisual = imagenSrc 
+        ? `<img src="${imagenSrc}" style="width:100%; height:100%; object-fit:contain; image-rendering:pixelated;" />` 
+        : simbolo;
+
     contenidoFrontal.innerHTML = `
         <div style="text-align:center;">
             <h3 style="font-size:10px; color:#00f3ff; margin-bottom:8px; text-shadow:0 0 5px #00f3ff;">${nombre.toUpperCase()}</h3>
-            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${colorFondo}; border:3px solid ${colorMarco}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:70px; box-shadow:0 0 15px ${colorMarco};">
-                ${simbolo}
+            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${colorFondo}; border:3px solid ${colorMarco}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:70px; box-shadow:0 0 15px ${colorMarco}; overflow:hidden;">
+                ${elementoVisual}
             </div>
             <p style="font-size:7px; color:#ff007f; margin-bottom:4px; text-shadow:0 0 3px #ff007f;">Rareza: ${rareza} | Copias: ${cantidad}</p>
             <p style="font-size:6px; color:#a5b4fc; margin-bottom:8px; line-height:1.3;">${lore}</p>

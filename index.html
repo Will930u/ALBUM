@@ -14,6 +14,28 @@
     <link rel="stylesheet" href="album-style.css">
 </head>
 <body>
+    <!-- PANTALLA DE PORTADA (SPLASH SCREEN) -->
+<div id="pantalla-portada" class="portada-overlay">
+    <div class="contenido-portada">
+        <!-- TÍTULO NEÓN -->
+        <h1 class="titulo-portada">NEON<br>CYBER<br>ALBUM</h1>
+        <p class="subtitulo-portada">SYNTHWAVE ERA 2026</p>
+
+        <!-- INDICADOR / BOTÓN PLAY -->
+        <div class="contenedor-play">
+            <span class="texto-tap">TAP TO INITIATE MATRIX</span>
+            <button id="btn-play-ingresar" class="btn-play-neon" onclick="iniciarApp()">
+                <div class="triangulo-play"></div>
+            </button>
+        </div>
+
+        <!-- BARRA DE CARGA DECORATIVA -->
+        <div class="barra-carga-box">
+            <div class="barra-carga-progreso"></div>
+        </div>
+        <p class="texto-cargando">INICIALIZANDO MATRIZ...</p>
+    </div>
+</div>
 
     <div class="interfaz-juego">
         <!-- Cabecera Temática Cyberpunk -->

@@ -372,9 +372,19 @@ function cambiarPestana(idPestana) {
     }
 }
 
+// =============================================================================
+// PARCHE DE OPTIMIZACIÓN: RENDERIZADO Y CONTROL DE FLUJO
+// =============================================================================
+
 function seleccionarModoRender(modo) {
     Estado.modoRenderActual = modo;
     const esCanvas = modo === 'canvas';
+
+    // Detener bucles de render previos para liberar memoria e hilos
+    if (Estado.animacionPreviewId) {
+        cancelAnimationFrame(Estado.animacionPreviewId);
+        Estado.animacionPreviewId = null;
+    }
 
     DOM.toggleClass('btn-modo-canvas', 'activo', esCanvas);
     DOM.toggleClass('btn-modo-ia', 'activo', !esCanvas);
@@ -389,7 +399,9 @@ function seleccionarModoRender(modo) {
         : "EN VIVO: MOTOR GENERATIVO POLLINATIONS IA"
     );
 
-    if (esCanvas) dibujarCartaCanvas();
+    if (esCanvas) {
+        dibujarCartaCanvas();
+    }
 }
 
 // 3. SUSCRIPCIÓN EN TIEMPO REAL (REALTIME)
@@ -690,6 +702,73 @@ function dibujarCartaCanvas() {
         cancelAnimationFrame(Estado.animacionPreviewId);
         Estado.animacionPreviewId = null;
     }
+
+    // Instanciar un offscreenCanvas reutilizable fuera del loop para optimizar memoria
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = 32;
+    offscreenCanvas.height = 32;
+    const offCtx = offscreenCanvas.getContext('2d');
+    offCtx.imageSmoothingEnabled = false;
+
+    function loopPreview(tiempo) {
+        if (Estado.modoRenderActual !== 'canvas') return;
+
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        const carta = Estado.cartaPreviewActual || {
+            nombre: `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`,
+            simbolo: "",
+            rareza: "Común",
+            personajeData: generarDatosPersonajeAnime()
+        };
+
+        if (!carta.personajeData) {
+            carta.personajeData = generarDatosPersonajeAnime();
+        }
+
+        const nombre = carta.nombre || "Carta Anime";
+        const rareza = carta.rareza || "Común";
+        const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
+
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.fillStyle = paleta.fondo;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = paleta.borde;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(6, 6, width - 12, height - 12);
+
+        offCtx.clearRect(0, 0, 32, 32);
+        renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
+
+        const targetSize = 180;
+        const targetX = (width - targetSize) / 2;
+        const targetY = 30;
+
+        ctx.drawImage(offscreenCanvas, targetX, targetY, targetSize, targetSize);
+
+        ctx.strokeStyle = paleta.acento;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(targetX, targetY, targetSize, targetSize);
+
+        ctx.fillStyle = paleta.texto;
+        ctx.font = "10px 'Press Start 2P', monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(nombre.substring(0, 14), width / 2, height - 30);
+
+        DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Pelo: ${carta.personajeData.hair.base}`);
+
+        Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
+    }
+
+    Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
+}
 
     function loopPreview(tiempo) {
         const ctx = canvas.getContext('2d');

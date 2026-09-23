@@ -360,16 +360,23 @@ function renderizarLibro(pagina) {
 // =============================================================================
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let config = {};
+    let urlImagen = "";
 
-    // Parsear el JSON guardado en la columna imagen_url
+    // 1. Extraer la imagen o la configuración JSON
     if (typeof datosCarta?.imagen_url === 'string') {
-        try {
-            config = JSON.parse(datosCarta.imagen_url);
-        } catch (e) {
-            config = {};
+        if (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http')) {
+            urlImagen = datosCarta.imagen_url;
+        } else {
+            try {
+                config = JSON.parse(datosCarta.imagen_url);
+                urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || "";
+            } catch (e) {
+                config = {};
+            }
         }
     } else if (typeof datosCarta?.imagen_url === 'object' && datosCarta?.imagen_url !== null) {
         config = datosCarta.imagen_url;
+        urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || "";
     }
 
     const canvas = document.createElement('canvas');
@@ -380,99 +387,81 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     canvas.style.borderRadius = "4px";
 
     const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false; // Mantiene bordes nítidos de Pixel Art
+    ctx.imageSmoothingEnabled = false;
 
-    canvasAnimados.push({
+    const registro = {
         canvas: canvas,
         ctx: ctx,
         datosCarta: datosCarta,
         idCarta: idCarta,
-        config: config
-    });
+        config: config,
+        img: null,
+        esImagen: false
+    };
 
+    // 2. Si hay imagen, se carga en memoria
+    if (urlImagen && (urlImagen.startsWith('data:image') || urlImagen.startsWith('http'))) {
+        const imgObj = new Image();
+        imgObj.crossOrigin = "anonymous";
+        imgObj.onload = () => {
+            registro.img = imgObj;
+            registro.esImagen = true;
+        };
+        imgObj.src = urlImagen;
+    }
+
+    canvasAnimados.push(registro);
     contenedor.appendChild(canvas);
 }
+
 function iniciarBucleAnimacionGlobal() {
     function animar(timestamp) {
-        const t = timestamp * 0.0025; // Control de velocidad del bucle
+        const t = timestamp * 0.0025;
 
         canvasAnimados.forEach(item => {
-            const { canvas, ctx, datosCarta, idCarta, config } = item;
+            const { canvas, ctx, datosCarta, idCarta, config, esImagen, img } = item;
             const w = canvas.width;
             const h = canvas.height;
 
             ctx.clearRect(0, 0, w, h);
 
-            // 1. DIBUJAR FONDO NEÓN
-            const colorFondo = config?.fondoColor || "#090a14";
-            ctx.fillStyle = colorFondo;
+            // Fondo Neón
+            ctx.fillStyle = config?.fondoColor || "#090a14";
             ctx.fillRect(0, 0, w, h);
 
-            ctx.save();
-
-            // Animación sutil de respiración/flotación para todo el personaje
-            const offsetY = Math.sin(t * 2 + idCarta) * 2;
-            ctx.translate(0, offsetY);
-
-            // 2. RECONSTRUIR EL PERSONAJE DESDE personajeData
-            const pData = config?.personajeData || config;
-
-            if (pData && (pData.skin || pData.base || pData.cuerpo)) {
-                // Dimensión del píxel escalado para la tarjeta (píxeles de 4x4)
-                const tamañoPixel = 4;
-                const centroX = w / 2;
-                const inicioY = 30;
-
-                // A) Dibujar Cuerpo/Piel Base
-                const colorPiel = pData.skin?.base || pData.skin || pData.base || "#f1c27d";
-                ctx.fillStyle = colorPiel;
-                ctx.fillRect(centroX - 16, inicioY + 16, 32, 32); // Cabeza
-                ctx.fillRect(centroX - 12, inicioY + 48, 24, 28); // Torso
-
-                // B) Dibujar Ojos y Parpadeo Animado
-                const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
-                const estaParpadeando = tiempoParpadeo > 3.7;
+            if (esImagen && img && img.complete) {
+                ctx.save();
                 
-                ctx.fillStyle = pData.ojos?.color || "#000000";
-                if (!estaParpadeando) {
-                    ctx.fillRect(centroX - 10, inicioY + 28, 6, 6); // Ojo Izquierdo
-                    ctx.fillRect(centroX + 4, inicioY + 28, 6, 6);  // Ojo Derecho
-                } else {
-                    ctx.fillRect(centroX - 10, inicioY + 30, 6, 2); // Ojo cerrado Izq
-                    ctx.fillRect(centroX + 4, inicioY + 30, 6, 2);  // Ojo cerrado Der
-                }
+                // Efecto de respiración suave
+                const offsetY = Math.sin(t * 1.5 + idCarta) * 2;
+                ctx.translate(0, offsetY);
 
-                // C) Ropa / Traje
-                if (pData.ropa || pData.traje) {
-                    ctx.fillStyle = pData.ropa?.color || pData.traje || "#1e293b";
-                    ctx.fillRect(centroX - 14, inicioY + 50, 28, 26);
-                }
-
-                // D) Cabello / Accesorio superior
-                if (pData.cabello || pData.pelo) {
-                    ctx.fillStyle = pData.cabello?.color || pData.pelo || "#451a03";
-                    ctx.fillRect(centroX - 18, inicioY + 10, 36, 10); // Parte superior
-                    ctx.fillRect(centroX - 18, inicioY + 16, 8, 16);  // Lateral izq
-                    ctx.fillRect(centroX + 10, inicioY + 16, 8, 16);  // Lateral der
-                }
-
+                // Dibujar la imagen real del personaje completa
+                ctx.drawImage(img, 0, 0, w, h);
+                
+                ctx.restore();
             } else {
-                // Dibujo genérico si el objeto de datos está incompleto
-                ctx.fillStyle = "#ff007f";
-                ctx.font = "24px 'Press Start 2P', monospace";
-                ctx.textAlign = "center";
-                ctx.fillText("👾", w / 2, h / 2);
+                // Si la imagen aún no ha cargado o solo hay JSON, renderizar silueta pixel
+                ctx.save();
+                const pData = config?.personajeData || config;
+                const colorPiel = pData?.skin?.base || pData?.skin || "#f1c27d";
+                
+                ctx.fillStyle = colorPiel;
+                ctx.fillRect(w / 2 - 20, h / 2 - 30, 40, 40);
+                
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(w / 2 - 12, h / 2 - 18, 6, 6);
+                ctx.fillRect(w / 2 + 6, h / 2 - 18, 6, 6);
+                ctx.restore();
             }
 
-            ctx.restore();
-
-            // 3. MARCO NEÓN CON PULSACIÓN DE BORDE
+            // Marco Neón
             const colorMarco = config?.marcoColor || "#00f3ff";
             ctx.strokeStyle = colorMarco;
             ctx.lineWidth = 3 + Math.sin(t * 2 + idCarta);
             ctx.strokeRect(2, 2, w - 4, h - 4);
 
-            // 4. ZÓCALO DE IDENTIFICACIÓN CYBER
+            // Etiqueta Nombre
             ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
             ctx.fillRect(4, h - 22, w - 8, 18);
 

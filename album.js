@@ -423,69 +423,101 @@ function renderizarLibro(pagina) {
 }
 
 // =============================================================================
-// 🎨 MOTOR DE EXTRACCIÓN Y GENERACIÓN PROCEDURAL COMPLETA
+// 🎨 GENERADOR PROCEDURAL DETERMINÍSTICO (2000 COMBINACIONES ÚNICAS)
 // =============================================================================
 
+function pseudoRandom(seed) {
+    let x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+}
+
 function generarPersonajeProceduralAutomatico(idCarta) {
-    // Alternancia estricta de género: Cartas pares femeninas, impares masculinas
-    const esFemenino = (Number(idCarta) % 2 === 0);
-
-    const fondos = ['cyberpunk', 'matrix', 'sunset', 'neon_grid', 'deep_space', 'city_night'];
-    const ojosColores = ['#00f3ff', '#ff007f', '#a855f7', '#22c55e', '#eab308', '#3b82f6'];
+    const id = Number(idCarta);
     
+    // Alternancia estricta e innegable de género (50% Masculino / 50% Femenino)
+    const esFemenino = (id % 2 === 0);
+
+    // Generador pseudoaleatorio basado en el ID estricto
+    let rIdx = 0;
+    const rand = () => pseudoRandom(id * 100 + (rIdx++));
+
+    // Tonos HSL procedurales únicos para el fondo (Garantiza 2000 fondos distintos)
+    const hueBase = Math.floor(rand() * 360);
+    const hueSecundario = (hueBase + Math.floor(rand() * 120 + 60)) % 360;
+    
+    const bgTypes = ['cyber_gradient', 'matrix_grid', 'neon_stripes', 'space_dust', 'circuit_board'];
+    const bgType = bgTypes[Math.floor(rand() * bgTypes.length)];
+
+    const ojosColores = ['#00f3ff', '#ff007f', '#a855f7', '#22c55e', '#eab308', '#3b82f6', '#ef4444', '#10b981', '#f97316'];
+    const eyeColor = ojosColores[Math.floor(rand() * ojosColores.length)];
+
     const cabellosColores = [
-        { base: '#3b82f6', shadow: '#1d4ed8', highlight: '#93c5fd' },
-        { base: '#ec4899', shadow: '#be185d', highlight: '#fbcfe8' },
-        { base: '#a855f7', shadow: '#6b21a8', highlight: '#e9d5ff' },
-        { base: '#10b981', shadow: '#047857', highlight: '#a7f3d0' },
-        { base: '#f59e0b', shadow: '#b45309', highlight: '#fde68a' },
-        { base: '#64748b', shadow: '#334155', highlight: '#cbd5e1' }
+        { base: '#1e293b', shadow: '#0f172a', highlight: '#475569' }, // Negro / Azabache
+        { base: '#3b82f6', shadow: '#1d4ed8', highlight: '#93c5fd' }, // Azul Neón
+        { base: '#ec4899', shadow: '#be185d', highlight: '#fbcfe8' }, // Rosa Cyber
+        { base: '#a855f7', shadow: '#6b21a8', highlight: '#e9d5ff' }, // Púrpura
+        { base: '#10b981', shadow: '#047857', highlight: '#a7f3d0' }, // Verde Esmeralda
+        { base: '#f59e0b', shadow: '#b45309', highlight: '#fde68a' }, // Dorado / Rubio
+        { base: '#ef4444', shadow: '#991b1b', highlight: '#fca5a5' }, // Rojo Vivo
+        { base: '#64748b', shadow: '#334155', highlight: '#cbd5e1' }  // Plata / Blanco
     ];
+    const hair = cabellosColores[Math.floor(rand() * cabellosColores.length)];
 
-    // Vestuarios
-    const trajesFemeninos = ['dress_cyber', 'top_skirt', 'kimono'];
-    const trajesMasculinos = ['cyber_suit', 'casual_jacket', 'sport_hoodie', 'sport_sleeveless'];
-
-    // Peinados Femeninos (Juveniles) y Masculinos
-    const peinadosFemeninos = ['twin_buns', 'single_bun', 'long_hair'];
-    const peinadosMasculinos = ['spiky', 'short_crop', 'undercut'];
-
-    // Decoraciones (Corazones/Estrellas para femeninas, destellos/ninguno para masculinos)
-    const decoracionesFemeninas = ['hearts', 'stars', 'sparks'];
-    const decoracionesMasculinas = ['sparks', 'none'];
-
-    const bgType = fondos[idCarta % fondos.length];
-    const eyeColor = ojosColores[idCarta % ojosColores.length];
-    const hair = cabellosColores[idCarta % cabellosColores.length];
+    // ROPA Y VESTUARIO ESPECÍFICO POR GÉNERO
+    const trajesFemeninos = ['dress_cyber', 'top_skirt', 'kimono_futurista', 'cyber_armor_fem'];
+    const trajesMasculinos = ['business_suit', 'cyber_tuxedo', 'casual_jacket', 'sport_hoodie', 'tactical_vest'];
 
     const clothType = esFemenino 
-        ? trajesFemeninos[idCarta % trajesFemeninos.length] 
-        : trajesMasculinos[idCarta % trajesMasculinos.length];
+        ? trajesFemeninos[Math.floor(rand() * trajesFemeninos.length)] 
+        : trajesMasculinos[Math.floor(rand() * trajesMasculinos.length)];
+
+    // PEINADOS
+    const peinadosFemeninos = ['twin_buns', 'single_bun', 'long_hair', 'bob_cut'];
+    const peinadosMasculinos = ['spiky', 'short_crop', 'undercut', 'slicked_back', 'afro_short'];
 
     const hairStyle = esFemenino 
-        ? peinadosFemeninos[idCarta % peinadosFemeninos.length] 
-        : peinadosMasculinos[idCarta % peinadosMasculinos.length];
+        ? peinadosFemeninos[Math.floor(rand() * peinadosFemeninos.length)] 
+        : peinadosMasculinos[Math.floor(rand() * peinadosMasculinos.length)];
 
-    const decor = esFemenino 
-        ? decoracionesFemeninas[idCarta % decoracionesFemeninas.length] 
-        : decoracionesMasculinas[idCarta % decoracionesMasculinas.length];
+    // DECORACIONES Y ACCESORIOS
+    const decoraciones = ['hearts', 'stars', 'sparks', 'crosshairs', 'hexagons', 'none'];
+    const decor = decoraciones[Math.floor(rand() * decoraciones.length)];
 
-    // Expresión: Risas, sonrisas o serio
-    const expresion = (idCarta % 3 === 0) ? 'laughing' : ((idCarta % 2 === 0) ? 'smiling' : 'serious');
+    const accesorios = ['glasses', 'visor_cyber', 'earphones', 'mask', 'none'];
+    const accesorio = accesorios[Math.floor(rand() * accesorios.length)];
+
+    const expresiones = ['laughing', 'smiling', 'serious', 'confident', 'fierce'];
+    const expresion = expresiones[Math.floor(rand() * expresiones.length)];
+
+    const skinTones = [
+        { base: '#ffe4e1', shadow: '#f3a6a1' },
+        { base: '#ffe0bd', shadow: '#d4a373' },
+        { base: '#f1c27d', shadow: '#c68b59' },
+        { base: '#e0ac69', shadow: '#8d5524' },
+        { base: '#8d5524', shadow: '#5c3317' }
+    ];
+    const skin = skinTones[Math.floor(rand() * skinTones.length)];
+
+    // Colores de ropa variados
+    const clothBaseColors = ['#1e1b4b', '#0f172a', '#312e81', '#701a75', '#831843', '#064e3b', '#7c2d12', '#111827'];
+    const clothDetailColors = ['#00f3ff', '#ff007f', '#22c55e', '#eab308', '#a855f7', '#f97316', '#38bdf8'];
 
     return {
         gender: esFemenino ? 'female' : 'male',
         bgType: bgType,
+        hueBase: hueBase,
+        hueSecundario: hueSecundario,
         eyeColor: eyeColor,
         hair: hair,
         hairStyle: hairStyle,
-        skin: { base: esFemenino ? '#ffe4e1' : '#ffe0bd', shadow: esFemenino ? '#f3a6a1' : '#d4a373' },
+        skin: skin,
         clothType: clothType,
-        clothColor: esFemenino ? '#831843' : '#1e1b4b',
-        clothDetail: esFemenino ? '#ff007f' : '#00f3ff',
+        clothColor: clothBaseColors[Math.floor(rand() * clothBaseColors.length)],
+        clothDetail: clothDetailColors[Math.floor(rand() * clothDetailColors.length)],
         expression: expresion,
         decoration: decor,
-        accessory: (idCarta % 5 === 0) ? 'glasses' : 'none'
+        accessory: accesorio,
+        seedPattern: Math.floor(rand() * 1000)
     };
 }
 
@@ -532,7 +564,7 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
         urlImagen = `data:image/png;base64,${urlImagen}`;
     }
 
-    // Forzar la regeneración procedural si el objeto carece de datos válidos de personaje
+    // Asegurar que siempre exista un personaje procedural único por ID
     if (!personajeData || typeof personajeData !== 'object' || !personajeData.gender) {
         personajeData = generarPersonajeProceduralAutomatico(idCarta);
     }
@@ -547,158 +579,170 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
 }
 
 // =============================================================================
-// 👾 MOTOR PROCEDURAL DE PIXEL ART AVANZADO (EXPRESIONES, PEINADOS Y DECORACIÓN)
+// 👾 MOTOR PROCEDURAL DE PIXEL ART AVANZADO (MASCULINO / FEMENINO Y FONDOS)
 // =============================================================================
 
-function drawAnimeBackground(ctx, bgType, width = 32, height = 32) {
-    if (bgType === 'cyberpunk') {
-        let grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#0f051d');
-        grad.addColorStop(0.6, '#290a59');
-        grad.addColorStop(1, '#ff0055');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
+function drawAnimeBackgroundProcedural(ctx, data, width = 32, height = 32) {
+    const h1 = data.hueBase !== undefined ? data.hueBase : 220;
+    const h2 = data.hueSecundario !== undefined ? data.hueSecundario : 300;
+    const seed = data.seedPattern || 1;
 
-        ctx.fillStyle = 'rgba(0, 243, 255, 0.15)';
-        for (let i = 0; i < width; i += 4) {
-            ctx.fillRect(i, 0, 1, height);
-        }
-    } else if (bgType === 'matrix') {
-        ctx.fillStyle = '#020d08';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#00ff66';
-        for (let i = 0; i < 12; i++) {
-            let rx = Math.floor((Math.sin(i * 99) * 0.5 + 0.5) * width);
-            let ry = Math.floor((Math.cos(i * 33) * 0.5 + 0.5) * height);
-            ctx.globalAlpha = (i % 3 === 0) ? 0.8 : 0.3;
-            ctx.fillRect(rx, ry, 1, 2);
-        }
-        ctx.globalAlpha = 1.0;
-    } else if (bgType === 'sunset') {
-        let grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#2d0b3f');
-        grad.addColorStop(0.5, '#7b1e5a');
-        grad.addColorStop(0.8, '#e65c40');
-        grad.addColorStop(1, '#f7b05b');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-    } else if (bgType === 'neon_grid') {
-        ctx.fillStyle = '#050515';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#ff007f';
-        for (let y = 0; y < height; y += 4) ctx.fillRect(0, y, width, 1);
-        ctx.fillStyle = '#00f3ff';
+    let grad = ctx.createLinearGradient(0, 0, width, height);
+    grad.addColorStop(0, `hsl(${h1}, 70%, 12%)`);
+    grad.addColorStop(1, `hsl(${h2}, 80%, 25%)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Patrones geométricos derivados de la semilla de la carta
+    ctx.fillStyle = `hsl(${h1}, 90%, 50%)`;
+    ctx.globalAlpha = 0.25;
+
+    if (data.bgType === 'matrix_grid') {
         for (let x = 0; x < width; x += 4) ctx.fillRect(x, 0, 1, height);
-    } else if (bgType === 'deep_space') {
-        ctx.fillStyle = '#030712';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#ffffff';
-        for (let i = 0; i < 15; i++) {
-            let sx = (i * 7) % width;
-            let sy = (i * 13) % height;
-            ctx.fillRect(sx, sy, 1, 1);
+        for (let y = 0; y < height; y += 4) ctx.fillRect(0, y, width, 1);
+    } else if (data.bgType === 'neon_stripes') {
+        for (let i = -height; i < width; i += 6) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i + height, height);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = `hsl(${h2}, 100%, 50%)`;
+            ctx.stroke();
         }
-    } else {
-        let grad = ctx.createLinearGradient(0, 0, width, height);
-        grad.addColorStop(0, '#111827');
-        grad.addColorStop(1, '#1f2937');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
+    } else if (data.bgType === 'space_dust') {
+        for (let i = 0; i < 12; i++) {
+            let px = (seed * (i + 1) * 7) % width;
+            let py = (seed * (i + 3) * 13) % height;
+            ctx.fillRect(px, py, 1, 1);
+        }
+    } else if (data.bgType === 'circuit_board') {
+        for (let i = 0; i < 5; i++) {
+            let cx = (seed * i * 3) % width;
+            let cy = (seed * i * 5) % height;
+            ctx.fillRect(cx, cy, 6, 1);
+            ctx.fillRect(cx + 5, cy, 1, 6);
+        }
     }
+    ctx.globalAlpha = 1.0;
 }
 
 function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
     if (!ctx || !data) return;
 
     const gender = data.gender || 'male';
-    const bgType = data.bgType || 'cyberpunk';
-    drawAnimeBackground(ctx, bgType, 32, 32);
+    drawAnimeBackgroundProcedural(ctx, data, 32, 32);
 
     const skinBase = data.skin?.base || (gender === 'female' ? '#ffe4e1' : '#ffe0bd');
     const skinShadow = data.skin?.shadow || (gender === 'female' ? '#f3a6a1' : '#d4a373');
-    const hairBase = data.hair?.base || '#3b82f6';
-    const hairHighlight = data.hair?.highlight || '#93c5fd';
-    const eyeColor = data.eyeColor || '#2563eb';
-    const clothBase = data.clothColor || '#1e1b4b';
-    const clothDetail = data.clothDetail || '#3b82f6';
-    const clothType = data.clothType || (gender === 'female' ? 'dress_cyber' : 'cyber_suit');
+    const hairBase = data.hair?.base || '#1e293b';
+    const hairHighlight = data.hair?.highlight || '#475569';
+    const eyeColor = data.eyeColor || '#00f3ff';
+    const clothBase = data.clothColor || '#0f172a';
+    const clothDetail = data.clothDetail || '#00f3ff';
+    const clothType = data.clothType || (gender === 'female' ? 'dress_cyber' : 'business_suit');
     const hairStyle = data.hairStyle || (gender === 'female' ? 'twin_buns' : 'spiky');
     const expression = data.expression || 'smiling';
     const decoration = data.decoration || 'none';
 
-    // 1. DECORACIONES DE FONDO (CORAZONES / ESTRELLAS / SPARKS)
-    if (decoration === 'hearts' && gender === 'female') {
+    // 1. DECORACIONES DE FONDO
+    if (decoration === 'hearts') {
         ctx.fillStyle = '#ff0055';
-        ctx.fillRect(3, 4, 3, 2); ctx.fillRect(2, 5, 5, 2); ctx.fillRect(3, 7, 3, 1); ctx.fillRect(4, 8, 1, 1);
-        ctx.fillRect(25, 6, 3, 2); ctx.fillRect(24, 7, 5, 2); ctx.fillRect(25, 9, 3, 1); ctx.fillRect(26, 10, 1, 1);
-    } else if (decoration === 'stars' && gender === 'female') {
+        ctx.fillRect(3, 4, 3, 2); ctx.fillRect(2, 5, 5, 2); ctx.fillRect(3, 7, 3, 1);
+        ctx.fillRect(25, 6, 3, 2); ctx.fillRect(24, 7, 5, 2); ctx.fillRect(25, 9, 3, 1);
+    } else if (decoration === 'stars') {
         ctx.fillStyle = '#facc15';
         ctx.fillRect(4, 5, 1, 3); ctx.fillRect(3, 6, 3, 1);
         ctx.fillRect(26, 8, 1, 3); ctx.fillRect(25, 9, 3, 1);
     } else if (decoration === 'sparks') {
         ctx.fillStyle = '#00f3ff';
         ctx.fillRect(5, 5, 1, 1); ctx.fillRect(26, 6, 1, 1); ctx.fillRect(4, 18, 1, 1);
+    } else if (decoration === 'crosshairs') {
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(3, 3, 5, 1); ctx.fillRect(5, 1, 1, 5);
     }
 
-    // 2. VESTUARIO EXCLUSIVO SEGÚN GÉNERO
+    // 2. VESTUARIOS DISTINTIVOS Y FORMALES (FIGURAS MASCULINAS Y FEMENINAS)
     ctx.fillStyle = clothBase;
-    ctx.fillRect(8, 22, 16, 10);
+    ctx.fillRect(7, 21, 18, 11);
 
-    if (gender === 'female') {
-        if (clothType === 'dress_cyber') {
-            ctx.fillStyle = clothDetail;
-            ctx.fillRect(10, 22, 12, 10);
+    if (gender === 'male') {
+        if (clothType === 'business_suit' || clothType === 'cyber_tuxedo') {
+            // Traje Formal Ejecutivo / Esmoquin Cyber
+            ctx.fillStyle = clothBase;
+            ctx.fillRect(7, 21, 18, 11);
+            // Camisa blanca interna
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(13, 22, 6, 2);
-        } else if (clothType === 'top_skirt') {
+            ctx.fillRect(13, 21, 6, 6);
+            // Corbata o Pajarita
             ctx.fillStyle = clothDetail;
-            ctx.fillRect(11, 22, 10, 4);
-            ctx.fillStyle = '#111827';
-            ctx.fillRect(10, 26, 12, 6);
+            ctx.fillRect(15, 22, 2, 5); // Corbata formal
+            // Solapas del traje
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(10, 21, 3, 8); ctx.fillRect(19, 21, 3, 8);
+        } else if (clothType === 'tactical_vest') {
+            // Chaleco Táctico
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(8, 21, 16, 11);
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(10, 23, 4, 3); ctx.fillRect(18, 23, 4, 3);
+            ctx.fillRect(12, 27, 8, 2);
+        } else if (clothType === 'sport_hoodie') {
+            // Capucha / Sudadera
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(7, 21, 18, 11);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(14, 21, 4, 6); // Cintas
         } else {
+            // Chaqueta Casual con Camiseta
             ctx.fillStyle = clothDetail;
-            ctx.fillRect(10, 22, 12, 10);
-            ctx.fillRect(14, 22, 4, 3);
+            ctx.fillRect(8, 21, 16, 11);
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(12, 21, 8, 11);
         }
     } else {
-        if (clothType === 'cyber_suit') {
+        // Vestuarios Femeninos
+        if (clothType === 'dress_cyber') {
             ctx.fillStyle = clothDetail;
-            ctx.fillRect(11, 22, 10, 10);
-            ctx.fillStyle = '#00f3ff';
-            ctx.fillRect(15, 23, 2, 8);
-        } else if (clothType === 'sport_hoodie') {
-            ctx.fillStyle = clothDetail;
-            ctx.fillRect(9, 22, 14, 10);
+            ctx.fillRect(9, 21, 14, 11);
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(12, 22, 8, 4);
-        } else if (clothType === 'sport_sleeveless') {
-            ctx.fillStyle = skinBase;
-            ctx.fillRect(8, 22, 3, 10); ctx.fillRect(21, 22, 3, 10);
+            ctx.fillRect(12, 21, 8, 3);
+        } else if (clothType === 'top_skirt') {
             ctx.fillStyle = clothDetail;
-            ctx.fillRect(11, 22, 10, 10);
+            ctx.fillRect(10, 21, 12, 4);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(9, 25, 14, 7);
+        } else if (clothType === 'kimono_futurista') {
+            ctx.fillStyle = clothBase;
+            ctx.fillRect(8, 21, 16, 11);
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(12, 21, 8, 11);
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(10, 25, 12, 2); // Cinturón Obi
         } else {
             ctx.fillStyle = clothDetail;
-            ctx.fillRect(10, 22, 12, 10);
+            ctx.fillRect(9, 21, 14, 11);
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(14, 22, 4, 4);
+            ctx.fillRect(13, 21, 6, 4);
         }
     }
 
-    // 3. CUELLO Y ROSTRO (Femenino más estilizado / Masculino más firme)
+    // 3. CUELLO Y ANATOMÍA FACIAL
     ctx.fillStyle = skinShadow;
     ctx.fillRect(13, 19, 6, 3);
 
     ctx.fillStyle = skinBase;
-    ctx.fillRect(11, 10, 10, 10);
+    ctx.fillRect(10, 10, 12, 10); // Mandíbula
 
-    if (gender === 'female') {
+    if (gender === 'male') {
+        // Barbilla masculina más marcada y ancha
+        ctx.fillStyle = skinBase;
+        ctx.fillRect(10, 18, 12, 2);
         ctx.fillStyle = skinShadow;
-        ctx.fillRect(11, 19, 1, 1); ctx.fillRect(20, 19, 1, 1);
-        ctx.fillRect(13, 20, 6, 1);
+        ctx.fillRect(9, 17, 1, 3); ctx.fillRect(22, 17, 1, 3);
     } else {
+        // Barbilla femenina estilizada
         ctx.fillStyle = skinShadow;
-        ctx.fillRect(10, 18, 1, 3); ctx.fillRect(21, 18, 1, 3);
-        ctx.fillRect(12, 20, 8, 1);
+        ctx.fillRect(10, 19, 1, 1); ctx.fillRect(21, 19, 1, 1);
     }
 
     // 4. OJOS Y EXPRESIONES
@@ -718,10 +762,10 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
             ctx.fillRect(14, 13, 1, 1); ctx.fillRect(18, 13, 1, 1);
 
             ctx.fillStyle = '#0f172a';
-            ctx.fillRect(12, 13, 3, 1); ctx.fillRect(17, 13, 3, 1);
+            ctx.fillRect(12, 12, 3, 1); ctx.fillRect(17, 12, 3, 1); // Cejas
 
             if (gender === 'female') {
-                ctx.fillRect(11, 13, 1, 2); ctx.fillRect(20, 13, 1, 2);
+                ctx.fillRect(11, 13, 1, 2); ctx.fillRect(20, 13, 1, 2); // Pestañas
             }
         }
     } else {
@@ -729,24 +773,40 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(12, 15, 3, 1); ctx.fillRect(17, 15, 3, 1);
     }
 
-    // BOCA Y RISA
-    if (expression === 'laughing') {
-        ctx.fillStyle = '#ff0055';
-        ctx.fillRect(14, 17, 4, 3);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(14, 17, 4, 1);
-    } else if (expression === 'smiling') {
-        ctx.fillStyle = gender === 'female' ? '#ff0055' : '#b91c1c';
-        ctx.fillRect(14, 18, 4, 1); ctx.fillRect(13, 17, 1, 1); ctx.fillRect(18, 17, 1, 1);
+    // BOCA
+    ctx.fillStyle = gender === 'female' ? '#ff0055' : '#991b1b';
+    if (expression === 'laughing' || expression === 'smiling') {
+        ctx.fillRect(14, 17, 4, 2);
     } else {
-        ctx.fillStyle = '#b91c1c';
         ctx.fillRect(14, 18, 4, 1);
     }
 
-    // 5. PEINADOS POR GÉNERO
+    // 5. PEINADOS DIVERSIFICADOS POR GÉNERO
     ctx.fillStyle = hairBase;
 
-    if (gender === 'female') {
+    if (gender === 'male') {
+        if (hairStyle === 'spiky') {
+            // Cabello de puntas Anime
+            ctx.fillRect(9, 6, 14, 5);
+            ctx.fillRect(10, 4, 3, 3); ctx.fillRect(15, 3, 3, 4); ctx.fillRect(19, 4, 3, 3);
+            ctx.fillRect(8, 10, 2, 6); ctx.fillRect(22, 10, 2, 6);
+        } else if (hairStyle === 'short_crop') {
+            // Corte Ejecutivo Corto
+            ctx.fillRect(9, 6, 14, 5);
+            ctx.fillRect(9, 10, 2, 4); ctx.fillRect(21, 10, 2, 4);
+        } else if (hairStyle === 'undercut') {
+            // Undercut Cyberpunk
+            ctx.fillRect(10, 5, 12, 5); ctx.fillRect(8, 7, 3, 3);
+            ctx.fillRect(9, 10, 2, 2);
+        } else if (hairStyle === 'slicked_back') {
+            // Peinado Formal Peinado Hacia Atrás
+            ctx.fillRect(9, 5, 14, 6);
+            ctx.fillRect(8, 9, 2, 5); ctx.fillRect(22, 9, 2, 5);
+        } else {
+            // Afro Corto / Rizado
+            ctx.fillRect(8, 5, 16, 7);
+        }
+    } else {
         if (hairStyle === 'twin_buns') {
             ctx.fillRect(6, 4, 5, 5); ctx.fillRect(21, 4, 5, 5);
             ctx.fillRect(9, 6, 14, 5);
@@ -755,32 +815,32 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
             ctx.fillRect(13, 3, 6, 5);
             ctx.fillRect(9, 7, 14, 5);
             ctx.fillRect(8, 10, 3, 8); ctx.fillRect(21, 10, 3, 8);
+        } else if (hairStyle === 'bob_cut') {
+            ctx.fillRect(8, 6, 16, 5);
+            ctx.fillRect(7, 10, 4, 6); ctx.fillRect(21, 10, 4, 6);
         } else {
             ctx.fillRect(8, 6, 16, 6);
             ctx.fillRect(7, 11, 4, 11); ctx.fillRect(21, 11, 4, 11);
         }
-    } else {
-        if (hairStyle === 'spiky') {
-            ctx.fillRect(9, 6, 14, 5); ctx.fillRect(11, 4, 3, 3); ctx.fillRect(17, 4, 3, 3);
-            ctx.fillRect(8, 10, 3, 7); ctx.fillRect(21, 10, 3, 7);
-        } else if (hairStyle === 'short_crop') {
-            ctx.fillRect(9, 7, 14, 5);
-            ctx.fillRect(9, 10, 2, 5); ctx.fillRect(21, 10, 2, 5);
-        } else {
-            ctx.fillRect(8, 6, 16, 6);
-            ctx.fillRect(8, 10, 3, 6); ctx.fillRect(21, 10, 3, 6);
-        }
     }
 
+    // Luces / Brillo en el cabello
     ctx.fillStyle = hairHighlight;
     ctx.fillRect(11, 7, 4, 1); ctx.fillRect(17, 7, 4, 1);
 
-    // 6. ACCESORIOS
+    // 6. ACCESORIOS FUTURISTAS
     if (data.accessory === 'glasses') {
         ctx.fillStyle = '#00f3ff';
         ctx.fillRect(11, 13, 4, 3); ctx.fillRect(17, 13, 4, 3);
+        ctx.fillRect(15, 14, 2, 1);
+    } else if (data.accessory === 'visor_cyber') {
+        ctx.fillStyle = '#ff007f';
+        ctx.fillRect(10, 12, 12, 3);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(12, 14, 1, 1); ctx.fillRect(18, 14, 1, 1);
+        ctx.fillRect(12, 13, 3, 1);
+    } else if (data.accessory === 'mask') {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(11, 16, 10, 4);
     }
 }
 

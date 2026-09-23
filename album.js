@@ -33,6 +33,7 @@ let nombreUsuarioTelegram = "Jugador";
 let paginaActual = 1;
 const cartasPorPagina = 25;
 const totalPaginas = 80;
+const TOTAL_CARTAS = 2000;
 
 let inventarioUsuarioCache = new Map();
 let canvasAnimados = []; // Registro activo de Canvas con bucles de animación
@@ -170,9 +171,50 @@ async function cargarInventarioInicial() {
         
         await verificarProgresoHitosPremios();
         await consultarEstadoPremiosYComprobantes();
+        verificarYCelebrarCompletado(inventarioUsuarioCache.size);
 
     } catch (err) {
         console.error("Excepción en cargarInventarioInicial:", err);
+    }
+}
+
+function verificarYCelebrarCompletado(totalCartasPoseidas) {
+    if (totalCartasPoseidas >= TOTAL_CARTAS) {
+        const modalCompletado = document.getElementById('modal-album-completado');
+        if (modalCompletado) {
+            modalCompletado.style.display = 'flex';
+        }
+    }
+}
+
+async function reiniciarAlbumUsuario() {
+    try {
+        const modalCompletado = document.getElementById('modal-album-completado');
+        if (modalCompletado) modalCompletado.style.display = 'none';
+
+        if (!supabaseClient || !idUsuarioTelegram) return;
+
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+        const { error } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .delete()
+            .or(`usuario_id.ilike.${idLimpio},usuario_id.ilike.@${idLimpio}`);
+
+        if (error) {
+            console.error("Error al reiniciar álbum en Supabase:", error.message);
+            alert("Ocurrió un error al reiniciar la matriz de colección.");
+            return;
+        }
+
+        inventarioUsuarioCache.clear();
+        paginaActual = 1;
+        renderizarLibro(paginaActual);
+
+        alert("¡Matriz Reiniciada Exitosamente! Un nuevo comienzo ha iniciado.");
+    } catch (e) {
+        console.error("Error en reiniciarAlbumUsuario:", e);
+        alert("Ocurrió un fallo en la conexión al intentar reiniciar.");
     }
 }
 

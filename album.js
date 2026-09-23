@@ -26,6 +26,10 @@ const totalPaginas = 80;
 let inventarioUsuarioCache = new Map();
 let canvasAnimados = []; // Registro activo de Canvas con bucles de animación
 
+// Constantes de valor por barajita (con el 31.8% de descuento ya aplicado)
+const VALOR_UNITARIO_BS = 341;
+const VALOR_UNITARIO_USD = 0.4223;
+
 // Rangos Oficiales de Premios
 const RANGOS_PREMIOS = [
     { nivel: 1, inicio: 1, fin: 500, nombre: "1er Premio ($200 Tasa BCV)" },
@@ -322,6 +326,12 @@ function renderizarLibro(pagina) {
     const poseidasTotales = inventarioUsuarioCache.size;
     const elProgreso = document.getElementById('contador-progreso');
     if (elProgreso) elProgreso.innerText = `PROGRESO: ${String(poseidasTotales).padStart(3, '0')} / 2000`;
+
+    // Actualizar dinámicamente el valor acumulado en USD y BS (con el 31.8% de descuento)
+    const elUsd = document.getElementById('valor-usd');
+    const elBs = document.getElementById('valor-bs');
+    if (elUsd) elUsd.innerText = `USD: $${(poseidasTotales * VALOR_UNITARIO_USD).toFixed(2)}`;
+    if (elBs) elBs.innerText = `BS: ${(poseidasTotales * VALOR_UNITARIO_BS).toLocaleString('es-VE')}`;
 
     grillaCartas.innerHTML = "";
 

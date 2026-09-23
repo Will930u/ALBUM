@@ -57,23 +57,76 @@ body {
     box-shadow: 0 0 12px rgba(0, 243, 255, 0.3), inset 0 0 8px rgba(121, 40, 202, 0.4);
     border-radius: 8px;
     padding: 10px;
-    text-align: center;
     margin-bottom: 12px;
     backdrop-filter: blur(4px);
 }
 
+/* FILA SUPERIOR CON VALORES Y PROGRESO DISTRIBUIDOS */
+.info-header-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.bloque-orilla-izquierda {
+    text-align: left;
+}
+
 .linea-era {
-    font-size: 9px;
+    font-size: 8px;
     color: #ff007f;
     text-shadow: 0 0 4px #ff007f;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .linea-conteo {
-    font-size: 10px;
+    font-size: 8px;
     color: #00f3ff;
     text-shadow: 0 0 6px #00f3ff;
-    margin-bottom: 8px;
+}
+
+/* CUADRO DERECHO: VALOR DE LA COLECCIÓN */
+.panel-valor-coleccion {
+    background: rgba(9, 10, 20, 0.9);
+    border: 1px solid #ff007f;
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: right;
+    box-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+}
+
+.label-valor {
+    display: block;
+    font-size: 6px;
+    color: #a5b4fc;
+    margin-bottom: 3px;
+    letter-spacing: 0.5px;
+}
+
+.montos-valor {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    font-size: 7px;
+}
+
+.monto-usd {
+    color: #00f3ff;
+    text-shadow: 0 0 4px #00f3ff;
+    font-weight: bold;
+}
+
+.separador-monto {
+    color: #7928ca;
+}
+
+.monto-bs {
+    color: #ff007f;
+    text-shadow: 0 0 4px #ff007f;
+    font-weight: bold;
 }
 
 .controles-navegacion {
@@ -138,6 +191,7 @@ body {
     background: #000;
     cursor: pointer;
     box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+    padding: 0;
 }
 
 .badge-cantidad {
@@ -256,11 +310,11 @@ body {
     color: #00f3ff;
     text-shadow: 0 0 8px #00f3ff;
 }
+
 /* =============================================================================
-   🎮 REGLAS DE NITOR Y AJUSTE DE IMÁGENES PIXEL ART EN CANVAS Y VISOR
+   🎮 REGLAS DE NITIDEZ PIXEL ART Y CANVAS
    ============================================================================= */
 
-/* Forzar nitidez pixelada en todos los Canvas de la cuadrícula */
 .miniatura-slot canvas {
     width: 100% !important;
     height: 100% !important;
@@ -271,14 +325,6 @@ body {
     display: block;
 }
 
-/* Ajuste del contenedor de la carta al ser seleccionada */
-.miniatura-slot.poseida {
-    padding: 0;
-    overflow: hidden;
-    position: relative;
-}
-
-/* Estilo para las imágenes dentro del visor / modal desplegable */
 #contenido-carta-frontal img {
     width: 100%;
     height: 100%;

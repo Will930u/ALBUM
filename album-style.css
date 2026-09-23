@@ -312,8 +312,18 @@ body {
 }
 
 /* =============================================================================
-   🎮 REGLAS DE NITIDEZ PIXEL ART Y CANVAS (CORREGIDO)
+   🎮 REGLAS GENERALES Y ESPECÍFICAS DE NITIDEZ PIXEL ART Y CANVAS (AMPLIADO)
    ============================================================================= */
+
+/* Regla global para forzar renderizado Pixel Art en todo el álbum */
+canvas,
+img {
+    image-rendering: pixelated !important;
+    image-rendering: crisp-edges !important;
+    image-rendering: -moz-crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    -ms-interpolation-mode: nearest-neighbor !important;
+}
 
 .miniatura-slot canvas,
 .miniatura-slot img {
@@ -323,6 +333,8 @@ body {
     image-rendering: pixelated !important;
     image-rendering: crisp-edges !important;
     image-rendering: -moz-crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    -ms-interpolation-mode: nearest-neighbor !important;
     display: block;
 }
 
@@ -334,8 +346,11 @@ body {
     image-rendering: pixelated !important;
     image-rendering: crisp-edges !important;
     image-rendering: -moz-crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    -ms-interpolation-mode: nearest-neighbor !important;
     display: block;
 }
+
 /* =============================================================================
    🚀 PANTALLA DE PORTADA DE BIENVENIDA (SPLASH SCREEN)
    ============================================================================= */

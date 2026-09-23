@@ -376,7 +376,7 @@ function renderizarLibro(pagina) {
 }
 
 // =============================================================================
-// 🎨 MOTOR DE LECTURA DE IMÁGENES GUARDADAS DESDE ADMIN Y CANVAS 2D
+// 🎨 MOTOR DE EXTRACCIÓN Y PARSEO DE ESTRUCTURAS DE SUPABASE
 // =============================================================================
 function extraerAtributosCarta(datosCarta) {
     let config = {};
@@ -387,43 +387,33 @@ function extraerAtributosCarta(datosCarta) {
         return { config, urlImagen: "", personajeData: null, fondoColor: "#090a14", marcoColor: "#00f3ff" };
     }
 
-    // 1. Prioridad: Campos de imagen directa
-    if (typeof datosCarta.imagen_base64 === 'string' && datosCarta.imagen_base64.trim() !== '') {
-        urlImagen = datosCarta.imagen_base64.trim();
-    } else if (typeof datosCarta.imagen === 'string' && datosCarta.imagen.trim() !== '') {
-        urlImagen = datosCarta.imagen.trim();
-    }
+    // Evaluar todas las columnas posibles retornadas por la DB
+    const rawImagen = datosCarta.imagen_url || datosCarta.imagen_base64 || datosCarta.imagen || "";
 
-    // 2. Analizar campo 'imagen_url' (puede traer Base64, URL pública o JSON guardado desde Admin)
-    if (typeof datosCarta.imagen_url === 'string') {
-        const str = datosCarta.imagen_url.trim();
-        if (str.startsWith('data:image') || str.startsWith('http')) {
-            if (!urlImagen) urlImagen = str;
-        } else if (str.startsWith('{')) {
+    if (typeof rawImagen === 'object' && rawImagen !== null) {
+        config = rawImagen;
+        personajeData = config.personajeData || config.personaje || config;
+        urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
+    } else if (typeof rawImagen === 'string') {
+        const str = rawImagen.trim();
+
+        if (str.startsWith('{')) {
             try {
                 config = JSON.parse(str);
-                if (config.personajeData) {
-                    personajeData = config.personajeData;
-                }
-                if (!urlImagen) {
-                    urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
-                }
+                personajeData = config.personajeData || config.personaje || config;
+                urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
             } catch (e) {
                 config = {};
             }
-        } else if (str.length > 50) {
-            // Es un string Base64 puro sin encabezado guardado desde Admin
-            if (!urlImagen) urlImagen = str;
-        }
-    } else if (typeof datosCarta.imagen_url === 'object' && datosCarta.imagen_url !== null) {
-        config = datosCarta.imagen_url;
-        if (config.personajeData) personajeData = config.personajeData;
-        if (!urlImagen) {
-            urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
+        } else if (str.startsWith('http') || str.startsWith('data:image')) {
+            urlImagen = str;
+        } else if (str.length > 30) {
+            // Es un base64 crudo guardado sin encabezado MIME
+            urlImagen = `data:image/png;base64,${str}`;
         }
     }
 
-    // 3. Formatear Base64 si le falta la cabecera data:image/png;base64,
+    // Garantizar formato data:image
     if (urlImagen && !urlImagen.startsWith('http') && !urlImagen.startsWith('data:image')) {
         urlImagen = `data:image/png;base64,${urlImagen}`;
     }
@@ -462,10 +452,10 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(0, 0, 32, 32);
     }
 
-    const skin = data.skin?.base || '#ffe0bd';
-    const hair = data.hair?.base || '#3b82f6';
-    const eyes = data.eyeColor || '#2563eb';
-    const cloth = data.clothColor || '#1e1b4b';
+    const skin = data.skin?.base || data.skin || '#ffe0bd';
+    const hair = data.hair?.base || data.hair || '#3b82f6';
+    const eyes = data.eyeColor || data.eyes || '#2563eb';
+    const cloth = data.clothColor || data.clothing || '#1e1b4b';
 
     // Cuerpo / Ropa
     ctx.fillStyle = cloth;
@@ -518,7 +508,6 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         esImagen: false
     };
 
-    // Cargar la imagen procesada guardada por el Admin
     if (infoExtraida.urlImagen && (infoExtraida.urlImagen.startsWith('data:image') || infoExtraida.urlImagen.startsWith('http'))) {
         const imgObj = new Image();
         imgObj.crossOrigin = "anonymous";
@@ -538,7 +527,7 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
 
 function iniciarBucleAnimacionGlobal() {
     function animar(timestamp) {
-        const t = timestamp * 0.0025; // Control de tiempo general
+        const t = timestamp * 0.0025;
 
         canvasAnimados.forEach(item => {
             const { canvas, ctx, datosCarta, idCarta, config, personajeData, esImagen, img } = item;
@@ -554,7 +543,7 @@ function iniciarBucleAnimacionGlobal() {
             if (esImagen && img && img.complete) {
                 ctx.save();
 
-                // 1. GIRO DE CABEZA / INCLINACIÓN CORPORAL (Eje central)
+                // 1. GIRO DE CABEZA / INCLINACIÓN CORPORAL
                 const anguloGiro = Math.sin(t * 0.8 + idCarta) * 0.05; 
                 const traslacionX = Math.cos(t * 0.5 + idCarta) * 2;
                 const traslacionY = Math.sin(t * 1.2 + idCarta) * 2;
@@ -562,10 +551,9 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.translate(w / 2 + traslacionX, h / 2 + traslacionY);
                 ctx.rotate(anguloGiro);
 
-                // Dibujar Cuerpo Principal / Fondo de Personaje
                 ctx.drawImage(img, 0, 0, img.width, img.height, -w / 2, -h / 2, w, h);
 
-                // 2. PARPADEO DE OJOS (Recorte y escala vertical acelerada)
+                // 2. PARPADEO DE OJOS
                 const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
                 let escalaOjoY = 1;
                 if (tiempoParpadeo > 3.7) { 
@@ -589,7 +577,7 @@ function iniciarBucleAnimacionGlobal() {
                     ctx.restore();
                 }
 
-                // 3. MOVIMIENTO DE BOCA (Gesticulación / Habla)
+                // 3. MOVIMIENTO DE BOCA
                 const aperturaBoca = Math.sin(t * 3.5 + idCarta) * 0.12;
                 if (aperturaBoca > 0.02) {
                     const bocaSrcY = img.height * 0.52;
@@ -640,7 +628,7 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.drawImage(offCanvas, targetX, targetY, targetSize, targetSize);
                 ctx.restore();
             } else {
-                // ANIMACIÓN EMOJI FALLBACK: Flotación
+                // ANIMACIÓN EMOJI FALLBACK
                 ctx.save();
                 
                 const offsetY = Math.sin(t * 1.5 + idCarta) * 4;
@@ -715,7 +703,7 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
         </div>
     `;
 
-    if (info.personajeData) {
+    if (info.personajeData && !info.urlImagen) {
         setTimeout(() => {
             const canvasVisor = document.getElementById(`canvas-visor-${idCarta}`);
             if (canvasVisor) {

@@ -256,3 +256,35 @@ body {
     color: #00f3ff;
     text-shadow: 0 0 8px #00f3ff;
 }
+/* =============================================================================
+   🎮 REGLAS DE NITOR Y AJUSTE DE IMÁGENES PIXEL ART EN CANVAS Y VISOR
+   ============================================================================= */
+
+/* Forzar nitidez pixelada en todos los Canvas de la cuadrícula */
+.miniatura-slot canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    image-rendering: -moz-crisp-edges;
+    display: block;
+}
+
+/* Ajuste del contenedor de la carta al ser seleccionada */
+.miniatura-slot.poseida {
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Estilo para las imágenes dentro del visor / modal desplegable */
+#contenido-carta-frontal img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    image-rendering: -moz-crisp-edges;
+    display: block;
+}

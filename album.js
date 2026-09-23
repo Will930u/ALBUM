@@ -293,7 +293,6 @@ async function enviarSolicitudPremio() {
             banco: banco
         };
 
-        // Se envía el JSON como text/plain para evitar bloqueos de pre-flight CORS en el navegador
         const res = await fetch(GAS_BACKEND_URL, {
             method: "POST",
             headers: {
@@ -312,7 +311,6 @@ async function enviarSolicitudPremio() {
             alert("Atención: " + data.message);
         }
     } catch (e) {
-        // En caso de que GAS responda con redirección y el navegador oculte la respuesta por CORS
         console.warn("Aviso de red durante el envío:", e);
         alert("¡Solicitud enviada a la matriz! Si la información es correcta, tu pago será procesado pronto.");
         document.getElementById('modal-ganador-premio').style.display = 'none';
@@ -321,6 +319,7 @@ async function enviarSolicitudPremio() {
         btnEnviar.innerText = "ENVIAR Y RECLAMAR PREMIO";
     }
 }
+
 async function consultarEstadoPremiosYComprobantes() {
     try {
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
@@ -426,16 +425,56 @@ function renderizarLibro(pagina) {
 // =============================================================================
 // 🎨 MOTOR DE EXTRACCIÓN Y PARSEO DE ESTRUCTURAS DE SUPABASE
 // =============================================================================
-function extraerAtributosCarta(datosCarta) {
+function generarPersonajeProceduralAutomatico(idCarta) {
+    const fondos = ['cyberpunk', 'matrix', 'sunset', 'neon_grid', 'deep_space', 'city_night'];
+    const ojosColores = ['#00f3ff', '#ff007f', '#a855f7', '#22c55e', '#eab308', '#3b82f6'];
+    const cabellosColores = [
+        { base: '#3b82f6', shadow: '#1d4ed8', highlight: '#93c5fd' },
+        { base: '#ec4899', shadow: '#be185d', highlight: '#fbcfe8' },
+        { base: '#a855f7', shadow: '#6b21a8', highlight: '#e9d5ff' },
+        { base: '#10b981', shadow: '#047857', highlight: '#a7f3d0' },
+        { base: '#f59e0b', shadow: '#b45309', highlight: '#fde68a' },
+        { base: '#64748b', shadow: '#334155', highlight: '#cbd5e1' }
+    ];
+    const trajesTipos = ['cyber_armor', 'jacket', 'kimono', 'casual', 'dress'];
+    const accesorios = ['none', 'glasses', 'cyber_vr', 'earrings'];
+
+    // Alternar género según ID (femenino en pares/impares según semilla)
+    const esFemenino = (idCarta % 2 === 0);
+    const bgType = fondos[idCarta % fondos.length];
+    const eyeColor = ojosColores[idCarta % ojosColores.length];
+    const hair = cabellosColores[idCarta % cabellosColores.length];
+    const clothType = trajesTipos[idCarta % trajesTipos.length];
+    const accessory = accesorios[idCarta % accesorios.length];
+
+    return {
+        gender: esFemenino ? 'female' : 'male',
+        bgType: bgType,
+        eyeColor: eyeColor,
+        hair: hair,
+        skin: { base: esFemenino ? '#ffe4e1' : '#ffe0bd', shadow: esFemenino ? '#f3a6a1' : '#d4a373' },
+        clothType: clothType,
+        clothColor: esFemenino ? '#4a154b' : '#1e1b4b',
+        clothDetail: esFemenino ? '#ff007f' : '#00f3ff',
+        accessory: accessory
+    };
+}
+
+function extraerAtributosCarta(datosCarta, idCarta = 1) {
     let config = {};
     let urlImagen = "";
     let personajeData = null;
 
     if (!datosCarta) {
-        return { config, urlImagen: "", personajeData: null, fondoColor: "#090a14", marcoColor: "#00f3ff" };
+        return { 
+            config, 
+            urlImagen: "", 
+            personajeData: generarPersonajeProceduralAutomatico(idCarta), 
+            fondoColor: "#090a14", 
+            marcoColor: "#00f3ff" 
+        };
     }
 
-    // Evaluar todas las columnas posibles retornadas por la DB
     const rawImagen = datosCarta.imagen_url || datosCarta.imagen_base64 || datosCarta.imagen || "";
 
     if (typeof rawImagen === 'object' && rawImagen !== null) {
@@ -456,14 +495,16 @@ function extraerAtributosCarta(datosCarta) {
         } else if (str.startsWith('http') || str.startsWith('data:image')) {
             urlImagen = str;
         } else if (str.length > 30) {
-            // Es un base64 crudo guardado sin encabezado MIME
             urlImagen = `data:image/png;base64,${str}`;
         }
     }
 
-    // Garantizar formato data:image
     if (urlImagen && !urlImagen.startsWith('http') && !urlImagen.startsWith('data:image')) {
         urlImagen = `data:image/png;base64,${urlImagen}`;
+    }
+
+    if (!personajeData && !urlImagen) {
+        personajeData = generarPersonajeProceduralAutomatico(idCarta);
     }
 
     return {
@@ -476,7 +517,7 @@ function extraerAtributosCarta(datosCarta) {
 }
 
 // =============================================================================
-// 👾 MOTOR PROCEDURAL DE PIXEL ART DETALLADO (VERSION AVANZADA ANIME)
+// 👾 MOTOR PROCEDURAL DE PIXEL ART DETALLADO (MASCULINO Y FEMENINO)
 // =============================================================================
 
 function drawAnimeBackground(ctx, bgType, width = 32, height = 32) {
@@ -511,6 +552,22 @@ function drawAnimeBackground(ctx, bgType, width = 32, height = 32) {
         grad.addColorStop(1, '#f7b05b');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, height);
+    } else if (bgType === 'neon_grid') {
+        ctx.fillStyle = '#050515';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#ff007f';
+        for (let y = 0; y < height; y += 4) ctx.fillRect(0, y, width, 1);
+        ctx.fillStyle = '#00f3ff';
+        for (let x = 0; x < width; x += 4) ctx.fillRect(x, 0, 1, height);
+    } else if (bgType === 'deep_space') {
+        ctx.fillStyle = '#030712';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < 15; i++) {
+            let sx = (i * 7) % width;
+            let sy = (i * 13) % height;
+            ctx.fillRect(sx, sy, 1, 1);
+        }
     } else {
         let grad = ctx.createLinearGradient(0, 0, width, height);
         grad.addColorStop(0, '#111827');
@@ -523,58 +580,80 @@ function drawAnimeBackground(ctx, bgType, width = 32, height = 32) {
 function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
     if (!ctx || !data) return;
 
+    const gender = data.gender || 'male';
     const bgType = data.bgType || 'cyberpunk';
     drawAnimeBackground(ctx, bgType, 32, 32);
 
-    const skinBase = data.skin?.base || (typeof data.skin === 'string' ? data.skin : '#ffe0bd');
+    const skinBase = data.skin?.base || '#ffe0bd';
     const skinShadow = data.skin?.shadow || '#d4a373';
-    const hairBase = data.hair?.base || (typeof data.hair === 'string' ? data.hair : '#3b82f6');
+    const hairBase = data.hair?.base || '#3b82f6';
     const hairShadow = data.hair?.shadow || '#1d4ed8';
     const hairHighlight = data.hair?.highlight || '#93c5fd';
-    const eyeColor = data.eyeColor || data.eyes || '#2563eb';
-    const clothBase = data.clothColor || data.clothing || '#1e1b4b';
+    const eyeColor = data.eyeColor || '#2563eb';
+    const clothBase = data.clothColor || '#1e1b4b';
     const clothDetail = data.clothDetail || '#3b82f6';
+    const clothType = data.clothType || 'casual';
     const accessory = data.accessory || 'none';
 
-    // 1. ROPA / TORSO
+    // 1. ROPA / VESTUARIO DIVERSO
     ctx.fillStyle = clothBase;
     ctx.fillRect(8, 22, 16, 10);
 
-    // Cuello de Camisa / Detalles
-    ctx.fillStyle = clothDetail;
-    ctx.fillRect(13, 22, 6, 4);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(14, 22, 4, 3);
-    ctx.fillStyle = '#ef4444'; // Corbata / Adorno
-    ctx.fillRect(15, 23, 2, 5);
+    if (clothType === 'cyber_armor') {
+        ctx.fillStyle = clothDetail;
+        ctx.fillRect(10, 22, 12, 3);
+        ctx.fillRect(12, 25, 8, 4);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(15, 23, 2, 2);
+    } else if (clothType === 'kimono') {
+        ctx.fillStyle = clothDetail;
+        ctx.beginPath();
+        ctx.fillRect(10, 22, 4, 10);
+        ctx.fillRect(18, 22, 4, 10);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(14, 22, 4, 3);
+    } else if (clothType === 'dress') {
+        ctx.fillStyle = clothDetail;
+        ctx.fillRect(11, 22, 10, 10);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(13, 22, 6, 2);
+    } else {
+        ctx.fillStyle = clothDetail;
+        ctx.fillRect(13, 22, 6, 4);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(14, 22, 4, 3);
+    }
 
-    // 2. CUELLO Y BASE DE CABEZA
+    // 2. CUELLO Y ROSTRO
     ctx.fillStyle = skinShadow;
-    ctx.fillRect(13, 19, 6, 4);
+    ctx.fillRect(13, 19, 6, 3);
 
     ctx.fillStyle = skinBase;
-    ctx.fillRect(10, 10, 12, 10);
-    ctx.fillRect(11, 20, 10, 1);
+    ctx.fillRect(11, 10, 10, 10);
 
-    // Sombras de Rostro (Mandíbula y lateral)
-    ctx.fillStyle = skinShadow;
-    ctx.fillRect(10, 18, 1, 3);
-    ctx.fillRect(21, 18, 1, 3);
-    ctx.fillRect(12, 20, 8, 1);
+    // Suavizado de barbilla para personajes femeninos
+    if (gender === 'female') {
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(11, 19, 1, 1);
+        ctx.fillRect(20, 19, 1, 1);
+        ctx.fillRect(13, 20, 6, 1);
+    } else {
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(10, 18, 1, 3);
+        ctx.fillRect(21, 18, 1, 3);
+        ctx.fillRect(12, 20, 8, 1);
+    }
 
-    // 3. OJOS ANIME DETALLADOS
+    // 3. OJOS ANIME (DETALLE FEMENINO vs MASCULINO)
     if (!blinking) {
-        // Base Blanca del Ojo
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(12, 13, 3, 4);
         ctx.fillRect(17, 13, 3, 4);
 
-        // Iris de Color
         ctx.fillStyle = eyeColor;
         ctx.fillRect(13, 14, 2, 3);
         ctx.fillRect(17, 14, 2, 3);
 
-        // Pupila y Brillo
         ctx.fillStyle = '#000000';
         ctx.fillRect(13, 15, 1, 2);
         ctx.fillRect(17, 15, 1, 2);
@@ -583,52 +662,60 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(14, 13, 1, 1);
         ctx.fillRect(18, 13, 1, 1);
 
-        // Pestañas / Parpado Superior
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(12, 13, 3, 1);
         ctx.fillRect(17, 13, 3, 1);
+
+        // Pestañas extendidas si es femenino
+        if (gender === 'female') {
+            ctx.fillRect(11, 13, 1, 2);
+            ctx.fillRect(20, 13, 1, 2);
+        }
     } else {
-        // Parpadeo (Ojos Cerrados)
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(12, 15, 3, 1);
         ctx.fillRect(17, 15, 3, 1);
     }
 
-    // Cejas
-    ctx.fillStyle = hairShadow;
-    ctx.fillRect(12, 12, 3, 1);
-    ctx.fillRect(17, 12, 3, 1);
-
     // Nariz y Boca
     ctx.fillStyle = skinShadow;
-    ctx.fillRect(15, 16, 1, 1); // Nariz
-    ctx.fillStyle = '#b91c1c';
-    ctx.fillRect(15, 18, 2, 1); // Boca
+    ctx.fillRect(15, 16, 1, 1);
+    ctx.fillStyle = gender === 'female' ? '#ff0055' : '#b91c1c';
+    ctx.fillRect(15, 18, 2, 1);
 
-    // 4. CABELLO (ESTILO ANIME)
+    // 4. PEINADOS (FEMENINOS Y MASCULINOS)
     ctx.fillStyle = hairBase;
-    // Parte Superior
-    ctx.fillRect(9, 7, 14, 5);
-    // Mechones Laterales
-    ctx.fillRect(8, 10, 3, 8);
-    ctx.fillRect(21, 10, 3, 8);
-    // Flequillo Anime (Mechones frontales)
-    ctx.fillRect(11, 10, 3, 3);
-    ctx.fillRect(15, 10, 2, 2);
-    ctx.fillRect(18, 10, 3, 3);
 
-    // Sombras del Cabello
-    ctx.fillStyle = hairShadow;
-    ctx.fillRect(8, 15, 2, 4);
-    ctx.fillRect(22, 15, 2, 4);
-    ctx.fillRect(9, 7, 14, 1);
+    if (gender === 'female') {
+        // Cabello Largo / Flequillo Femenino
+        ctx.fillRect(8, 6, 16, 6);
+        ctx.fillRect(7, 11, 4, 11);
+        ctx.fillRect(21, 11, 4, 11);
+        ctx.fillRect(12, 10, 3, 3);
+        ctx.fillRect(17, 10, 3, 3);
 
-    // Brillos del Cabello (Highlights)
+        ctx.fillStyle = hairShadow;
+        ctx.fillRect(7, 16, 2, 6);
+        ctx.fillRect(23, 16, 2, 6);
+    } else {
+        // Cabello Corto / Spiky Masculino
+        ctx.fillRect(9, 7, 14, 5);
+        ctx.fillRect(8, 10, 3, 8);
+        ctx.fillRect(21, 10, 3, 8);
+        ctx.fillRect(11, 10, 3, 3);
+        ctx.fillRect(15, 10, 2, 2);
+        ctx.fillRect(18, 10, 3, 3);
+
+        ctx.fillStyle = hairShadow;
+        ctx.fillRect(8, 15, 2, 4);
+        ctx.fillRect(22, 15, 2, 4);
+    }
+
     ctx.fillStyle = hairHighlight;
-    ctx.fillRect(11, 8, 4, 1);
-    ctx.fillRect(17, 8, 4, 1);
+    ctx.fillRect(11, 7, 4, 1);
+    ctx.fillRect(17, 7, 4, 1);
 
-    // 5. ACCESORIOS OPIONALES
+    // 5. ACCESORIOS
     if (accessory === 'glasses') {
         ctx.fillStyle = '#00f3ff';
         ctx.fillRect(11, 13, 4, 3);
@@ -641,11 +728,15 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(11, 12, 10, 4);
         ctx.fillStyle = '#00f3ff';
         ctx.fillRect(13, 13, 6, 2);
+    } else if (accessory === 'earrings' && gender === 'female') {
+        ctx.fillStyle = '#eab308';
+        ctx.fillRect(10, 18, 1, 2);
+        ctx.fillRect(21, 18, 1, 2);
     }
 }
 
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
-    const infoExtraida = extraerAtributosCarta(datosCarta);
+    const infoExtraida = extraerAtributosCarta(datosCarta, idCarta);
 
     const canvas = document.createElement('canvas');
     canvas.width = 120;
@@ -697,14 +788,12 @@ function iniciarBucleAnimacionGlobal() {
 
             ctx.clearRect(0, 0, w, h);
 
-            // Fondo base Neón
             ctx.fillStyle = config.fondoColor || config.colorFondo || "#090a14";
             ctx.fillRect(0, 0, w, h);
 
             if (esImagen && img && img.complete) {
                 ctx.save();
 
-                // 1. GIRO DE CABEZA / INCLINACIÓN CORPORAL
                 const anguloGiro = Math.sin(t * 0.8 + idCarta) * 0.05; 
                 const traslacionX = Math.cos(t * 0.5 + idCarta) * 2;
                 const traslacionY = Math.sin(t * 1.2 + idCarta) * 2;
@@ -714,7 +803,6 @@ function iniciarBucleAnimacionGlobal() {
 
                 ctx.drawImage(img, 0, 0, img.width, img.height, -w / 2, -h / 2, w, h);
 
-                // 2. PARPADEO DE OJOS
                 const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
                 let escalaOjoY = 1;
                 if (tiempoParpadeo > 3.7) { 
@@ -738,7 +826,6 @@ function iniciarBucleAnimacionGlobal() {
                     ctx.restore();
                 }
 
-                // 3. MOVIMIENTO DE BOCA
                 const aperturaBoca = Math.sin(t * 3.5 + idCarta) * 0.12;
                 if (aperturaBoca > 0.02) {
                     const bocaSrcY = img.height * 0.52;
@@ -759,7 +846,6 @@ function iniciarBucleAnimacionGlobal() {
 
                 ctx.restore();
 
-                // Efecto Barrido Holográfico Neón
                 const holoGradient = ctx.createLinearGradient(0, (t * 50) % (h * 2) - h, w, (t * 50) % (h * 2));
                 holoGradient.addColorStop(0, "rgba(255,0,127,0)");
                 holoGradient.addColorStop(0.5, "rgba(0,243,255,0.2)");
@@ -769,7 +855,6 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.fillRect(0, 0, w, h);
 
             } else if (personajeData) {
-                // RENDERIZADO PROCEDURAL PIXEL ART DESDE JSON AVANZADO
                 ctx.save();
                 const offCanvas = document.createElement('canvas');
                 offCanvas.width = 32;
@@ -789,7 +874,6 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.drawImage(offCanvas, targetX, targetY, targetSize, targetSize);
                 ctx.restore();
             } else {
-                // ANIMACIÓN EMOJI FALLBACK
                 ctx.save();
                 
                 const offsetY = Math.sin(t * 1.5 + idCarta) * 4;
@@ -809,12 +893,10 @@ function iniciarBucleAnimacionGlobal() {
                 ctx.restore();
             }
 
-            // MARCO NEÓN CON PULSACIÓN DE BORDE
             ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#00f3ff";
             ctx.lineWidth = 4 + Math.sin(t * 2 + idCarta) * 2;
             ctx.strokeRect(2, 2, w - 4, h - 4);
 
-            // ZÓCALO DE IDENTIFICACIÓN CYBER
             ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
             ctx.fillRect(4, h - 26, w - 8, 22);
 
@@ -840,7 +922,7 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     const rareza = datosCarta?.rareza || 'Común';
     const lore = datosCarta?.lore || 'Sin datos de archivos disponibles.';
 
-    const info = extraerAtributosCarta(datosCarta);
+    const info = extraerAtributosCarta(datosCarta, idCarta);
     const simbolo = info.config.simbolo || '👾';
 
     let elementoVisual = "";

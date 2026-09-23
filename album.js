@@ -424,6 +424,8 @@ function iniciarBucleAnimacionGlobal() {
             const h = canvas.height;
 
             ctx.clearRect(0, 0, w, h);
+            // Desactivar el suavizado interno del motor Canvas para nitidez 8-bit exacta
+            ctx.imageSmoothingEnabled = false;
 
             // Fondo base Neón
             ctx.fillStyle = config.fondoColor || config.colorFondo || "#090a14";

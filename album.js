@@ -362,8 +362,10 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let config = {};
     let urlImagen = "";
 
-    // 1. Extraer la imagen o la configuración JSON
-    if (typeof datosCarta?.imagen_url === 'string') {
+    // 1. Extraer la imagen o la configuración JSON desde Supabase (Tabla Cartas)
+    if (datosCarta?.imagen_base64) {
+        urlImagen = datosCarta.imagen_base64;
+    } else if (typeof datosCarta?.imagen_url === 'string') {
         if (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http')) {
             urlImagen = datosCarta.imagen_url;
         } else {
@@ -399,7 +401,7 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         esImagen: false
     };
 
-    // 2. Si hay imagen, se carga en memoria
+    // 2. Si hay imagen en Base64 o URL de Supabase, cargarla directamente
     if (urlImagen && (urlImagen.startsWith('data:image') || urlImagen.startsWith('http'))) {
         const imgObj = new Image();
         imgObj.crossOrigin = "anonymous";
@@ -425,8 +427,8 @@ function iniciarBucleAnimacionGlobal() {
 
             ctx.clearRect(0, 0, w, h);
 
-            // Fondo Neón
-            ctx.fillStyle = config?.fondoColor || "#090a14";
+            // Fondo Neón personalizado por carta
+            ctx.fillStyle = config?.fondoColor || config?.colorFondo || "#090a14";
             ctx.fillRect(0, 0, w, h);
 
             if (esImagen && img && img.complete) {
@@ -436,80 +438,81 @@ function iniciarBucleAnimacionGlobal() {
                 const offsetY = Math.sin(t * 1.5 + idCarta) * 2;
                 ctx.translate(0, offsetY);
 
-                // Dibujar la imagen real del personaje completa
+                // Dibujar la imagen real del personaje registrada en la base de datos
                 ctx.drawImage(img, 0, 0, w, h);
                 
                 ctx.restore();
             } else {
-                // Renderizar capas completas de personajeData con dinamismo (Respiración + Parpadeo)
+                // Renderizar atributos específicos del personaje extraídos de Supabase
                 ctx.save();
                 const pData = config?.personajeData || config;
                 const centroX = w / 2;
-                const offsetY = Math.sin(t * 1.5 + idCarta) * 2.5; // Movimiento dinámico de respiración
+                const offsetY = Math.sin(t * 1.5 + idCarta) * 2.5; // Respiración dinámica
                 const inicioY = 25 + offsetY;
 
-                if (pData) {
-                    // 1. Fondo interno con retícula neón
-                    ctx.fillStyle = config?.fondoColor || "#181124";
-                    ctx.fillRect(10, 10, w - 20, h - 35);
-                    
-                    ctx.strokeStyle = "rgba(168, 85, 247, 0.4)";
-                    ctx.lineWidth = 1;
-                    for (let gx = 10; gx < w - 10; gx += 12) {
-                        ctx.beginPath(); ctx.moveTo(gx, 10); ctx.lineTo(gx, h - 25); ctx.stroke();
-                    }
-                    for (let gy = 10; gy < h - 25; gy += 12) {
-                        ctx.beginPath(); ctx.moveTo(10, gy); ctx.lineTo(w - 10, gy); ctx.stroke();
-                    }
-
-                    // 2. Traje, Camisa y Corbata
-                    const colorRopa = pData?.ropa?.color || pData?.traje || "#6b173d";
-                    ctx.fillStyle = colorRopa;
-                    ctx.fillRect(centroX - 22, inicioY + 45, 44, 35);
-
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(centroX - 8, inicioY + 45, 16, 20);
-
-                    ctx.fillStyle = pData?.corbata || "#ef4444";
-                    ctx.fillRect(centroX - 3, inicioY + 48, 6, 15);
-
-                    // 3. Piel (Cabeza y Cuello)
-                    const colorPiel = pData?.skin?.base || pData?.skin || "#f8c291";
-                    ctx.fillStyle = colorPiel;
-                    ctx.fillRect(centroX - 6, inicioY + 40, 12, 8);
-                    ctx.fillRect(centroX - 18, inicioY + 12, 36, 32);
-
-                    // 4. Ojos detallados (Fondo blanco + Pupila de color + Parpadeo aleatorio)
-                    const colorOjos = pData?.ojos?.color || pData?.ojos || "#8b5cf6";
-                    const esParpadeo = Math.sin(t * 3 + idCarta * 10) > 0.96;
-                    
-                    if (!esParpadeo) {
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fillRect(centroX - 14, inicioY + 20, 10, 12);
-                        ctx.fillRect(centroX + 4, inicioY + 20, 10, 12);
-                        
-                        ctx.fillStyle = colorOjos;
-                        ctx.fillRect(centroX - 12, inicioY + 22, 6, 8);
-                        ctx.fillRect(centroX + 6, inicioY + 22, 6, 8);
-                    } else {
-                        // Ojos cerrados/parpadeando
-                        ctx.fillStyle = "#000000";
-                        ctx.fillRect(centroX - 14, inicioY + 25, 10, 2);
-                        ctx.fillRect(centroX + 4, inicioY + 25, 10, 2);
-                    }
-
-                    // 5. Cabello / Peinado
-                    const colorPelo = pData?.cabello?.color || pData?.pelo || "#ef4444";
-                    ctx.fillStyle = colorPelo;
-                    ctx.fillRect(centroX - 20, inicioY + 4, 40, 12);
-                    ctx.fillRect(centroX - 16, inicioY + 14, 8, 10);
-                    ctx.fillRect(centroX + 8, inicioY + 14, 8, 10);
+                // 1. Fondo interno con retícula neón
+                ctx.fillStyle = config?.fondoColor || config?.colorFondo || "#181124";
+                ctx.fillRect(10, 10, w - 20, h - 35);
+                
+                ctx.strokeStyle = "rgba(168, 85, 247, 0.4)";
+                ctx.lineWidth = 1;
+                for (let gx = 10; gx < w - 10; gx += 12) {
+                    ctx.beginPath(); ctx.moveTo(gx, 10); ctx.lineTo(gx, h - 25); ctx.stroke();
                 }
+                for (let gy = 10; gy < h - 25; gy += 12) {
+                    ctx.beginPath(); ctx.moveTo(10, gy); ctx.lineTo(w - 10, gy); ctx.stroke();
+                }
+
+                // Extraer propiedades dinámicas de la carta actual desde Supabase
+                const colorRopa = pData?.ropa?.color || pData?.traje || pData?.colorRopa || "#6b173d";
+                const colorPiel = pData?.skin?.base || pData?.skin || pData?.colorPiel || "#f8c291";
+                const colorOjos = pData?.ojos?.color || pData?.ojos || pData?.colorOjos || "#8b5cf6";
+                const colorPelo = pData?.cabello?.color || pData?.pelo || pData?.colorPelo || "#ef4444";
+                const colorCorbata = pData?.corbata || pData?.colorCorbata || "#ef4444";
+
+                // 2. Traje, Camisa y Corbata
+                ctx.fillStyle = colorRopa;
+                ctx.fillRect(centroX - 22, inicioY + 45, 44, 35);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(centroX - 8, inicioY + 45, 16, 20);
+
+                ctx.fillStyle = colorCorbata;
+                ctx.fillRect(centroX - 3, inicioY + 48, 6, 15);
+
+                // 3. Piel (Cabeza y Cuello)
+                ctx.fillStyle = colorPiel;
+                ctx.fillRect(centroX - 6, inicioY + 40, 12, 8);
+                ctx.fillRect(centroX - 18, inicioY + 12, 36, 32);
+
+                // 4. Ojos (Con soporte para parpadeo dinámico)
+                const esParpadeo = Math.sin(t * 3 + idCarta * 10) > 0.96;
+                
+                if (!esParpadeo) {
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(centroX - 14, inicioY + 20, 10, 12);
+                    ctx.fillRect(centroX + 4, inicioY + 20, 10, 12);
+                    
+                    ctx.fillStyle = colorOjos;
+                    ctx.fillRect(centroX - 12, inicioY + 22, 6, 8);
+                    ctx.fillRect(centroX + 6, inicioY + 22, 6, 8);
+                } else {
+                    ctx.fillStyle = "#000000";
+                    ctx.fillRect(centroX - 14, inicioY + 25, 10, 2);
+                    ctx.fillRect(centroX + 4, inicioY + 25, 10, 2);
+                }
+
+                // 5. Cabello del Personaje
+                ctx.fillStyle = colorPelo;
+                ctx.fillRect(centroX - 20, inicioY + 4, 40, 12);
+                ctx.fillRect(centroX - 16, inicioY + 14, 8, 10);
+                ctx.fillRect(centroX + 8, inicioY + 14, 8, 10);
+
                 ctx.restore();
             }
 
             // Marco Neón
-            const colorMarco = config?.marcoColor || "#00f3ff";
+            const colorMarco = config?.marcoColor || config?.colorPrimario || "#00f3ff";
             ctx.strokeStyle = colorMarco;
             ctx.lineWidth = 3 + Math.sin(t * 2 + idCarta);
             ctx.strokeRect(2, 2, w - 4, h - 4);
@@ -518,7 +521,7 @@ function iniciarBucleAnimacionGlobal() {
             ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
             ctx.fillRect(4, h - 22, w - 8, 18);
 
-            ctx.fillStyle = "#00f3ff";
+            ctx.fillStyle = colorMarco;
             ctx.font = "6px 'Press Start 2P', monospace";
             ctx.textAlign = "center";
             const nombreVisual = datosCarta?.nombre || `CYBER #${idCarta}`;

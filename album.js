@@ -441,42 +441,62 @@ function iniciarBucleAnimacionGlobal() {
                 
                 ctx.restore();
             } else {
-                // Si la imagen aún no ha cargado o solo hay JSON, renderizar silueta pixel
+                // Renderizar capas completas de personajeData cuando no hay imagen base64
                 ctx.save();
                 const pData = config?.personajeData || config;
-                const colorPiel = pData?.skin?.base || pData?.skin || "#f1c27d";
-                
-                ctx.fillStyle = colorPiel;
-                ctx.fillRect(w / 2 - 20, h / 2 - 30, 40, 40);
-                
-                ctx.fillStyle = "#000000";
-                ctx.fillRect(w / 2 - 12, h / 2 - 18, 6, 6);
-                ctx.fillRect(w / 2 + 6, h / 2 - 18, 6, 6);
+                const centroX = w / 2;
+                const inicioY = 25;
+
+                if (pData) {
+                    // 1. Fondo interno con retícula neón
+                    ctx.fillStyle = config?.fondoColor || "#181124";
+                    ctx.fillRect(10, 10, w - 20, h - 35);
+                    
+                    ctx.strokeStyle = "rgba(168, 85, 247, 0.4)";
+                    ctx.lineWidth = 1;
+                    for (let gx = 10; gx < w - 10; gx += 12) {
+                        ctx.beginPath(); ctx.moveTo(gx, 10); ctx.lineTo(gx, h - 25); ctx.stroke();
+                    }
+                    for (let gy = 10; gy < h - 25; gy += 12) {
+                        ctx.beginPath(); ctx.moveTo(10, gy); ctx.lineTo(w - 10, gy); ctx.stroke();
+                    }
+
+                    // 2. Traje, Camisa y Corbata
+                    const colorRopa = pData?.ropa?.color || pData?.traje || "#6b173d";
+                    ctx.fillStyle = colorRopa;
+                    ctx.fillRect(centroX - 22, inicioY + 45, 44, 35);
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(centroX - 8, inicioY + 45, 16, 20);
+
+                    ctx.fillStyle = pData?.corbata || "#ef4444";
+                    ctx.fillRect(centroX - 3, inicioY + 48, 6, 15);
+
+                    // 3. Piel (Cabeza y Cuello)
+                    const colorPiel = pData?.skin?.base || pData?.skin || "#f8c291";
+                    ctx.fillStyle = colorPiel;
+                    ctx.fillRect(centroX - 6, inicioY + 40, 12, 8);
+                    ctx.fillRect(centroX - 18, inicioY + 12, 36, 32);
+
+                    // 4. Ojos detallados (Fondo blanco + Pupila de color)
+                    const colorOjos = pData?.ojos?.color || pData?.ojos || "#8b5cf6";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(centroX - 14, inicioY + 20, 10, 12);
+                    ctx.fillRect(centroX + 4, inicioY + 20, 10, 12);
+                    
+                    ctx.fillStyle = colorOjos;
+                    ctx.fillRect(centroX - 12, inicioY + 22, 6, 8);
+                    ctx.fillRect(centroX + 6, inicioY + 22, 6, 8);
+
+                    // 5. Cabello / Peinado
+                    const colorPelo = pData?.cabello?.color || pData?.pelo || "#ef4444";
+                    ctx.fillStyle = colorPelo;
+                    ctx.fillRect(centroX - 20, inicioY + 4, 40, 12);
+                    ctx.fillRect(centroX - 16, inicioY + 14, 8, 10);
+                    ctx.fillRect(centroX + 8, inicioY + 14, 8, 10);
+                }
                 ctx.restore();
             }
-
-            // Marco Neón
-            const colorMarco = config?.marcoColor || "#00f3ff";
-            ctx.strokeStyle = colorMarco;
-            ctx.lineWidth = 3 + Math.sin(t * 2 + idCarta);
-            ctx.strokeRect(2, 2, w - 4, h - 4);
-
-            // Etiqueta Nombre
-            ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
-            ctx.fillRect(4, h - 22, w - 8, 18);
-
-            ctx.fillStyle = "#00f3ff";
-            ctx.font = "6px 'Press Start 2P', monospace";
-            ctx.textAlign = "center";
-            const nombreVisual = datosCarta?.nombre || `CYBER #${idCarta}`;
-            ctx.fillText(nombreVisual.substring(0, 11), w / 2, h - 10);
-        });
-
-        requestAnimationFrame(animar);
-    }
-
-    requestAnimationFrame(animar);
-}
 
 function desplegarVisor(datosCarta, idCarta, cantidad) {
     const modalVisor = document.getElementById('modal-visor');

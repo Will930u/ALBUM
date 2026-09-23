@@ -23,6 +23,7 @@ body {
 }
 
 .interfaz-juego {
+    width: 100%;
     max-width: 480px;
     margin: 0 auto;
     padding: 10px;
@@ -172,7 +173,7 @@ body {
 }
 
 .miniatura-slot {
-    aspect-ratio: 120 / 160; /* Mantiene exactamente la proporción del Canvas original */
+    aspect-ratio: 120 / 160;
     background: #090a14;
     border: 1px dashed rgba(0, 243, 255, 0.3);
     border-radius: 6px;
@@ -312,10 +313,9 @@ body {
 }
 
 /* =============================================================================
-   🎮 REGLAS GENERALES Y ESPECÍFICAS DE NITIDEZ PIXEL ART Y CANVAS (AMPLIADO)
+   🎮 REGLAS GENERALES Y ESPECÍFICAS DE NITIDEZ PIXEL ART Y CANVAS
    ============================================================================= */
 
-/* Regla global para forzar renderizado Pixel Art en todo el álbum */
 canvas,
 img {
     image-rendering: pixelated !important;
@@ -329,7 +329,7 @@ img {
 .miniatura-slot img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: fill !important; /* Llena el marco respetando la proporción exacta */
+    object-fit: fill !important;
     image-rendering: pixelated !important;
     image-rendering: crisp-edges !important;
     image-rendering: -moz-crisp-edges !important;
@@ -363,7 +363,7 @@ img {
     height: 100vh;
     background: #05050c;
     background-image: radial-gradient(circle at 50% 50%, rgba(121, 40, 202, 0.2), transparent 70%);
-    z-index: 9999; /* Por encima de toda la interfaz */
+    z-index: 9999;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -386,7 +386,6 @@ img {
     max-width: 360px;
 }
 
-/* TÍTULO CON EFECTO NEÓN */
 .titulo-portada {
     font-family: 'Orbitron', sans-serif;
     font-size: 28px;
@@ -405,7 +404,6 @@ img {
     letter-spacing: 1px;
 }
 
-/* BOTÓN PLAY NEÓN CIRCULAR */
 .contenedor-play {
     display: flex;
     flex-direction: column;
@@ -452,7 +450,6 @@ img {
     filter: drop-shadow(0 0 4px #ff007f);
 }
 
-/* BARRA DE CARGA ANIMADA */
 .barra-carga-box {
     width: 100%;
     height: 6px;
@@ -474,4 +471,66 @@ img {
     font-family: 'Press Start 2P', monospace;
     font-size: 6px;
     color: #a5b4fc;
+}
+
+/* =============================================================================
+   📱 REGLAS ADAPTATIVAS ESPECÍFICAS PARA MÓVILES (PANTALLAS <= 480PX)
+   ============================================================================= */
+
+@media screen and (max-width: 480px) {
+    .interfaz-juego {
+        padding: 6px;
+    }
+
+    .titulo-album {
+        font-size: 15px;
+    }
+
+    .linea-era, 
+    .linea-conteo {
+        font-size: 6.5px;
+    }
+
+    .label-valor {
+        font-size: 5px;
+    }
+
+    .montos-valor {
+        font-size: 6px;
+        gap: 2px;
+    }
+
+    .pagina-cuadrula {
+        gap: 3px; /* Reduce brechas entre tarjetas para maximizar espacio */
+    }
+
+    .libro-contenedor {
+        padding: 4px;
+    }
+
+    .miniatura-slot {
+        font-size: 6px;
+    }
+
+    .badge-cantidad {
+        font-size: 5px;
+        padding: 1px 3px;
+    }
+
+    .indicador-pagina {
+        font-size: 6.5px;
+    }
+
+    .tg-username {
+        font-size: 6px;
+    }
+
+    .tg-fullname {
+        font-size: 5px;
+    }
+
+    .btn-retro {
+        font-size: 7px;
+        padding: 6px 4px;
+    }
 }

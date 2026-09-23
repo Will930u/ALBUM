@@ -63,6 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (elAno) elAno.innerText = new Date().getFullYear();
 
     await cargarInventarioInicial();
+    await verificarNotificacionesRechazadas();
     activarAlbumEnTiempoReal();
 
     document.getElementById('btn-anterior')?.addEventListener('click', () => {
@@ -130,39 +131,77 @@ async function cargarInventarioInicial() {
             return;
         }
 
+        // Consultar compras pendientes/aprobadas para fusionar estado
+        let { data: compras, error: errCompras } = await supabaseClient
+            .from('compras_barajitas')
+            .select('*')
+            .or(`user_id.ilike.${idLimpio},user_id.ilike.@${idLimpio}`)
+            .in('estado', ['pendiente', 'aprobado']);
+
+        if (errCompras) {
+            console.warn("⚠️ No se pudieron consultar compras pendientes:", errCompras.message);
+        }
+
         inventarioUsuarioCache.clear();
 
+        const setIdsCartas = new Set();
+
         if (coleccion && coleccion.length > 0) {
-            const idsCartas = coleccion.map(item => Number(item.carta_id)).filter(id => !isNaN(id));
+            coleccion.forEach(item => setIdsCartas.add(Number(item.carta_id)));
+        }
+        if (compras && compras.length > 0) {
+            compras.forEach(item => setIdsCartas.add(Number(item.barajita_id)));
+        }
 
-            const { data: datosCartas, error: errCartas } = await supabaseClient
-                .from('Cartas')
-                .select('*')
-                .in('id', idsCartas);
+        const idsArray = Array.from(setIdsCartas).filter(id => !isNaN(id));
 
-            if (errCartas) console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
+        const { data: datosCartas, error: errCartas } = await supabaseClient
+            .from('Cartas')
+            .select('*')
+            .in('id', idsArray);
 
-            const mapaCartas = new Map();
-            if (datosCartas) {
-                datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
-            }
+        if (errCartas) console.error("❌ Error leyendo la tabla Cartas:", errCartas.message);
 
+        const mapaCartas = new Map();
+        if (datosCartas) {
+            datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
+        }
+
+        // 1. Cargar colección aprobada de la tabla habitual
+        if (coleccion) {
             coleccion.forEach(item => {
                 if (item.carta_id !== undefined && item.carta_id !== null) {
                     const idCartaNum = Number(item.carta_id);
                     const cantidadNum = Number(item.cantidad) || 1;
                     const infoCarta = mapaCartas.get(idCartaNum);
                     
-                    // Si el registro ya existe en el Map, se consolida la cantidad de forma única
-                    if (inventarioUsuarioCache.has(idCartaNum)) {
-                        const existente = inventarioUsuarioCache.get(idCartaNum);
-                        existente.cantidad += cantidadNum;
-                    } else {
-                        inventarioUsuarioCache.set(idCartaNum, { 
-                            carta_id: idCartaNum, 
-                            cantidad: cantidadNum,
-                            datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
-                        });
+                    inventarioUsuarioCache.set(idCartaNum, { 
+                        carta_id: idCartaNum, 
+                        cantidad: cantidadNum,
+                        pendiente: false,
+                        datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
+                    });
+                }
+            });
+        }
+
+        // 2. Fusionar compras pendientes (marcar como translúcidas)
+        if (compras) {
+            compras.forEach(compra => {
+                const idCartaNum = Number(compra.barajita_id);
+                const infoCarta = mapaCartas.get(idCartaNum);
+
+                if (!inventarioUsuarioCache.has(idCartaNum)) {
+                    inventarioUsuarioCache.set(idCartaNum, {
+                        carta_id: idCartaNum,
+                        cantidad: 1,
+                        pendiente: (compra.estado === 'pendiente'),
+                        datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
+                    });
+                } else {
+                    const itemExistente = inventarioUsuarioCache.get(idCartaNum);
+                    if (compra.estado === 'pendiente' && itemExistente.cantidad === 0) {
+                        itemExistente.pendiente = true;
                     }
                 }
             });
@@ -177,6 +216,129 @@ async function cargarInventarioInicial() {
     } catch (err) {
         console.error("Excepción en cargarInventarioInicial:", err);
     }
+}
+
+// =============================================================================
+// 🛒 REGISTRO DE COMPRA DE BARAJITA (TIENDA -> SUPABASE)
+// =============================================================================
+
+async function registrarCompraBarajita(idCarta, telefono, referencia, monto) {
+    try {
+        if (!supabaseClient || !idUsuarioTelegram) {
+            alert("Error: Cliente no inicializado o usuario no identificado.");
+            return false;
+        }
+
+        const barajitaIdNum = Number(idCarta);
+        const montoNum = parseFloat(monto);
+        const refLimpia = String(referencia).trim();
+        const telLimpio = String(telefono).trim();
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+        if (isNaN(barajitaIdNum) || isNaN(montoNum) || !refLimpia || !telLimpio) {
+            alert("Por favor completa el teléfono, número de referencia y monto válido.");
+            return false;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('compras_barajitas')
+            .insert([
+                {
+                    user_id: idLimpio,
+                    telefono: telLimpio,
+                    barajita_id: barajitaIdNum,
+                    referencia: refLimpia,
+                    monto: montoNum,
+                    estado: 'pendiente'
+                }
+            ])
+            .select();
+
+        if (error) {
+            console.error("Error al registrar la compra en Supabase:", error.message);
+            alert("No se pudo procesar el registro del pago. Intenta de nuevo.");
+            return false;
+        }
+
+        // Actualizar la caché local en estado translúcido (pendiente)
+        if (!inventarioUsuarioCache.has(barajitaIdNum)) {
+            inventarioUsuarioCache.set(barajitaIdNum, {
+                carta_id: barajitaIdNum,
+                cantidad: 1,
+                pendiente: true,
+                datosCarta: { id: barajitaIdNum, nombre: `Cyber # ${barajitaIdNum}` }
+            });
+        }
+
+        renderizarLibro(paginaActual);
+        alert("¡Pago registrado en revisión! La barajita se mostrará de forma translúcida hasta su verificación.");
+        return true;
+
+    } catch (e) {
+        console.error("Excepción al registrar compra:", e);
+        alert("Ocurrió un error inesperado al conectar con el servidor.");
+        return false;
+    }
+}
+
+// =============================================================================
+// ⚠️ VERIFICACIÓN DE RECHAZOS (MODAL REFERENCIA INVÁLIDA)
+// =============================================================================
+
+async function verificarNotificacionesRechazadas() {
+    try {
+        if (!supabaseClient || !idUsuarioTelegram) return;
+
+        const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
+
+        const { data: rechazados, error } = await supabaseClient
+            .from('compras_barajitas')
+            .select('*')
+            .or(`user_id.ilike.${idLimpio},user_id.ilike.@${idLimpio}`)
+            .eq('estado', 'rechazado');
+
+        if (error || !rechazados || rechazados.length === 0) return;
+
+        for (const compra of rechazados) {
+            const vistoKey = `rechazo_notificado_${compra.id}`;
+            if (!localStorage.getItem(vistoKey)) {
+                mostrarModalReferenciaInvalida(compra);
+                localStorage.setItem(vistoKey, "true");
+                break; // Muestra un modal a la vez
+            }
+        }
+    } catch (e) {
+        console.error("Error al verificar notificaciones de rechazo:", e);
+    }
+}
+
+function mostrarModalReferenciaInvalida(compra) {
+    let modal = document.getElementById('modal-referencia-invalida');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-referencia-invalida';
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85); display: flex; align-items: center;
+            justify-content: center; z-index: 10000; font-family: 'Press Start 2P', monospace;
+        `;
+        modal.innerHTML = `
+            <div style="background: #1e1b4b; border: 2px solid #ef4444; padding: 20px; border-radius: 12px; max-width: 320px; text-align: center; box-shadow: 0 0 20px #ef4444;">
+                <h3 style="color: #ef4444; font-size: 11px; margin-bottom: 12px;">⚠️ REFERENCIA INVÁLIDA</h3>
+                <p style="color: #fca5a5; font-size: 8px; line-height: 1.5; margin-bottom: 15px;">
+                    El pago de la barajita #${compra.barajita_id} (Ref: ${compra.referencia}) no pudo ser verificado en el extracto bancario.
+                </p>
+                <button id="btn-cerrar-invalida" style="background: #ef4444; color: #fff; border: none; padding: 10px 15px; border-radius: 6px; font-size: 8px; cursor: pointer;">ACEPTAR</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    } else {
+        modal.style.display = 'flex';
+    }
+
+    document.getElementById('btn-cerrar-invalida')?.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
 }
 
 function verificarYCelebrarCompletado(totalCartasPoseidas) {
@@ -402,6 +564,15 @@ function renderizarLibro(pagina) {
         if (itemPoseido) {
             slot.classList.add('poseida');
 
+            // Efecto translúcido si está pendiente de aprobación
+            if (itemPoseido.pendiente) {
+                slot.style.opacity = '0.45';
+                slot.style.filter = 'grayscale(50%)';
+            } else {
+                slot.style.opacity = '1';
+                slot.style.filter = 'none';
+            }
+
             dibujarBarajitaAlgoritmicaSlot(slot, itemPoseido.datosCarta, idCarta);
 
             if (itemPoseido.cantidad > 1) {
@@ -438,11 +609,9 @@ function generarPersonajeProceduralAutomatico(idCarta) {
     // Alternancia estricta e innegable de género (50% Masculino / 50% Femenino)
     const esFemenino = (id % 2 === 0);
 
-    // Generador pseudoaleatorio basado en el ID estricto
     let rIdx = 0;
     const rand = () => pseudoRandom(id * 100 + (rIdx++));
 
-    // Tonos HSL procedurales únicos para el fondo (Garantiza 2000 fondos distintos)
     const hueBase = Math.floor(rand() * 360);
     const hueSecundario = (hueBase + Math.floor(rand() * 120 + 60)) % 360;
     
@@ -453,18 +622,17 @@ function generarPersonajeProceduralAutomatico(idCarta) {
     const eyeColor = ojosColores[Math.floor(rand() * ojosColores.length)];
 
     const cabellosColores = [
-        { base: '#1e293b', shadow: '#0f172a', highlight: '#475569' }, // Negro / Azabache
-        { base: '#3b82f6', shadow: '#1d4ed8', highlight: '#93c5fd' }, // Azul Neón
-        { base: '#ec4899', shadow: '#be185d', highlight: '#fbcfe8' }, // Rosa Cyber
-        { base: '#a855f7', shadow: '#6b21a8', highlight: '#e9d5ff' }, // Púrpura
-        { base: '#10b981', shadow: '#047857', highlight: '#a7f3d0' }, // Verde Esmeralda
-        { base: '#f59e0b', shadow: '#b45309', highlight: '#fde68a' }, // Dorado / Rubio
-        { base: '#ef4444', shadow: '#991b1b', highlight: '#fca5a5' }, // Rojo Vivo
-        { base: '#64748b', shadow: '#334155', highlight: '#cbd5e1' }  // Plata / Blanco
+        { base: '#1e293b', shadow: '#0f172a', highlight: '#475569' },
+        { base: '#3b82f6', shadow: '#1d4ed8', highlight: '#93c5fd' },
+        { base: '#ec4899', shadow: '#be185d', highlight: '#fbcfe8' },
+        { base: '#a855f7', shadow: '#6b21a8', highlight: '#e9d5ff' },
+        { base: '#10b981', shadow: '#047857', highlight: '#a7f3d0' },
+        { base: '#f59e0b', shadow: '#b45309', highlight: '#fde68a' },
+        { base: '#ef4444', shadow: '#991b1b', highlight: '#fca5a5' },
+        { base: '#64748b', shadow: '#334155', highlight: '#cbd5e1' }
     ];
     const hair = cabellosColores[Math.floor(rand() * cabellosColores.length)];
 
-    // ROPA Y VESTUARIO ESPECÍFICO POR GÉNERO
     const trajesFemeninos = ['dress_cyber', 'top_skirt', 'kimono_futurista', 'cyber_armor_fem'];
     const trajesMasculinos = ['business_suit', 'cyber_tuxedo', 'casual_jacket', 'sport_hoodie', 'tactical_vest'];
 
@@ -472,7 +640,6 @@ function generarPersonajeProceduralAutomatico(idCarta) {
         ? trajesFemeninos[Math.floor(rand() * trajesFemeninos.length)] 
         : trajesMasculinos[Math.floor(rand() * trajesMasculinos.length)];
 
-    // PEINADOS
     const peinadosFemeninos = ['twin_buns', 'single_bun', 'long_hair', 'bob_cut'];
     const peinadosMasculinos = ['spiky', 'short_crop', 'undercut', 'slicked_back', 'afro_short'];
 
@@ -480,7 +647,6 @@ function generarPersonajeProceduralAutomatico(idCarta) {
         ? peinadosFemeninos[Math.floor(rand() * peinadosFemeninos.length)] 
         : peinadosMasculinos[Math.floor(rand() * peinadosMasculinos.length)];
 
-    // DECORACIONES Y ACCESORIOS
     const decoraciones = ['hearts', 'stars', 'sparks', 'crosshairs', 'hexagons', 'none'];
     const decor = decoraciones[Math.floor(rand() * decoraciones.length)];
 
@@ -499,7 +665,6 @@ function generarPersonajeProceduralAutomatico(idCarta) {
     ];
     const skin = skinTones[Math.floor(rand() * skinTones.length)];
 
-    // Colores de ropa variados
     const clothBaseColors = ['#1e1b4b', '#0f172a', '#312e81', '#701a75', '#831843', '#064e3b', '#7c2d12', '#111827'];
     const clothDetailColors = ['#00f3ff', '#ff007f', '#22c55e', '#eab308', '#a855f7', '#f97316', '#38bdf8'];
 
@@ -565,7 +730,6 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
         urlImagen = `data:image/png;base64,${urlImagen}`;
     }
 
-    // Asegurar que siempre exista un personaje procedural único por ID
     if (!personajeData || typeof personajeData !== 'object' || !personajeData.gender) {
         personajeData = generarPersonajeProceduralAutomatico(idCarta);
     }
@@ -594,7 +758,6 @@ function drawAnimeBackgroundProcedural(ctx, data, width = 32, height = 32) {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
 
-    // Patrones geométricos derivados de la semilla de la carta
     ctx.fillStyle = `hsl(${h1}, 90%, 50%)`;
     ctx.globalAlpha = 0.25;
 
@@ -645,7 +808,6 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
     const expression = data.expression || 'smiling';
     const decoration = data.decoration || 'none';
 
-    // 1. DECORACIONES DE FONDO
     if (decoration === 'hearts') {
         ctx.fillStyle = '#ff0055';
         ctx.fillRect(3, 4, 3, 2); ctx.fillRect(2, 5, 5, 2); ctx.fillRect(3, 7, 3, 1);
@@ -662,46 +824,37 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(3, 3, 5, 1); ctx.fillRect(5, 1, 1, 5);
     }
 
-    // 2. VESTUARIOS DISTINTIVOS Y FORMALES (FIGURAS MASCULINAS Y FEMENINAS)
     ctx.fillStyle = clothBase;
     ctx.fillRect(7, 21, 18, 11);
 
     if (gender === 'male') {
         if (clothType === 'business_suit' || clothType === 'cyber_tuxedo') {
-            // Traje Formal Ejecutivo / Esmoquin Cyber
             ctx.fillStyle = clothBase;
             ctx.fillRect(7, 21, 18, 11);
-            // Camisa blanca interna
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(13, 21, 6, 6);
-            // Corbata o Pajarita
             ctx.fillStyle = clothDetail;
-            ctx.fillRect(15, 22, 2, 5); // Corbata formal
-            // Solapas del traje
+            ctx.fillRect(15, 22, 2, 5);
             ctx.fillStyle = '#020617';
             ctx.fillRect(10, 21, 3, 8); ctx.fillRect(19, 21, 3, 8);
         } else if (clothType === 'tactical_vest') {
-            // Chaleco Táctico
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(8, 21, 16, 11);
             ctx.fillStyle = clothDetail;
             ctx.fillRect(10, 23, 4, 3); ctx.fillRect(18, 23, 4, 3);
             ctx.fillRect(12, 27, 8, 2);
         } else if (clothType === 'sport_hoodie') {
-            // Capucha / Sudadera
             ctx.fillStyle = clothDetail;
             ctx.fillRect(7, 21, 18, 11);
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(14, 21, 4, 6); // Cintas
+            ctx.fillRect(14, 21, 4, 6);
         } else {
-            // Chaqueta Casual con Camiseta
             ctx.fillStyle = clothDetail;
             ctx.fillRect(8, 21, 16, 11);
             ctx.fillStyle = '#111827';
             ctx.fillRect(12, 21, 8, 11);
         }
     } else {
-        // Vestuarios Femeninos
         if (clothType === 'dress_cyber') {
             ctx.fillStyle = clothDetail;
             ctx.fillRect(9, 21, 14, 11);
@@ -718,7 +871,7 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
             ctx.fillStyle = clothDetail;
             ctx.fillRect(12, 21, 8, 11);
             ctx.fillStyle = '#facc15';
-            ctx.fillRect(10, 25, 12, 2); // Cinturón Obi
+            ctx.fillRect(10, 25, 12, 2);
         } else {
             ctx.fillStyle = clothDetail;
             ctx.fillRect(9, 21, 14, 11);
@@ -727,26 +880,22 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         }
     }
 
-    // 3. CUELLO Y ANATOMÍA FACIAL
     ctx.fillStyle = skinShadow;
     ctx.fillRect(13, 19, 6, 3);
 
     ctx.fillStyle = skinBase;
-    ctx.fillRect(10, 10, 12, 10); // Mandíbula
+    ctx.fillRect(10, 10, 12, 10);
 
     if (gender === 'male') {
-        // Barbilla masculina más marcada y ancha
         ctx.fillStyle = skinBase;
         ctx.fillRect(10, 18, 12, 2);
         ctx.fillStyle = skinShadow;
         ctx.fillRect(9, 17, 1, 3); ctx.fillRect(22, 17, 1, 3);
     } else {
-        // Barbilla femenina estilizada
         ctx.fillStyle = skinShadow;
         ctx.fillRect(10, 19, 1, 1); ctx.fillRect(21, 19, 1, 1);
     }
 
-    // 4. OJOS Y EXPRESIONES
     if (!blinking) {
         if (expression === 'laughing') {
             ctx.fillStyle = '#0f172a';
@@ -763,10 +912,10 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
             ctx.fillRect(14, 13, 1, 1); ctx.fillRect(18, 13, 1, 1);
 
             ctx.fillStyle = '#0f172a';
-            ctx.fillRect(12, 12, 3, 1); ctx.fillRect(17, 12, 3, 1); // Cejas
+            ctx.fillRect(12, 12, 3, 1); ctx.fillRect(17, 12, 3, 1);
 
             if (gender === 'female') {
-                ctx.fillRect(11, 13, 1, 2); ctx.fillRect(20, 13, 1, 2); // Pestañas
+                ctx.fillRect(11, 13, 1, 2); ctx.fillRect(20, 13, 1, 2);
             }
         }
     } else {
@@ -774,7 +923,6 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(12, 15, 3, 1); ctx.fillRect(17, 15, 3, 1);
     }
 
-    // BOCA
     ctx.fillStyle = gender === 'female' ? '#ff0055' : '#991b1b';
     if (expression === 'laughing' || expression === 'smiling') {
         ctx.fillRect(14, 17, 4, 2);
@@ -782,29 +930,23 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         ctx.fillRect(14, 18, 4, 1);
     }
 
-    // 5. PEINADOS DIVERSIFICADOS POR GÉNERO
     ctx.fillStyle = hairBase;
 
     if (gender === 'male') {
         if (hairStyle === 'spiky') {
-            // Cabello de puntas Anime
             ctx.fillRect(9, 6, 14, 5);
             ctx.fillRect(10, 4, 3, 3); ctx.fillRect(15, 3, 3, 4); ctx.fillRect(19, 4, 3, 3);
             ctx.fillRect(8, 10, 2, 6); ctx.fillRect(22, 10, 2, 6);
         } else if (hairStyle === 'short_crop') {
-            // Corte Ejecutivo Corto
             ctx.fillRect(9, 6, 14, 5);
             ctx.fillRect(9, 10, 2, 4); ctx.fillRect(21, 10, 2, 4);
         } else if (hairStyle === 'undercut') {
-            // Undercut Cyberpunk
             ctx.fillRect(10, 5, 12, 5); ctx.fillRect(8, 7, 3, 3);
             ctx.fillRect(9, 10, 2, 2);
         } else if (hairStyle === 'slicked_back') {
-            // Peinado Formal Peinado Hacia Atrás
             ctx.fillRect(9, 5, 14, 6);
             ctx.fillRect(8, 9, 2, 5); ctx.fillRect(22, 9, 2, 5);
         } else {
-            // Afro Corto / Rizado
             ctx.fillRect(8, 5, 16, 7);
         }
     } else {
@@ -825,11 +967,9 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
         }
     }
 
-    // Luces / Brillo en el cabello
     ctx.fillStyle = hairHighlight;
     ctx.fillRect(11, 7, 4, 1); ctx.fillRect(17, 7, 4, 1);
 
-    // 6. ACCESORIOS FUTURISTAS
     if (data.accessory === 'glasses') {
         ctx.fillStyle = '#00f3ff';
         ctx.fillRect(11, 13, 4, 3); ctx.fillRect(17, 13, 4, 3);
@@ -1073,50 +1213,44 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
 function activarAlbumEnTiempoReal() {
     if (!supabaseClient) return;
 
+    // Escuchar aprobaciones / rechazos en compras_barajitas
     supabaseClient
-        .channel(`realtime-album-global`)
+        .channel(`realtime-compras-tienda`)
         .on(
             'postgres_changes',
             {
-                event: '*',
+                event: 'UPDATE',
                 schema: 'public',
-                table: 'Coleccion_Usuario'
+                table: 'compras_barajitas'
             },
-            async (payload) => {
-                const nuevoRegistro = payload.new;
-                if (!nuevoRegistro) return;
+            (payload) => {
+                const registro = payload.new;
+                if (!registro) return;
 
-                const uId = String(nuevoRegistro.usuario_id || "").toLowerCase();
+                const uId = String(registro.user_id || "").toLowerCase();
                 const usuarioLimpio = idUsuarioTelegram ? idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase() : "";
 
-                const esMio = uId === usuarioLimpio || uId === `@${usuarioLimpio}`;
+                if (uId === usuarioLimpio || uId === `@${usuarioLimpio}`) {
+                    const idCartaNum = Number(registro.barajita_id);
 
-                if (esMio) {
-                    mostrarNotificacionCartaRecibida(nuevoRegistro);
-                    
-                    const cartaIdNum = Number(nuevoRegistro.carta_id);
-                    const cantNueva = Number(nuevoRegistro.cantidad) || 1;
-
-                    // Actualización Atómica en Caché sin duplicar registros por re-fetch
-                    if (inventarioUsuarioCache.has(cartaIdNum)) {
-                        const itemExistente = inventarioUsuarioCache.get(cartaIdNum);
-                        if (payload.eventType === 'INSERT') {
-                            itemExistente.cantidad += cantNueva;
+                    if (registro.estado === 'aprobado') {
+                        // Cambiar estado a normal en el álbum
+                        if (inventarioUsuarioCache.has(idCartaNum)) {
+                            inventarioUsuarioCache.get(idCartaNum).pendiente = false;
                         } else {
-                            itemExistente.cantidad = cantNueva;
+                            inventarioUsuarioCache.set(idCartaNum, {
+                                carta_id: idCartaNum,
+                                cantidad: 1,
+                                pendiente: false,
+                                datosCarta: { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
+                            });
                         }
-                    } else {
-                        inventarioUsuarioCache.set(cartaIdNum, {
-                            carta_id: cartaIdNum,
-                            cantidad: cantNueva,
-                            datosCarta: { id: cartaIdNum, nombre: `Cyber # ${cartaIdNum}` }
-                        });
-                    }
-
-                    renderizarLibro(paginaActual);
-
-                    if (nuevoRegistro.carta_id) {
-                        irAPaginaDeCarta(nuevoRegistro.carta_id);
+                        renderizarLibro(paginaActual);
+                    } else if (registro.estado === 'rechazado') {
+                        // Eliminar barajita del álbum y mostrar modal de advertencia
+                        inventarioUsuarioCache.delete(idCartaNum);
+                        renderizarLibro(paginaActual);
+                        mostrarModalReferenciaInvalida(registro);
                     }
                 }
             }
@@ -1141,7 +1275,7 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
         font-family: 'Press Start 2P', monospace;
         font-size: 8px;
     `;
-    toast.innerText = `🎉 ¡DATOS RECIBIDOS! (ID: #${datosNuevos?.carta_id || ''})`;
+    toast.innerText = `🎉 ¡DATOS RECIBIDOS! (ID: #${datosNuevos?.carta_id || datosNuevos?.barajita_id || ''})`;
     document.body.appendChild(toast);
 
     setTimeout(() => toast.remove(), 4000);

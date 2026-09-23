@@ -378,9 +378,9 @@ function extraerAtributosCarta(datosCarta) {
 
     // 1. Verificar primeramente si el Base64 o la URL viene directo en la raíz de la columna
     if (typeof datosCarta.imagen_base64 === 'string' && datosCarta.imagen_base64.trim() !== '') {
-        urlImagen = datosCarta.imagen_base64;
+        urlImagen = datosCarta.imagen_base64.trim();
     } else if (typeof datosCarta.imagen === 'string' && datosCarta.imagen.trim() !== '') {
-        urlImagen = datosCarta.imagen;
+        urlImagen = datosCarta.imagen.trim();
     }
 
     // 2. Extraer datos del campo JSON 'imagen_url' o String directo
@@ -403,6 +403,11 @@ function extraerAtributosCarta(datosCarta) {
         if (!urlImagen) {
             urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || config.src || "";
         }
+    }
+
+    // Formatear Base64 puro si falta el encabezado MIME
+    if (urlImagen && !urlImagen.startsWith('http') && !urlImagen.startsWith('data:image')) {
+        urlImagen = `data:image/png;base64,${urlImagen}`;
     }
 
     return {

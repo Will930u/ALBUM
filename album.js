@@ -356,30 +356,43 @@ function renderizarLibro(pagina) {
 }
 
 // =============================================================================
-// 🎨 MOTOR AVANZADO DE ANIMACIÓN FACIAL Y CORPORAL (DEFORMACIÓN & PARPADEO 2D)
+// 🎨 MOTOR AVANZADO DE PARSEO Y RENDERIZADO EXACETO DE SUPABASE
 // =============================================================================
-function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
+function extraerAtributosCarta(datosCarta) {
     let config = {};
-    let urlImagen = "";
+    let urlImagen = datosCarta?.imagen_base64 || "";
 
-    // 1. Extraer la imagen o la configuración JSON desde Supabase (Tabla Cartas)
-    if (datosCarta?.imagen_base64) {
-        urlImagen = datosCarta.imagen_base64;
-    } else if (typeof datosCarta?.imagen_url === 'string') {
-        if (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http')) {
-            urlImagen = datosCarta.imagen_url;
-        } else {
+    // Parsear el campo imagen_url si contiene JSON o URL directa
+    if (typeof datosCarta?.imagen_url === 'string') {
+        const txt = datosCarta.imagen_url.trim();
+        if (txt.startsWith('data:image') || txt.startsWith('http')) {
+            urlImagen = txt;
+        } else if (txt.startsWith('{')) {
             try {
-                config = JSON.parse(datosCarta.imagen_url);
-                urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || "";
+                config = JSON.parse(txt);
+                urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || urlImagen;
             } catch (e) {
                 config = {};
             }
         }
     } else if (typeof datosCarta?.imagen_url === 'object' && datosCarta?.imagen_url !== null) {
         config = datosCarta.imagen_url;
-        urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || "";
+        urlImagen = config.imagen_base64 || config.imagen_url || config.imagen || urlImagen;
     }
+
+    // Fallbacks directos desde la raíz de la fila de Supabase
+    if (!urlImagen && datosCarta?.imagen) urlImagen = datosCarta.imagen;
+
+    return {
+        config: config,
+        urlImagen: urlImagen,
+        fondoColor: config.fondoColor || config.colorFondo || datosCarta?.fondoColor || "#090a14",
+        marcoColor: config.marcoColor || config.colorPrimario || datosCarta?.marcoColor || "#00f3ff"
+    };
+}
+
+function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
+    const infoExtraida = extraerAtributosCarta(datosCarta);
 
     const canvas = document.createElement('canvas');
     canvas.width = 120;
@@ -396,20 +409,21 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
         ctx: ctx,
         datosCarta: datosCarta,
         idCarta: idCarta,
-        config: config,
+        config: infoExtraida.config,
+        fondoColor: infoExtraida.fondoColor,
         img: null,
         esImagen: false
     };
 
-    // 2. Si hay imagen en Base64 o URL de Supabase, cargarla directamente
-    if (urlImagen && (urlImagen.startsWith('data:image') || urlImagen.startsWith('http'))) {
+    // Si existe imagen codificada (Base64 o URL HTTP), cargar la imagen exacta
+    if (infoExtraida.urlImagen && (infoExtraida.urlImagen.startsWith('data:image') || infoExtraida.urlImagen.startsWith('http'))) {
         const imgObj = new Image();
         imgObj.crossOrigin = "anonymous";
         imgObj.onload = () => {
             registro.img = imgObj;
             registro.esImagen = true;
         };
-        imgObj.src = urlImagen;
+        imgObj.src = infoExtraida.urlImagen;
     }
 
     canvasAnimados.push(registro);
@@ -421,111 +435,56 @@ function iniciarBucleAnimacionGlobal() {
         const t = timestamp * 0.0025;
 
         canvasAnimados.forEach(item => {
-            const { canvas, ctx, datosCarta, idCarta, config, esImagen, img } = item;
+            const { canvas, ctx, idCarta, config, fondoColor, esImagen, img } = item;
             const w = canvas.width;
             const h = canvas.height;
 
             ctx.clearRect(0, 0, w, h);
 
-            // Fondo Neón personalizado por carta
-            ctx.fillStyle = config?.fondoColor || config?.colorFondo || "#090a14";
+            // 1. Fondo según configuración exacta de la carta
+            ctx.fillStyle = fondoColor;
             ctx.fillRect(0, 0, w, h);
 
             if (esImagen && img && img.complete) {
                 ctx.save();
                 
-                // Efecto de respiración suave
+                // Efecto flotante suave sin distorsionar el arte
                 const offsetY = Math.sin(t * 1.5 + idCarta) * 2;
                 ctx.translate(0, offsetY);
 
-                // Dibujar la imagen real del personaje registrada en la base de datos
+                // Dibujar la imagen EXACTA generada
                 ctx.drawImage(img, 0, 0, w, h);
                 
                 ctx.restore();
             } else {
-                // Renderizar atributos específicos del personaje extraídos de Supabase
+                // Dibujo algorítmico alternativo solo si la carta carece de imagen
                 ctx.save();
                 const pData = config?.personajeData || config;
                 const centroX = w / 2;
-                const offsetY = Math.sin(t * 1.5 + idCarta) * 2.5; // Respiración dinámica
-                const inicioY = 25 + offsetY;
+                const inicioY = 25;
 
-                // 1. Fondo interno con retícula neón
-                ctx.fillStyle = config?.fondoColor || config?.colorFondo || "#181124";
-                ctx.fillRect(10, 10, w - 20, h - 35);
-                
-                ctx.strokeStyle = "rgba(168, 85, 247, 0.4)";
-                ctx.lineWidth = 1;
-                for (let gx = 10; gx < w - 10; gx += 12) {
-                    ctx.beginPath(); ctx.moveTo(gx, 10); ctx.lineTo(gx, h - 25); ctx.stroke();
-                }
-                for (let gy = 10; gy < h - 25; gy += 12) {
-                    ctx.beginPath(); ctx.moveTo(10, gy); ctx.lineTo(w - 10, gy); ctx.stroke();
-                }
+                if (pData) {
+                    ctx.fillStyle = "rgba(24, 17, 36, 0.8)";
+                    ctx.fillRect(10, 10, w - 20, h - 35);
+                    
+                    const colorRopa = pData?.ropa?.color || pData?.traje || "#6b173d";
+                    ctx.fillStyle = colorRopa;
+                    ctx.fillRect(centroX - 22, inicioY + 45, 44, 35);
 
-                // Extraer propiedades dinámicas de la carta actual desde Supabase
-                const colorRopa = pData?.ropa?.color || pData?.traje || pData?.colorRopa || "#6b173d";
-                const colorPiel = pData?.skin?.base || pData?.skin || pData?.colorPiel || "#f8c291";
-                const colorOjos = pData?.ojos?.color || pData?.ojos || pData?.colorOjos || "#8b5cf6";
-                const colorPelo = pData?.cabello?.color || pData?.pelo || pData?.colorPelo || "#ef4444";
-                const colorCorbata = pData?.corbata || pData?.colorCorbata || "#ef4444";
+                    const colorPiel = pData?.skin?.base || pData?.skin || "#f8c291";
+                    ctx.fillStyle = colorPiel;
+                    ctx.fillRect(centroX - 18, inicioY + 12, 36, 32);
 
-                // 2. Traje, Camisa y Corbata
-                ctx.fillStyle = colorRopa;
-                ctx.fillRect(centroX - 22, inicioY + 45, 44, 35);
-
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(centroX - 8, inicioY + 45, 16, 20);
-
-                ctx.fillStyle = colorCorbata;
-                ctx.fillRect(centroX - 3, inicioY + 48, 6, 15);
-
-                // 3. Piel (Cabeza y Cuello)
-                ctx.fillStyle = colorPiel;
-                ctx.fillRect(centroX - 6, inicioY + 40, 12, 8);
-                ctx.fillRect(centroX - 18, inicioY + 12, 36, 32);
-
-                // 4. Ojos (Con soporte para parpadeo dinámico)
-                const esParpadeo = Math.sin(t * 3 + idCarta * 10) > 0.96;
-                
-                if (!esParpadeo) {
+                    const colorOjos = pData?.ojos?.color || pData?.ojos || "#8b5cf6";
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(centroX - 14, inicioY + 20, 10, 12);
                     ctx.fillRect(centroX + 4, inicioY + 20, 10, 12);
-                    
                     ctx.fillStyle = colorOjos;
                     ctx.fillRect(centroX - 12, inicioY + 22, 6, 8);
                     ctx.fillRect(centroX + 6, inicioY + 22, 6, 8);
-                } else {
-                    ctx.fillStyle = "#000000";
-                    ctx.fillRect(centroX - 14, inicioY + 25, 10, 2);
-                    ctx.fillRect(centroX + 4, inicioY + 25, 10, 2);
                 }
-
-                // 5. Cabello del Personaje
-                ctx.fillStyle = colorPelo;
-                ctx.fillRect(centroX - 20, inicioY + 4, 40, 12);
-                ctx.fillRect(centroX - 16, inicioY + 14, 8, 10);
-                ctx.fillRect(centroX + 8, inicioY + 14, 8, 10);
-
                 ctx.restore();
             }
-
-            // Marco Neón
-            const colorMarco = config?.marcoColor || config?.colorPrimario || "#00f3ff";
-            ctx.strokeStyle = colorMarco;
-            ctx.lineWidth = 3 + Math.sin(t * 2 + idCarta);
-            ctx.strokeRect(2, 2, w - 4, h - 4);
-
-            // Etiqueta Nombre
-            ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
-            ctx.fillRect(4, h - 22, w - 8, 18);
-
-            ctx.fillStyle = colorMarco;
-            ctx.font = "6px 'Press Start 2P', monospace";
-            ctx.textAlign = "center";
-            const nombreVisual = datosCarta?.nombre || `CYBER #${idCarta}`;
-            ctx.fillText(nombreVisual.substring(0, 11), w / 2, h - 10);
         });
 
         requestAnimationFrame(animar);
@@ -543,26 +502,17 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
     const rareza = datosCarta?.rareza || 'Común';
     const lore = datosCarta?.lore || 'Sin datos de archivos disponibles.';
 
-    let config = {};
-    try {
-        config = typeof datosCarta?.imagen_url === 'string' ? JSON.parse(datosCarta.imagen_url) : (datosCarta?.imagen_url || {});
-    } catch(e){}
+    const info = extraerAtributosCarta(datosCarta);
+    const simbolo = info.config.simbolo || '👾';
 
-    const colorFondo = config.fondoColor || config.colorFondo || '#090a14';
-    const colorMarco = config.marcoColor || config.colorPrimario || '#00f3ff';
-    const simbolo = config.simbolo || '👾';
-
-    // Obtener imagen guardada
-    const imagenSrc = datosCarta?.imagen_base64 || config.imagen_base64 || (typeof datosCarta?.imagen_url === 'string' && datosCarta.imagen_url.startsWith('data:') ? datosCarta.imagen_url : null);
-
-    const elementoVisual = imagenSrc 
-        ? `<img src="${imagenSrc}" style="width:100%; height:100%; object-fit:contain; image-rendering:pixelated;" />` 
-        : simbolo;
+    const elementoVisual = info.urlImagen 
+        ? `<img src="${info.urlImagen}" style="width:100%; height:100%; object-fit:contain; image-rendering:pixelated;" />` 
+        : `<span style="font-size:70px;">${simbolo}</span>`;
 
     contenidoFrontal.innerHTML = `
         <div style="text-align:center;">
-            <h3 style="font-size:10px; color:#00f3ff; margin-bottom:8px; text-shadow:0 0 5px #00f3ff;">${nombre.toUpperCase()}</h3>
-            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${colorFondo}; border:3px solid ${colorMarco}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:70px; box-shadow:0 0 15px ${colorMarco}; overflow:hidden;">
+            <h3 style="font-size:10px; color:${info.marcoColor}; margin-bottom:8px; text-shadow:0 0 5px ${info.marcoColor};">${nombre.toUpperCase()}</h3>
+            <div style="width:180px; height:230px; margin: 0 auto 10px auto; background:${info.fondoColor}; border:3px solid ${info.marcoColor}; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px ${info.marcoColor}; overflow:hidden;">
                 ${elementoVisual}
             </div>
             <p style="font-size:7px; color:#ff007f; margin-bottom:4px; text-shadow:0 0 3px #ff007f;">Rareza: ${rareza} | Copias: ${cantidad}</p>

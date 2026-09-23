@@ -423,11 +423,15 @@ function renderizarLibro(pagina) {
 }
 
 // =============================================================================
-// 🎨 MOTOR DE EXTRACCIÓN Y PARSEO DE ESTRUCTURAS DE SUPABASE
+// 🎨 MOTOR DE EXTRACCIÓN Y GENERACIÓN PROCEDURAL COMPLETA
 // =============================================================================
+
 function generarPersonajeProceduralAutomatico(idCarta) {
+    const esFemenino = (idCarta % 2 === 0);
+
     const fondos = ['cyberpunk', 'matrix', 'sunset', 'neon_grid', 'deep_space', 'city_night'];
     const ojosColores = ['#00f3ff', '#ff007f', '#a855f7', '#22c55e', '#eab308', '#3b82f6'];
+    
     const cabellosColores = [
         { base: '#3b82f6', shadow: '#1d4ed8', highlight: '#93c5fd' },
         { base: '#ec4899', shadow: '#be185d', highlight: '#fbcfe8' },
@@ -436,27 +440,50 @@ function generarPersonajeProceduralAutomatico(idCarta) {
         { base: '#f59e0b', shadow: '#b45309', highlight: '#fde68a' },
         { base: '#64748b', shadow: '#334155', highlight: '#cbd5e1' }
     ];
-    const trajesTipos = ['cyber_armor', 'jacket', 'kimono', 'casual', 'dress'];
-    const accesorios = ['none', 'glasses', 'cyber_vr', 'earrings'];
 
-    // Alternar género según ID (femenino en pares/impares según semilla)
-    const esFemenino = (idCarta % 2 === 0);
+    // Opciones de Ropa separadas por género
+    const trajesFemeninos = ['dress_cyber', 'dress_gothic', 'top_skirt', 'kimono'];
+    const trajesMasculinos = ['cyber_suit', 'casual_jacket', 'sport_hoodie', 'sport_sleeveless'];
+
+    // Peinados femeninos juveniles (doble moño, un moño, cabello largo)
+    const peinadosFemeninos = ['twin_buns', 'single_bun', 'long_hair', 'short_bob'];
+    const peinadosMasculinos = ['spiky', 'short_crop', 'undercut', 'messy'];
+
+    // Decoraciones (corazones, estrellas, destellos)
+    const decoraciones = ['hearts', 'stars', 'sparks', 'none'];
+
     const bgType = fondos[idCarta % fondos.length];
     const eyeColor = ojosColores[idCarta % ojosColores.length];
     const hair = cabellosColores[idCarta % cabellosColores.length];
-    const clothType = trajesTipos[idCarta % trajesTipos.length];
-    const accessory = accesorios[idCarta % accesorios.length];
+
+    const clothType = esFemenino 
+        ? trajesFemeninos[idCarta % trajesFemeninos.length] 
+        : trajesMasculinos[idCarta % trajesMasculinos.length];
+
+    const hairStyle = esFemenino 
+        ? peinadosFemeninos[idCarta % peinadosFemeninos.length] 
+        : peinadosMasculinos[idCarta % peinadosMasculinos.length];
+
+    const decor = esFemenino 
+        ? decoraciones[idCarta % decoraciones.length] 
+        : (idCarta % 3 === 0 ? 'sparks' : 'none');
+
+    // Expresión: Risa/Sonrisa o Serio
+    const expresion = (idCarta % 3 === 0) ? 'laughing' : ((idCarta % 2 === 0) ? 'smiling' : 'serious');
 
     return {
         gender: esFemenino ? 'female' : 'male',
         bgType: bgType,
         eyeColor: eyeColor,
         hair: hair,
+        hairStyle: hairStyle,
         skin: { base: esFemenino ? '#ffe4e1' : '#ffe0bd', shadow: esFemenino ? '#f3a6a1' : '#d4a373' },
         clothType: clothType,
-        clothColor: esFemenino ? '#4a154b' : '#1e1b4b',
+        clothColor: esFemenino ? '#831843' : '#1e1b4b',
         clothDetail: esFemenino ? '#ff007f' : '#00f3ff',
-        accessory: accessory
+        expression: expresion,
+        decoration: decor,
+        accessory: (idCarta % 5 === 0) ? 'glasses' : 'none'
     };
 }
 
@@ -517,7 +544,7 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
 }
 
 // =============================================================================
-// 👾 MOTOR PROCEDURAL DE PIXEL ART DETALLADO (MASCULINO Y FEMENINO)
+// 👾 MOTOR PROCEDURAL DE PIXEL ART AVANZADO (EXPRESIONES, PEINADOS Y DECORACIÓN)
 // =============================================================================
 
 function drawAnimeBackground(ctx, bgType, width = 32, height = 32) {
@@ -592,146 +619,170 @@ function renderAnimeCharacterPixelArt(ctx, data, time, blinking) {
     const eyeColor = data.eyeColor || '#2563eb';
     const clothBase = data.clothColor || '#1e1b4b';
     const clothDetail = data.clothDetail || '#3b82f6';
-    const clothType = data.clothType || 'casual';
-    const accessory = data.accessory || 'none';
+    const clothType = data.clothType || 'casual_jacket';
+    const hairStyle = data.hairStyle || 'spiky';
+    const expression = data.expression || 'smiling';
+    const decoration = data.decoration || 'none';
 
-    // 1. ROPA / VESTUARIO DIVERSO
+    // 1. DECORACIONES DE FONDO (CORAZONES / ESTRELLAS / SPARKS)
+    if (decoration === 'hearts') {
+        ctx.fillStyle = '#ff0055';
+        ctx.fillRect(3, 4, 3, 2); ctx.fillRect(2, 5, 5, 2); ctx.fillRect(3, 7, 3, 1); ctx.fillRect(4, 8, 1, 1);
+        ctx.fillRect(25, 6, 3, 2); ctx.fillRect(24, 7, 5, 2); ctx.fillRect(25, 9, 3, 1); ctx.fillRect(26, 10, 1, 1);
+    } else if (decoration === 'stars') {
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(4, 5, 1, 3); ctx.fillRect(3, 6, 3, 1);
+        ctx.fillRect(26, 8, 1, 3); ctx.fillRect(25, 9, 3, 1);
+    } else if (decoration === 'sparks') {
+        ctx.fillStyle = '#00f3ff';
+        ctx.fillRect(5, 5, 1, 1); ctx.fillRect(26, 6, 1, 1); ctx.fillRect(4, 18, 1, 1);
+    }
+
+    // 2. VESTUARIO EXCLUSIVO (FEMENINO: VESTIDOS / MASCULINO: SUITS, CASUAL, SPORT)
     ctx.fillStyle = clothBase;
     ctx.fillRect(8, 22, 16, 10);
 
-    if (clothType === 'cyber_armor') {
-        ctx.fillStyle = clothDetail;
-        ctx.fillRect(10, 22, 12, 3);
-        ctx.fillRect(12, 25, 8, 4);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(15, 23, 2, 2);
-    } else if (clothType === 'kimono') {
-        ctx.fillStyle = clothDetail;
-        ctx.beginPath();
-        ctx.fillRect(10, 22, 4, 10);
-        ctx.fillRect(18, 22, 4, 10);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(14, 22, 4, 3);
-    } else if (clothType === 'dress') {
-        ctx.fillStyle = clothDetail;
-        ctx.fillRect(11, 22, 10, 10);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(13, 22, 6, 2);
+    if (gender === 'female') {
+        if (clothType === 'dress_cyber') {
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(10, 22, 12, 10);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(13, 22, 6, 2);
+        } else if (clothType === 'top_skirt') {
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(11, 22, 10, 4);
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(10, 26, 12, 6);
+        } else {
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(10, 22, 12, 10);
+            ctx.fillRect(14, 22, 4, 3);
+        }
     } else {
-        ctx.fillStyle = clothDetail;
-        ctx.fillRect(13, 22, 6, 4);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(14, 22, 4, 3);
+        if (clothType === 'cyber_suit') {
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(11, 22, 10, 10);
+            ctx.fillStyle = '#00f3ff';
+            ctx.fillRect(15, 23, 2, 8);
+        } else if (clothType === 'sport_hoodie') {
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(9, 22, 14, 10);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(12, 22, 8, 4);
+        } else if (clothType === 'sport_sleeveless') {
+            ctx.fillStyle = skinBase;
+            ctx.fillRect(8, 22, 3, 10); ctx.fillRect(21, 22, 3, 10);
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(11, 22, 10, 10);
+        } else {
+            ctx.fillStyle = clothDetail;
+            ctx.fillRect(10, 22, 12, 10);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(14, 22, 4, 4);
+        }
     }
 
-    // 2. CUELLO Y ROSTRO
+    // 3. CUELLO Y ROSTRO
     ctx.fillStyle = skinShadow;
     ctx.fillRect(13, 19, 6, 3);
 
     ctx.fillStyle = skinBase;
     ctx.fillRect(11, 10, 10, 10);
 
-    // Suavizado de barbilla para personajes femeninos
     if (gender === 'female') {
         ctx.fillStyle = skinShadow;
-        ctx.fillRect(11, 19, 1, 1);
-        ctx.fillRect(20, 19, 1, 1);
+        ctx.fillRect(11, 19, 1, 1); ctx.fillRect(20, 19, 1, 1);
         ctx.fillRect(13, 20, 6, 1);
     } else {
         ctx.fillStyle = skinShadow;
-        ctx.fillRect(10, 18, 1, 3);
-        ctx.fillRect(21, 18, 1, 3);
+        ctx.fillRect(10, 18, 1, 3); ctx.fillRect(21, 18, 1, 3);
         ctx.fillRect(12, 20, 8, 1);
     }
 
-    // 3. OJOS ANIME (DETALLE FEMENINO vs MASCULINO)
+    // 4. OJOS Y EXPRESIONES (RISA / CARCAJADA / SERIO)
     if (!blinking) {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(12, 13, 3, 4);
-        ctx.fillRect(17, 13, 3, 4);
+        if (expression === 'laughing') {
+            // Ojos cerrados de felicidad ^ ^
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(12, 13, 3, 1); ctx.fillRect(11, 14, 1, 1); ctx.fillRect(15, 14, 1, 1);
+            ctx.fillRect(17, 13, 3, 1); ctx.fillRect(16, 14, 1, 1); ctx.fillRect(20, 14, 1, 1);
+        } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(12, 13, 3, 4); ctx.fillRect(17, 13, 3, 4);
 
-        ctx.fillStyle = eyeColor;
-        ctx.fillRect(13, 14, 2, 3);
-        ctx.fillRect(17, 14, 2, 3);
+            ctx.fillStyle = eyeColor;
+            ctx.fillRect(13, 14, 2, 3); ctx.fillRect(17, 14, 2, 3);
 
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(13, 15, 1, 2);
-        ctx.fillRect(17, 15, 1, 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(14, 13, 1, 1); ctx.fillRect(18, 13, 1, 1);
 
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(14, 13, 1, 1);
-        ctx.fillRect(18, 13, 1, 1);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(12, 13, 3, 1); ctx.fillRect(17, 13, 3, 1);
 
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(12, 13, 3, 1);
-        ctx.fillRect(17, 13, 3, 1);
-
-        // Pestañas extendidas si es femenino
-        if (gender === 'female') {
-            ctx.fillRect(11, 13, 1, 2);
-            ctx.fillRect(20, 13, 1, 2);
+            if (gender === 'female') {
+                ctx.fillRect(11, 13, 1, 2); ctx.fillRect(20, 13, 1, 2);
+            }
         }
     } else {
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(12, 15, 3, 1);
-        ctx.fillRect(17, 15, 3, 1);
+        ctx.fillRect(12, 15, 3, 1); ctx.fillRect(17, 15, 3, 1);
     }
 
-    // Nariz y Boca
-    ctx.fillStyle = skinShadow;
-    ctx.fillRect(15, 16, 1, 1);
-    ctx.fillStyle = gender === 'female' ? '#ff0055' : '#b91c1c';
-    ctx.fillRect(15, 18, 2, 1);
+    // BOCA Y RISA
+    if (expression === 'laughing') {
+        ctx.fillStyle = '#ff0055';
+        ctx.fillRect(14, 17, 4, 3);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(14, 17, 4, 1);
+    } else if (expression === 'smiling') {
+        ctx.fillStyle = gender === 'female' ? '#ff0055' : '#b91c1c';
+        ctx.fillRect(14, 18, 4, 1); ctx.fillRect(13, 17, 1, 1); ctx.fillRect(18, 17, 1, 1);
+    } else {
+        ctx.fillStyle = '#b91c1c';
+        ctx.fillRect(14, 18, 4, 1);
+    }
 
-    // 4. PEINADOS (FEMENINOS Y MASCULINOS)
+    // 5. PEINADOS JUVENILES Y VARIADOS
     ctx.fillStyle = hairBase;
 
     if (gender === 'female') {
-        // Cabello Largo / Flequillo Femenino
-        ctx.fillRect(8, 6, 16, 6);
-        ctx.fillRect(7, 11, 4, 11);
-        ctx.fillRect(21, 11, 4, 11);
-        ctx.fillRect(12, 10, 3, 3);
-        ctx.fillRect(17, 10, 3, 3);
-
-        ctx.fillStyle = hairShadow;
-        ctx.fillRect(7, 16, 2, 6);
-        ctx.fillRect(23, 16, 2, 6);
+        if (hairStyle === 'twin_buns') {
+            // Doble moño (Twin Buns)
+            ctx.fillRect(6, 4, 5, 5); ctx.fillRect(21, 4, 5, 5); // Moños
+            ctx.fillRect(9, 6, 14, 5);
+            ctx.fillRect(8, 10, 3, 10); ctx.fillRect(21, 10, 3, 10); // Coletas
+        } else if (hairStyle === 'single_bun') {
+            // Un Moño Alto
+            ctx.fillRect(13, 3, 6, 5); // Moño
+            ctx.fillRect(9, 7, 14, 5);
+            ctx.fillRect(8, 10, 3, 8); ctx.fillRect(21, 10, 3, 8);
+        } else {
+            // Cabello Largo / Bob Suelto
+            ctx.fillRect(8, 6, 16, 6);
+            ctx.fillRect(7, 11, 4, 11); ctx.fillRect(21, 11, 4, 11);
+        }
     } else {
-        // Cabello Corto / Spiky Masculino
-        ctx.fillRect(9, 7, 14, 5);
-        ctx.fillRect(8, 10, 3, 8);
-        ctx.fillRect(21, 10, 3, 8);
-        ctx.fillRect(11, 10, 3, 3);
-        ctx.fillRect(15, 10, 2, 2);
-        ctx.fillRect(18, 10, 3, 3);
-
-        ctx.fillStyle = hairShadow;
-        ctx.fillRect(8, 15, 2, 4);
-        ctx.fillRect(22, 15, 2, 4);
+        if (hairStyle === 'spiky') {
+            ctx.fillRect(9, 6, 14, 5); ctx.fillRect(11, 4, 3, 3); ctx.fillRect(17, 4, 3, 3);
+            ctx.fillRect(8, 10, 3, 7); ctx.fillRect(21, 10, 3, 7);
+        } else if (hairStyle === 'short_crop') {
+            ctx.fillRect(9, 7, 14, 5);
+            ctx.fillRect(9, 10, 2, 5); ctx.fillRect(21, 10, 2, 5);
+        } else {
+            ctx.fillRect(8, 6, 16, 6);
+            ctx.fillRect(8, 10, 3, 6); ctx.fillRect(21, 10, 3, 6);
+        }
     }
 
     ctx.fillStyle = hairHighlight;
-    ctx.fillRect(11, 7, 4, 1);
-    ctx.fillRect(17, 7, 4, 1);
+    ctx.fillRect(11, 7, 4, 1); ctx.fillRect(17, 7, 4, 1);
 
-    // 5. ACCESORIOS
-    if (accessory === 'glasses') {
+    // 6. ACCESORIOS
+    if (data.accessory === 'glasses') {
         ctx.fillStyle = '#00f3ff';
-        ctx.fillRect(11, 13, 4, 3);
-        ctx.fillRect(17, 13, 4, 3);
+        ctx.fillRect(11, 13, 4, 3); ctx.fillRect(17, 13, 4, 3);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(12, 14, 1, 1);
-        ctx.fillRect(18, 14, 1, 1);
-    } else if (accessory === 'cyber_vr') {
-        ctx.fillStyle = '#ff007f';
-        ctx.fillRect(11, 12, 10, 4);
-        ctx.fillStyle = '#00f3ff';
-        ctx.fillRect(13, 13, 6, 2);
-    } else if (accessory === 'earrings' && gender === 'female') {
-        ctx.fillStyle = '#eab308';
-        ctx.fillRect(10, 18, 1, 2);
-        ctx.fillRect(21, 18, 1, 2);
+        ctx.fillRect(12, 14, 1, 1); ctx.fillRect(18, 14, 1, 1);
     }
 }
 

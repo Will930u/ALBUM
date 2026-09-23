@@ -1,3 +1,7 @@
+/* =============================================================================
+   🎨 ESTILOS CYBERPUNK SYNTHWAVE - VISOR LIMPIO DE TAMAÑO NORMAL (CORREGIDO)
+   ============================================================================= */
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -25,6 +29,7 @@ body {
     padding: 10px;
 }
 
+/* CABECERA TEMÁTICA */
 .cabecera-album {
     text-align: center;
     margin-bottom: 12px;
@@ -46,6 +51,7 @@ body {
     text-shadow: 0 0 5px rgba(255, 0, 127, 0.8);
 }
 
+/* MARCADOR PROGRESO HUD */
 .marcador-progreso {
     background: rgba(18, 19, 36, 0.85);
     border: 2px solid #00f3ff;
@@ -56,12 +62,17 @@ body {
     backdrop-filter: blur(4px);
 }
 
+/* FILA SUPERIOR CON VALORES Y PROGRESO DISTRIBUIDOS */
 .info-header-hud {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
     margin-bottom: 10px;
+}
+
+.bloque-orilla-izquierda {
+    text-align: left;
 }
 
 .linea-era {
@@ -77,6 +88,7 @@ body {
     text-shadow: 0 0 6px #00f3ff;
 }
 
+/* CUADRO DERECHO: VALOR DE LA COLECCIÓN */
 .panel-valor-coleccion {
     background: rgba(9, 10, 20, 0.9);
     border: 1px solid #ff007f;
@@ -91,6 +103,7 @@ body {
     font-size: 6px;
     color: #a5b4fc;
     margin-bottom: 3px;
+    letter-spacing: 0.5px;
 }
 
 .montos-valor {
@@ -101,9 +114,21 @@ body {
     font-size: 7px;
 }
 
-.monto-usd { color: #00f3ff; text-shadow: 0 0 4px #00f3ff; font-weight: bold; }
-.separador-monto { color: #7928ca; }
-.monto-bs { color: #ff007f; text-shadow: 0 0 4px #ff007f; font-weight: bold; }
+.monto-usd {
+    color: #00f3ff;
+    text-shadow: 0 0 4px #00f3ff;
+    font-weight: bold;
+}
+
+.separador-monto {
+    color: #7928ca;
+}
+
+.monto-bs {
+    color: #ff007f;
+    text-shadow: 0 0 4px #ff007f;
+    font-weight: bold;
+}
 
 .controles-navegacion {
     display: flex;
@@ -123,8 +148,15 @@ body {
     flex: 1;
     box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
     text-shadow: 1px 1px 2px #000;
+    transition: all 0.2s ease;
 }
 
+.btn-retro:active {
+    transform: scale(0.96);
+    box-shadow: 0 0 2px rgba(0, 243, 255, 0.8);
+}
+
+/* CUADRÍCULA MATRIX 5x5 */
 .libro-contenedor {
     background: rgba(10, 11, 20, 0.9);
     border: 2px solid #7928ca;
@@ -152,6 +184,7 @@ body {
     color: #4b5563;
     position: relative;
     overflow: hidden;
+    transition: border-color 0.3s;
 }
 
 .miniatura-slot.poseida {
@@ -159,6 +192,7 @@ body {
     background: #000;
     cursor: pointer;
     box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+    padding: 0;
 }
 
 .badge-cantidad {
@@ -175,6 +209,7 @@ body {
     z-index: 5;
 }
 
+/* PANEL USUARIOS TELEGRAM */
 .panel-usuario-telegram {
     background: rgba(18, 19, 36, 0.9);
     border: 1px solid #7928ca;
@@ -183,15 +218,45 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 0 10px rgba(121, 40, 202, 0.3);
 }
 
-.indicador-pagina { font-size: 8px; color: #a5b4fc; }
-.perfil-telegram { display: flex; align-items: center; gap: 8px; }
-.avatar-tg { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #00f3ff; }
-.datos-tg { display: flex; flex-direction: column; }
-.tg-username { font-size: 7px; color: #00f3ff; }
-.tg-fullname { font-size: 6px; color: #94a3b8; }
+.indicador-pagina {
+    font-size: 8px;
+    color: #a5b4fc;
+}
 
+.perfil-telegram {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.avatar-tg {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid #00f3ff;
+    box-shadow: 0 0 5px #00f3ff;
+}
+
+.datos-tg {
+    display: flex;
+    flex-direction: column;
+}
+
+.tg-username {
+    font-size: 7px;
+    color: #00f3ff;
+    text-shadow: 0 0 3px #00f3ff;
+}
+
+.tg-fullname {
+    font-size: 6px;
+    color: #94a3b8;
+}
+
+/* MODAL VISOR EN TAMAÑO NORMAL */
 .modal-visor {
     position: fixed;
     top: 0;
@@ -209,13 +274,14 @@ body {
 .carta-box-animacion {
     background: #090a14;
     border: 2px solid #00f3ff;
-    box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.6), inset 0 0 20px rgba(255, 0, 127, 0.3);
     padding: 12px;
     border-radius: 12px;
     max-width: 284px;
     width: 90%;
 }
 
+/* BARRA NAVEGACIÓN FIJA NEÓN */
 .menu-navegacion-fijo {
     position: fixed;
     bottom: 0;
@@ -223,10 +289,12 @@ body {
     width: 100%;
     background: rgba(9, 10, 20, 0.95);
     border-top: 2px solid #00f3ff;
+    box-shadow: 0 -4px 15px rgba(0, 243, 255, 0.3);
     display: flex;
     justify-content: space-around;
     padding: 10px 0;
     z-index: 999;
+    backdrop-filter: blur(8px);
 }
 
 .btn-nav {
@@ -236,12 +304,20 @@ body {
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
     cursor: pointer;
+    transition: color 0.3s;
 }
 
-.btn-nav.activo { color: #00f3ff; text-shadow: 0 0 8px #00f3ff; }
+.btn-nav.activo {
+    color: #00f3ff;
+    text-shadow: 0 0 8px #00f3ff;
+}
 
-/* REGLAS OBLIGATORIAS DE RENDIMIENTO PIXEL ART (PRESERVA NITIDEZ EN CANVAS E IMÁGENES) */
-canvas, img {
+/* =============================================================================
+   🎮 REGLAS GENERALES Y ESPECÍFICAS DE NITIDEZ PIXEL ART Y CANVAS
+   ============================================================================= */
+
+canvas,
+img {
     image-rendering: pixelated !important;
     image-rendering: crisp-edges !important;
     image-rendering: -moz-crisp-edges !important;
@@ -249,18 +325,44 @@ canvas, img {
     -ms-interpolation-mode: nearest-neighbor !important;
 }
 
-.miniatura-slot canvas, .miniatura-slot img,
-#contenido-carta-frontal img, #contenido-carta-frontal canvas {
+.miniatura-slot canvas,
+.miniatura-slot img {
     width: 100% !important;
     height: 100% !important;
     object-fit: fill !important;
+    image-rendering: pixelated !important;
+    image-rendering: crisp-edges !important;
+    image-rendering: -moz-crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    -ms-interpolation-mode: nearest-neighbor !important;
     display: block;
 }
 
+#contenido-carta-frontal img,
+#contenido-carta-frontal canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+    image-rendering: pixelated !important;
+    image-rendering: crisp-edges !important;
+    image-rendering: -moz-crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    -ms-interpolation-mode: nearest-neighbor !important;
+    display: block;
+}
+
+/* =============================================================================
+   🚀 PANTALLA DE PORTADA DE BIENVENIDA (SPLASH SCREEN)
+   ============================================================================= */
+
 .portada-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     background: #05050c;
+    background-image: radial-gradient(circle at 50% 50%, rgba(121, 40, 202, 0.2), transparent 70%);
     z-index: 9999;
     display: flex;
     justify-content: center;
@@ -268,26 +370,167 @@ canvas, img {
     transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
-.portada-overlay.oculto { opacity: 0; visibility: hidden; pointer-events: none; }
-.contenido-portada { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 18px; width: 90%; max-width: 360px; }
-.titulo-portada { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900; color: #00f3ff; text-shadow: 0 0 10px #00f3ff; line-height: 1.1; }
-.subtitulo-portada { font-size: 8px; color: #ff007f; }
-.contenedor-play { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 15px 0; }
-.texto-tap { font-size: 7px; color: #00f3ff; }
-.btn-play-neon { width: 70px; height: 70px; border-radius: 50%; background: transparent; border: 3px solid #ff007f; box-shadow: 0 0 15px #ff007f; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.triangulo-play { width: 0; height: 0; border-top: 12px solid transparent; border-bottom: 12px solid transparent; border-left: 20px solid #fff; margin-left: 4px; }
-.barra-carga-box { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border: 1px solid #ff007f; border-radius: 4px; overflow: hidden; }
-.barra-carga-progreso { width: 100%; height: 100%; background: linear-gradient(90deg, #ff007f, #00f3ff); }
-.texto-cargando { font-size: 6px; color: #a5b4fc; }
+.portada-overlay.oculto {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.contenido-portada {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    width: 90%;
+    max-width: 360px;
+}
+
+.titulo-portada {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: #00f3ff;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.5), 2px 2px #ff007f;
+    line-height: 1.1;
+    letter-spacing: 2px;
+}
+
+.subtitulo-portada {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #ff007f;
+    text-shadow: 0 0 6px #ff007f;
+    letter-spacing: 1px;
+}
+
+.contenedor-play {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.texto-tap {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #00f3ff;
+    text-shadow: 0 0 4px #00f3ff;
+}
+
+.btn-play-neon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: transparent;
+    border: 3px solid #ff007f;
+    box-shadow: 0 0 15px #ff007f, inset 0 0 10px #ff007f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    outline: none;
+}
+
+.btn-play-neon:active {
+    transform: scale(0.9);
+    box-shadow: 0 0 25px #00f3ff, inset 0 0 15px #00f3ff;
+    border-color: #00f3ff;
+}
+
+.triangulo-play {
+    width: 0;
+    height: 0;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    border-left: 20px solid #ffffff;
+    margin-left: 4px;
+    filter: drop-shadow(0 0 4px #ff007f);
+}
+
+.barra-carga-box {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #ff007f;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+}
+
+.barra-carga-progreso {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff007f, #00f3ff);
+    box-shadow: 0 0 8px #00f3ff;
+}
+
+.texto-cargando {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #a5b4fc;
+}
+
+/* =============================================================================
+   📱 REGLAS ADAPTATIVAS ESPECÍFICAS PARA MÓVILES (PANTALLAS <= 480PX)
+   ============================================================================= */
 
 @media screen and (max-width: 480px) {
-    .interfaz-juego { padding: 6px; }
-    .titulo-album { font-size: 15px; }
-    .linea-era, .linea-conteo { font-size: 6.5px; }
-    .label-valor { font-size: 5px; }
-    .montos-valor { font-size: 6px; gap: 2px; }
-    .pagina-cuadrula { gap: 3px; }
-    .libro-contenedor { padding: 4px; }
-    .badge-cantidad { font-size: 5px; padding: 1px 3px; }
-    .btn-retro { font-size: 7px; padding: 6px 4px; }
+    .interfaz-juego {
+        padding: 6px;
+    }
+
+    .titulo-album {
+        font-size: 15px;
+    }
+
+    .linea-era, 
+    .linea-conteo {
+        font-size: 6.5px;
+    }
+
+    .label-valor {
+        font-size: 5px;
+    }
+
+    .montos-valor {
+        font-size: 6px;
+        gap: 2px;
+    }
+
+    .pagina-cuadrula {
+        gap: 3px; /* Reduce brechas entre tarjetas para maximizar espacio */
+    }
+
+    .libro-contenedor {
+        padding: 4px;
+    }
+
+    .miniatura-slot {
+        font-size: 6px;
+    }
+
+    .badge-cantidad {
+        font-size: 5px;
+        padding: 1px 3px;
+    }
+
+    .indicador-pagina {
+        font-size: 6.5px;
+    }
+
+    .tg-username {
+        font-size: 6px;
+    }
+
+    .tg-fullname {
+        font-size: 5px;
+    }
+
+    .btn-retro {
+        font-size: 7px;
+        padding: 6px 4px;
+    }
 }

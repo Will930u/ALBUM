@@ -102,6 +102,7 @@ function generarDatosPersonajeAnime() {
 
 function drawAnimeBackground(ctx, bgType, time) {
     ctx.save();
+    ctx.imageSmoothingEnabled = false;
     if (bgType === 'cyberpunk') {
         ctx.fillStyle = '#0f051d';
         ctx.fillRect(0, 0, 32, 32);
@@ -614,8 +615,8 @@ function renderizarCartaDesdeBD(carta) {
             </div>
             <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
                 ${esImagenHttp 
-                    ? `<img src="${rawUrl}" alt="${carta.nombre}" style="max-width:100%; max-height:100%; object-fit:contain;">` 
-                    : `<canvas id="canvas-cat-${carta.id}" width="150" height="100" style="max-width:100%; max-height:100%; display:block;"></canvas>`
+                    ? `<img src="${rawUrl}" alt="${carta.nombre}" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering: pixelated; image-rendering: crisp-edges;">` 
+                    : `<canvas id="canvas-cat-${carta.id}" width="150" height="100" style="max-width:100%; max-height:100%; display:block; image-rendering: pixelated; image-rendering: crisp-edges;"></canvas>`
                 }
             </div>
             <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; height:28px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000; margin-bottom:4px;">
@@ -634,6 +635,7 @@ function animarMiniCanvasCarta(canvas, carta, tiempo) {
     if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
 
     const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
     const width = canvas.width;
     const height = canvas.height;
 
@@ -643,10 +645,10 @@ function animarMiniCanvasCarta(canvas, carta, tiempo) {
     offscreenCanvas.width = 32;
     offscreenCanvas.height = 32;
     const offCtx = offscreenCanvas.getContext('2d');
+    offCtx.imageSmoothingEnabled = false;
 
     renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
 
-    ctx.imageSmoothingEnabled = false;
     const targetSize = 90;
     const targetX = (width - targetSize) / 2;
     const targetY = (height - targetSize) / 2;
@@ -691,6 +693,8 @@ function dibujarCartaCanvas() {
 
     function loopPreview(tiempo) {
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
         const carta = Estado.cartaPreviewActual || {
             nombre: `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`,
             simbolo: "",
@@ -722,10 +726,10 @@ function dibujarCartaCanvas() {
         offscreenCanvas.width = 32;
         offscreenCanvas.height = 32;
         const offCtx = offscreenCanvas.getContext('2d');
+        offCtx.imageSmoothingEnabled = false;
 
         renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
 
-        ctx.imageSmoothingEnabled = false;
         const targetSize = 180;
         const targetX = (width - targetSize) / 2;
         const targetY = 30;
@@ -1176,7 +1180,8 @@ function configurarEventosUI() {
 window.cambiarPestana = cambiarPestana;
 window.seleccionarModoRender = seleccionarModoRender;
 window.generar2000CombinacionesEnLote = generar2000CombinacionesEnLote;
-window.generarImagenPollinationsDirecta = generarImagenPollinationsDirecta;window.regalarCartaAUsuario = regalarCartaAUsuario;
+window.generarImagenPollinationsDirecta = generarImagenPollinationsDirecta;
+window.regalarCartaAUsuario = regalarCartaAUsuario;
 window.cargarMetricasServidor = cargarMetricasServidor;
 window.testearConexionSupabase = testearConexionSupabase;
 window.limpiarStorageHuerfano = limpiarStorageHuerfano;

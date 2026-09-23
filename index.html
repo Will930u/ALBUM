@@ -24,10 +24,24 @@
 
         <!-- Marcador de Progreso Estilo HUD Neón -->
         <div class="marcador-progreso">
-            <div class="linea-era"><span id="titulo-bloque">SECTOR 1: CYBERNETICS</span></div>
-            <div class="linea-conteo">
-                <span id="contador-progreso" class="resaltado-oro">PROGRESO: 000 / 2000</span>
+            <div class="info-header-hud">
+                <div class="bloque-orilla-izquierda">
+                    <div class="linea-era"><span id="titulo-bloque">SECTOR 1: CYBERNETICS</span></div>
+                    <div class="linea-conteo">
+                        <span id="contador-progreso" class="resaltado-oro">PROGRESO: 000 / 2000</span>
+                    </div>
+                </div>
+
+                <div class="panel-valor-coleccion" id="panel-valor-coleccion">
+                    <span class="label-valor">VALOR COLECCIÓN:</span>
+                    <div class="montos-valor">
+                        <span id="valor-usd" class="monto-usd">USD: $0.00</span>
+                        <span class="separador-monto">|</span>
+                        <span id="valor-bs" class="monto-bs">BS: 0</span>
+                    </div>
+                </div>
             </div>
+
             <div class="controles-navegacion">
                 <button class="btn-retro" id="btn-anterior">◄ ANTERIOR</button>
                 <button class="btn-retro" id="btn-siguiente">SIGUIENTE ►</button>

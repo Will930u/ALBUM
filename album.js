@@ -360,26 +360,16 @@ function renderizarLibro(pagina) {
 // =============================================================================
 function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     let config = {};
-    let urlImagenReal = "";
 
-    // 1. Extraer la URL / Base64 real de la imagen guardada en la BD
-    if (datosCarta?.imagen_base64) {
-        urlImagenReal = datosCarta.imagen_base64;
-    } else if (typeof datosCarta?.imagen_url === 'string') {
-        if (datosCarta.imagen_url.startsWith('data:image') || datosCarta.imagen_url.startsWith('http')) {
-            urlImagenReal = datosCarta.imagen_url;
-        } else {
-            try {
-                config = JSON.parse(datosCarta.imagen_url);
-                if (config.imagen_base64) urlImagenReal = config.imagen_base64;
-                else if (config.imagen_url) urlImagenReal = config.imagen_url;
-            } catch (e) {
-                config = {};
-            }
+    // Parsear el JSON guardado en la columna imagen_url
+    if (typeof datosCarta?.imagen_url === 'string') {
+        try {
+            config = JSON.parse(datosCarta.imagen_url);
+        } catch (e) {
+            config = {};
         }
     } else if (typeof datosCarta?.imagen_url === 'object' && datosCarta?.imagen_url !== null) {
         config = datosCarta.imagen_url;
-        urlImagenReal = config.imagen_base64 || config.imagen_url || "";
     }
 
     const canvas = document.createElement('canvas');
@@ -390,153 +380,107 @@ function dibujarBarajitaAlgoritmicaSlot(contenedor, datosCarta, idCarta) {
     canvas.style.borderRadius = "4px";
 
     const ctx = canvas.getContext('2d');
-    
-    let objetoImagen = null;
-    let esImagen = false;
-
-    // 2. Si detecta la cadena de la imagen, la carga para renderizar los movimientos
-    if (urlImagenReal && (urlImagenReal.startsWith('data:image') || urlImagenReal.startsWith('http'))) {
-        esImagen = true;
-        objetoImagen = new Image();
-        objetoImagen.crossOrigin = "anonymous";
-        objetoImagen.src = urlImagenReal;
-    }
+    ctx.imageSmoothingEnabled = false; // Mantiene bordes nítidos de Pixel Art
 
     canvasAnimados.push({
         canvas: canvas,
         ctx: ctx,
         datosCarta: datosCarta,
         idCarta: idCarta,
-        config: config,
-        esImagen: esImagen,
-        img: objetoImagen
+        config: config
     });
 
     contenedor.appendChild(canvas);
 }
 function iniciarBucleAnimacionGlobal() {
     function animar(timestamp) {
-        const t = timestamp * 0.0025; // Control de tiempo general
+        const t = timestamp * 0.0025; // Control de velocidad del bucle
 
         canvasAnimados.forEach(item => {
-            const { canvas, ctx, datosCarta, idCarta, config, esImagen, img } = item;
+            const { canvas, ctx, datosCarta, idCarta, config } = item;
             const w = canvas.width;
             const h = canvas.height;
 
             ctx.clearRect(0, 0, w, h);
-            // Desactivar el suavizado interno del motor Canvas para nitidez 8-bit exacta
-            ctx.imageSmoothingEnabled = false;
 
-            // Fondo base Neón
-            ctx.fillStyle = config.fondoColor || config.colorFondo || "#090a14";
+            // 1. DIBUJAR FONDO NEÓN
+            const colorFondo = config?.fondoColor || "#090a14";
+            ctx.fillStyle = colorFondo;
             ctx.fillRect(0, 0, w, h);
 
-            if (esImagen && img && img.complete) {
-                ctx.save();
+            ctx.save();
 
-                // 1. GIRO DE CABEZA / INCLINACIÓN CORPORAL (Eje central)
-                const anguloGiro = Math.sin(t * 0.8 + idCarta) * 0.05; 
-                const traslacionX = Math.cos(t * 0.5 + idCarta) * 2;
-                const traslacionY = Math.sin(t * 1.2 + idCarta) * 2;
+            // Animación sutil de respiración/flotación para todo el personaje
+            const offsetY = Math.sin(t * 2 + idCarta) * 2;
+            ctx.translate(0, offsetY);
 
-                ctx.translate(w / 2 + traslacionX, h / 2 + traslacionY);
-                ctx.rotate(anguloGiro);
+            // 2. RECONSTRUIR EL PERSONAJE DESDE personajeData
+            const pData = config?.personajeData || config;
 
-                // Dibujar Cuerpo Principal / Fondo de Personaje
-                ctx.drawImage(img, 0, 0, img.width, img.height, -w / 2, -h / 2, w, h);
+            if (pData && (pData.skin || pData.base || pData.cuerpo)) {
+                // Dimensión del píxel escalado para la tarjeta (píxeles de 4x4)
+                const tamañoPixel = 4;
+                const centroX = w / 2;
+                const inicioY = 30;
 
-                // 2. PARPADEO DE OJOS (Recorte y escala vertical acelerada)
-                // Se genera un pulso de parpadeo cada cierto intervalo usando senos de alta frecuencia
+                // A) Dibujar Cuerpo/Piel Base
+                const colorPiel = pData.skin?.base || pData.skin || pData.base || "#f1c27d";
+                ctx.fillStyle = colorPiel;
+                ctx.fillRect(centroX - 16, inicioY + 16, 32, 32); // Cabeza
+                ctx.fillRect(centroX - 12, inicioY + 48, 24, 28); // Torso
+
+                // B) Dibujar Ojos y Parpadeo Animado
                 const tiempoParpadeo = (t * 1.5 + idCarta) % 4;
-                let escalaOjoY = 1;
-                if (tiempoParpadeo > 3.7) { 
-                    escalaOjoY = Math.abs(Math.cos((tiempoParpadeo - 3.7) * Math.PI * 16.6)); 
-                }
-
-                if (escalaOjoY < 0.95) {
-                    // Region del ojo (30% a 45% de la altura de la imagen)
-                    const ojoSrcY = img.height * 0.30;
-                    const ojoSrcH = img.height * 0.15;
-                    const ojoDestY = -h / 2 + h * 0.30;
-                    const ojoDestH = h * 0.15;
-
-                    ctx.save();
-                    ctx.translate(0, ojoDestY + ojoDestH / 2);
-                    ctx.scale(1, escalaOjoY); // Compresión Y para cerrar párpado
-                    ctx.drawImage(
-                        img, 
-                        0, ojoSrcY, img.width, ojoSrcH, 
-                        -w / 2, -ojoDestH / 2, w, ojoDestH
-                    );
-                    ctx.restore();
-                }
-
-                // 3. MOVIMIENTO DE BOCA (Gesticulación / Habla)
-                // Recorte de región bucal (52% a 68% de la altura de la imagen)
-                const aperturaBoca = Math.sin(t * 3.5 + idCarta) * 0.12;
-                if (aperturaBoca > 0.02) {
-                    const bocaSrcY = img.height * 0.52;
-                    const bocaSrcH = img.height * 0.16;
-                    const bocaDestY = -h / 2 + h * 0.52;
-                    const bocaDestH = h * 0.16;
-
-                    ctx.save();
-                    ctx.translate(0, bocaDestY + bocaDestH / 2);
-                    ctx.scale(1 + aperturaBoca * 0.2, 1 + aperturaBoca); // Deformación rítmica
-                    ctx.drawImage(
-                        img, 
-                        0, bocaSrcY, img.width, bocaSrcH, 
-                        -w / 2, -bocaDestH / 2, w, bocaDestH
-                    );
-                    ctx.restore();
-                }
-
-                ctx.restore();
-
-                // Efecto Barrido Holográfico Neón
-                const holoGradient = ctx.createLinearGradient(0, (t * 50) % (h * 2) - h, w, (t * 50) % (h * 2));
-                holoGradient.addColorStop(0, "rgba(255,0,127,0)");
-                holoGradient.addColorStop(0.5, "rgba(0,243,255,0.2)");
-                holoGradient.addColorStop(1, "rgba(255,0,127,0)");
+                const estaParpadeando = tiempoParpadeo > 3.7;
                 
-                ctx.fillStyle = holoGradient;
-                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = pData.ojos?.color || "#000000";
+                if (!estaParpadeando) {
+                    ctx.fillRect(centroX - 10, inicioY + 28, 6, 6); // Ojo Izquierdo
+                    ctx.fillRect(centroX + 4, inicioY + 28, 6, 6);  // Ojo Derecho
+                } else {
+                    ctx.fillRect(centroX - 10, inicioY + 30, 6, 2); // Ojo cerrado Izq
+                    ctx.fillRect(centroX + 4, inicioY + 30, 6, 2);  // Ojo cerrado Der
+                }
+
+                // C) Ropa / Traje
+                if (pData.ropa || pData.traje) {
+                    ctx.fillStyle = pData.ropa?.color || pData.traje || "#1e293b";
+                    ctx.fillRect(centroX - 14, inicioY + 50, 28, 26);
+                }
+
+                // D) Cabello / Accesorio superior
+                if (pData.cabello || pData.pelo) {
+                    ctx.fillStyle = pData.cabello?.color || pData.pelo || "#451a03";
+                    ctx.fillRect(centroX - 18, inicioY + 10, 36, 10); // Parte superior
+                    ctx.fillRect(centroX - 18, inicioY + 16, 8, 16);  // Lateral izq
+                    ctx.fillRect(centroX + 10, inicioY + 16, 8, 16);  // Lateral der
+                }
 
             } else {
-                // ANIMACIÓN PIXEL ART: Flotación + Cierre de ojos Pixel
-                ctx.save();
-                
-                const offsetY = Math.sin(t * 1.5 + idCarta) * 4;
-                const rotacionPixel = Math.cos(t * 0.8 + idCarta) * 0.08;
-
-                ctx.translate(w / 2, h / 2 - 10 + offsetY);
-                ctx.rotate(rotacionPixel);
-
-                ctx.font = "38px sans-serif";
+                // Dibujo genérico si el objeto de datos está incompleto
+                ctx.fillStyle = "#ff007f";
+                ctx.font = "24px 'Press Start 2P', monospace";
                 ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-
-                ctx.shadowColor = config.marcoColor || config.colorPrimario || "#00f3ff";
-                ctx.shadowBlur = 10 + Math.sin(t * 2) * 5;
-
-                ctx.fillText(config.simbolo || "👾", 0, 0);
-                ctx.restore();
+                ctx.fillText("👾", w / 2, h / 2);
             }
 
-            // MARCO NEÓN CON PULSACIÓN DE BORDE
-            ctx.strokeStyle = config.marcoColor || config.colorPrimario || "#00f3ff";
-            ctx.lineWidth = 4 + Math.sin(t * 2 + idCarta) * 2;
+            ctx.restore();
+
+            // 3. MARCO NEÓN CON PULSACIÓN DE BORDE
+            const colorMarco = config?.marcoColor || "#00f3ff";
+            ctx.strokeStyle = colorMarco;
+            ctx.lineWidth = 3 + Math.sin(t * 2 + idCarta);
             ctx.strokeRect(2, 2, w - 4, h - 4);
 
-            // ZÓCALO DE IDENTIFICACIÓN CYBER
+            // 4. ZÓCALO DE IDENTIFICACIÓN CYBER
             ctx.fillStyle = "rgba(5, 5, 12, 0.85)";
-            ctx.fillRect(4, h - 26, w - 8, 22);
+            ctx.fillRect(4, h - 22, w - 8, 18);
 
             ctx.fillStyle = "#00f3ff";
             ctx.font = "6px 'Press Start 2P', monospace";
             ctx.textAlign = "center";
             const nombreVisual = datosCarta?.nombre || `CYBER #${idCarta}`;
-            ctx.fillText(nombreVisual.substring(0, 10), w / 2, h - 12);
+            ctx.fillText(nombreVisual.substring(0, 11), w / 2, h - 10);
         });
 
         requestAnimationFrame(animar);

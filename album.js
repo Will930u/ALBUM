@@ -151,11 +151,12 @@ async function cargarInventarioInicial() {
                 if (item.carta_id !== undefined && item.carta_id !== null) {
                     const idCartaNum = Number(item.carta_id);
                     const cantidadNum = Number(item.cantidad) || 1;
-                    const previo = inventarioUsuarioCache.get(idCartaNum);
                     const infoCarta = mapaCartas.get(idCartaNum);
                     
-                    if (previo) {
-                        previo.cantidad += cantidadNum;
+                    // Si el registro ya existe en el Map, se consolida la cantidad de forma única
+                    if (inventarioUsuarioCache.has(idCartaNum)) {
+                        const existente = inventarioUsuarioCache.get(idCartaNum);
+                        existente.cantidad += cantidadNum;
                     } else {
                         inventarioUsuarioCache.set(idCartaNum, { 
                             carta_id: idCartaNum, 
@@ -1092,7 +1093,28 @@ function activarAlbumEnTiempoReal() {
 
                 if (esMio) {
                     mostrarNotificacionCartaRecibida(nuevoRegistro);
-                    await cargarInventarioInicial();
+                    
+                    const cartaIdNum = Number(nuevoRegistro.carta_id);
+                    const cantNueva = Number(nuevoRegistro.cantidad) || 1;
+
+                    // Actualización Atómica en Caché sin duplicar registros por re-fetch
+                    if (inventarioUsuarioCache.has(cartaIdNum)) {
+                        const itemExistente = inventarioUsuarioCache.get(cartaIdNum);
+                        if (payload.eventType === 'INSERT') {
+                            itemExistente.cantidad += cantNueva;
+                        } else {
+                            itemExistente.cantidad = cantNueva;
+                        }
+                    } else {
+                        inventarioUsuarioCache.set(cartaIdNum, {
+                            carta_id: cartaIdNum,
+                            cantidad: cantNueva,
+                            datosCarta: { id: cartaIdNum, nombre: `Cyber # ${cartaIdNum}` }
+                        });
+                    }
+
+                    renderizarLibro(paginaActual);
+
                     if (nuevoRegistro.carta_id) {
                         irAPaginaDeCarta(nuevoRegistro.carta_id);
                     }

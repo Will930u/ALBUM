@@ -802,10 +802,11 @@ async function cargarTablaComprasBarajitas() {
 }
 
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
-    if (!confirm(`¿Deseas aprobar este pago y entregar los sobres?`)) return;
+    if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
 
-    logEstado(`⏳ Aprobando pago ID #${idPago}...`);
+    logEstado(`⏳ Aprobando pago ID #${idPago} para @${usuarioId}...`);
     try {
+        // 1. Marcar el pago como aprobado en la tabla pagos_pendientes
         const { error: errPago } = await supabaseClient
             .from('pagos_pendientes')
             .update({ 
@@ -816,14 +817,27 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
         if (errPago) throw errPago;
 
-        alert(`✅ ¡Pago aprobado con éxito!`);
-        logEstado(`✅ Pago #${idPago} procesado correctamente.`);
+        // 2. Actualizar las barajitas del usuario de translúcidas/bloqueadas a activas/normales
+        // (Asumiendo que guardas una columna como 'estado' o 'translucido' en Coleccion_Usuario)
+        const { error: errColeccion } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .update({ estado: 'activo' }) // O 'translucido: false' según tu estructura
+            .eq('usuario_id', usuarioId)
+            .eq('estado', 'translucido'); // Actualiza únicamente las que estaban pendientes de aprobación
+
+        if (errColeccion) {
+            console.warn("Aviso al actualizar la colección del usuario:", errColeccion.message);
+        }
+
+        alert(`✅ ¡Pago aprobado y barajitas activadas con éxito!`);
+        logEstado(`✅ Pago #${idPago} procesado y colección actualizada.`);
         
         await cargarTablaComprasBarajitas();
         await cargarMetricasServidor();
 
     } catch (e) {
         alert("Error crítico al procesar el pago: " + e.message);
+        logEstado(`❌ Error al aprobar pago: ${e.message}`);
     }
 }
 

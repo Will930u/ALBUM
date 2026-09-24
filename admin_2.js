@@ -362,7 +362,8 @@ function seleccionarModoRender(modo) {
     if (esCanvas) dibujarCartaCanvas();
 }
 
-function iniciarSuscripcionRealtimeAlbum() {
+function iniciarSuscripcionesRealtimeAdmin() {
+    // 1. Suscripción para la colección de usuarios (la que ya tenías)
     if (Estado.canalRealtimeColeccion) {
         supabaseClient.removeChannel(Estado.canalRealtimeColeccion);
     }
@@ -381,7 +382,29 @@ function iniciarSuscripcionRealtimeAlbum() {
         )
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-                logEstado("🟢 Suscripción Realtime activa.");
+                logEstado("🟢 Suscripción Realtime de Colección activa.");
+            }
+        });
+
+    // 2. Nueva suscripción para los pagos pendientes en tiempo real
+    if (Estado.canalRealtimePagos) {
+        supabaseClient.removeChannel(Estado.canalRealtimePagos);
+    }
+
+    Estado.canalRealtimePagos = supabaseClient
+        .channel('public:pagos_pendientes')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'pagos_pendientes' },
+            (payload) => {
+                logEstado(`⚡ Nuevo pago recibido en tiempo real.`);
+                cargarTablaComprasBarajitas();
+                cargarMetricasServidor();
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                logEstado("🟢 Suscripción Realtime de Pagos Pendientes activa.");
             }
         });
 }

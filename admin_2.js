@@ -949,3 +949,5 @@ window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.procesarReclamacionPremio = procesarReclamacionPremio;
 window.aprobarCompraBarajita = aprobarCompraBarajita;
+window.cargarTablaComprasBarajitas = cargarTablaComprasBarajitas;
+window.aprobarCompraBarajita = aprobarCompraBarajita;

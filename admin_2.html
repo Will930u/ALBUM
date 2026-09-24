@@ -19,6 +19,7 @@
         <div class="barra-pestanas">
             <button class="tab-btn activo" onclick="cambiarPestana('tab-crear')">🎨 CREAR CARTA</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-asignar')">🎁 REGALAR</button>
+            <button class="tab-btn" onclick="cambiarPestana('tab-verificacion')">💳 VERIFICACIÓN</button>
             <button class="tab-btn" onclick="cambiarPestana('tab-servidor')">🖥️ SERVIDOR</button>
         </div>
 
@@ -87,6 +88,35 @@
 
             <button id="btn-regalar-carta" class="btn-admin-final" style="background-color: #38bdf8;" onclick="regalarCartaAUsuario()">🎁 ASIGNAR CARTAS A USUARIO</button>
         </div>
+
+        <!-- ========================================== -->
+        <!-- PEGA TU NUEVO CONTENEDOR EXACTAMENTE AQUÍ: -->
+        <!-- ========================================== -->
+        <div id="tab-verificacion" class="contenido-pestana">
+            <div class="subtitulo-admin">VERIFICACIÓN DE PAGOS MÓVILES Y USDT</div>
+            
+            <button type="button" onclick="ejecutarVerificacionPagosAdmin()" style="background: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; font-weight: bold; margin-bottom: 15px;">
+                 🔍 CONSULTAR PAGOS PENDIENTES
+            </button>
+            
+            <div style="background: #000; border: 1px solid #333; padding: 10px;">
+                <table style="width: 100%; text-align: left; color: #fff; font-size: 8px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #333; color: #888;">
+                            <th style="padding: 6px;">USUARIO / TELF</th>
+                            <th style="padding: 6px;">CANT. SOBRES</th>
+                            <th style="padding: 6px;">REF / MONTO</th>
+                            <th style="padding: 6px; text-align: center;">ACCIÓN</th>
+                             </tr>
+                        </thead>
+                     <tbody id="tabla-compras-barajitas">
+                          <tr>
+                               <td colspan="4" style="padding: 10px; text-align: center; color: #666;">Haz clic en consultar para ver los pagos.</td>
+                               </tr>
+                         </tbody>
+                     </table>
+                 </div>
+            </div>
         
         <!-- PESTAÑA 5: MONITOREO Y CONTROL DEL SERVIDOR -->
         <div id="tab-servidor" class="contenido-pestana">

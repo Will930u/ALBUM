@@ -727,48 +727,51 @@ async function cargarTablaComprasBarajitas() {
     if (!tbody) return;
 
     try {
-        const { data: compras, error } = await supabaseClient
+        const { data: pagos, error } = await supabaseClient
             .from('pagos_pendientes')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(15);
 
-        if (error || !compras || compras.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #666;">No hay pagos pendientes en este momento.</td></tr>`;
+        if (error || !pagos || pagos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #666;">No hay pagos pendientes.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = compras.map(pago => {
+        tbody.innerHTML = pagos.map(pago => {
             const estadoColor = pago.estado === 'aprobado' ? '#22c55e' : (pago.estado === 'rechazado' ? '#ef4444' : '#eab308');
-            const usuarioMostrado = pago.usuario_id ? `@${pago.usuario_id}` : 'Anónimo';
-            const telefonoMostrado = pago.telefono_origen || pago.telefono || 'S/T';
-            const cantidadSobres = pago.cantidad_sobres || 1;
+            const usuario = pago.usuario_id ? `@${pago.usuario_id}` : 'Anónimo';
+            const telefono = pago.telefono_origen || pago.telefono || 'S/T';
+            const sobres = pago.cantidad_sobres || 1;
+            const referencia = pago.referencia || 'N/A';
+            const monto = pago.monto || '0.00';
 
             return `
                 <tr style="border-bottom: 1px solid #222;">
-                    <td style="padding: 4px; color: #00ffcc;">${usuarioMostrado}<br><span style="font-size:6px; color:#888;">${telefonoMostrado}</span></td>
-                    <td style="padding: 4px; font-weight: bold;">${cantidadSobres} Sobre(s)</td>
-                    <td style="padding: 4px;">Ref: ${pago.referencia || 'N/A'}<br><span style="color:#38bdf8;">$${pago.monto || '0.00'}</span></td>
-                    <td style="padding: 4px; color: ${estadoColor}; font-weight: bold;">${(pago.estado || 'pendiente').toUpperCase()}</td>
-                    <td style="padding: 4px; text-align: center;">
+                    <td style="padding: 6px; color: #00ffcc;">${usuario}<br><span style="font-size:6px; color:#888;">📱 ${telefono}</span></td>
+                    <td style="padding: 6px; font-weight: bold;">📦 ${sobres} Sobre(s)</td>
+                    <td style="padding: 6px;">Ref: ${referencia}<br><span style="color:#38bdf8;">$${monto}</span></td>
+                    <td style="padding: 6px; color: ${estadoColor}; font-weight: bold;">${(pago.estado || 'pendiente').toUpperCase()}</td>
+                    <td style="padding: 6px; text-align: center;">
                         ${pago.estado !== 'aprobado' 
-                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${pago.usuario_id}',${cantidadSobres})" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:3px 6px; cursor:pointer; font-weight:bold;">APROBAR</button>`
-                            : `<span style="color:#22c55e;">APROBADO</span>`
+                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${pago.usuario_id}',${sobres})" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:4px 8px; cursor:pointer; font-weight:bold;">APROBAR</button>`
+                            : `<span style="color:#22c55e;">COMPLETADO</span>`
                         }
                     </td>
                 </tr>
             `;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #ef4444;">Error al cargar pagos: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #ef4444;">Error al cargar: ${e.message}</td></tr>`;
     }
 }
 
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
-    if (!confirm(`¿Deseas aprobar el pago ID #${idPago}?`)) return;
+    if (!confirm(`¿Deseas aprobar este pago y entregar los sobres?`)) return;
 
-    logEstado(`⏳ Aprobando pago #${idPago}...`);
+    logEstado(`⏳ Aprobando pago ID #${idPago}...`);
     try {
+        // 1. Cambiar estado a aprobado en pagos_pendientes
         const { error: errPago } = await supabaseClient
             .from('pagos_pendientes')
             .update({ 
@@ -777,76 +780,17 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
             })
             .eq('id', idPago);
 
-        if (errPago) {
-            alert("Error actualizando el pago: " + errPago.message);
-            return;
-        }
+        if (errPago) throw errPago;
 
-        alert(`✅ ¡Pago #${idPago} aprobado con éxito!`);
+        alert(`✅ ¡Pago aprobado con éxito!`);
         logEstado(`✅ Pago #${idPago} procesado correctamente.`);
         
+        // Recargar la tabla del panel de administración
         await cargarTablaComprasBarajitas();
         await cargarMetricasServidor();
 
     } catch (e) {
-        alert("Error crítico procesando el pago: " + e.message);
-    }
-}
-
-
-async function aprobarCompraBarajita(idCompra, usuarioId, barajitaId) {
-    if (!confirm(`¿Deseas aprobar la compra #${idCompra} y sumar la barajita #${barajitaId} a @${usuarioId}?`)) return;
-
-    logEstado(`⏳ Aprobando compra de barajita ID #${barajitaId} para @${usuarioId}...`);
-    try {
-        const usuarioLimpio = usuarioId.replace(/^@/, '').trim().toLowerCase();
-
-        // 1. Marcar compra como aprobada en la tabla `compras_barajitas`
-        const { error: errCompra } = await supabaseClient
-            .from('compras_barajitas')
-            .update({ 
-                estado: 'aprobado',
-                procesado_at: new Date().toISOString()
-            })
-            .eq('id', idCompra);
-
-        if (errCompra) {
-            alert("Error actualizando la compra: " + errCompra.message);
-            return;
-        }
-
-        // 2. Consultar existencia actual en la colección del usuario
-        const { data: regActual } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .select('cantidad')
-            .eq('usuario_id', usuarioLimpio)
-            .eq('carta_id', barajitaId)
-            .maybeSingle();
-
-        const cantidadActual = regActual ? (Number(regActual.cantidad) || 0) : 0;
-
-        // 3. Hacer UPSERT en `Coleccion_Usuario` sumando +1
-        const { error: errColeccion } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .upsert({
-                usuario_id: usuarioLimpio,
-                carta_id: Number(barajitaId),
-                cantidad: cantidadActual + 1
-            }, { onConflict: 'usuario_id,carta_id' });
-
-        if (errColeccion) {
-            alert("Error al entregar la barajita al álbum: " + errColeccion.message);
-            return;
-        }
-
-        alert(`✅ ¡Compra aprobada con éxito! Se añadió la barajita #${barajitaId} al usuario @${usuarioLimpio}.`);
-        logEstado(`✅ Compra #${idCompra} procesada y barajita #${barajitaId} asignada a @${usuarioLimpio}`);
-        
-        await cargarTablaComprasBarajitas();
-        await cargarMetricasServidor();
-
-    } catch (e) {
-        alert("Error crítico procesando compra: " + e.message);
+        alert("Error crítico al procesar el pago: " + e.message);
     }
 }
 
@@ -985,3 +929,4 @@ window.procesarReclamacionPremio = procesarReclamacionPremio;
 window.aprobarCompraBarajita = aprobarCompraBarajita;
 window.cargarTablaComprasBarajitas = cargarTablaComprasBarajitas;
 window.aprobarCompraBarajita = aprobarCompraBarajita;
+window.aprobarPagoPendiente = aprobarPagoPendiente;

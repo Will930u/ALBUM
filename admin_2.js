@@ -750,17 +750,27 @@ async function cargarTablaComprasBarajitas() {
     const tbody = DOM.get('tabla-compras-barajitas');
     if (!tbody) return;
 
+    logEstado("🔄 Consultando pagos en la base de datos...");
+
     try {
+        // Consultamos sin restricciones estrictas de estado para verificar si hay registros en la tabla
         const { data: pagos, error } = await supabaseClient
             .from('pagos_pendientes')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(15);
 
-        if (error || !pagos || pagos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #666;">No hay pagos pendientes.</td></tr>`;
+        if (error) {
+            throw error;
+        }
+
+        if (!pagos || pagos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #666;">No hay registros de pagos en la tabla.</td></tr>`;
+            logEstado("ℹ️ La tabla 'pagos_pendientes' no devolvió registros.");
             return;
         }
+
+        logEstado(`✅ Se encontraron ${pagos.length} registros de pagos.`);
 
         tbody.innerHTML = pagos.map(pago => {
             const estadoColor = pago.estado === 'aprobado' ? '#22c55e' : (pago.estado === 'rechazado' ? '#ef4444' : '#eab308');
@@ -787,6 +797,7 @@ async function cargarTablaComprasBarajitas() {
         }).join('');
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #ef4444;">Error al cargar: ${e.message}</td></tr>`;
+        logEstado(`❌ Error en consulta de pagos: ${e.message}`);
     }
 }
 

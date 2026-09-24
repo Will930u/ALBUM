@@ -15,6 +15,7 @@ const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABAS
 const Estado = {
     modoRenderActual: 'canvas', // 'canvas' | 'ia'
     canalRealtimeColeccion: null,
+    canalRealtimePagos: null,
     animacionCatalogoId: null,
     animacionPreviewId: null,
     cartaPreviewActual: null,
@@ -310,7 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         cargarTablaComprasBarajitas()
     ]);
     
-    iniciarSuscripcionRealtimeAlbum();
+    iniciarSuscripcionesRealtimeAdmin();
 
     Estado.cartaPreviewActual = {
         nombre: `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`,
@@ -363,7 +364,7 @@ function seleccionarModoRender(modo) {
 }
 
 function iniciarSuscripcionesRealtimeAdmin() {
-    // 1. Suscripción para la colección de usuarios (la que ya tenías)
+    // 1. Suscripción para la colección de usuarios
     if (Estado.canalRealtimeColeccion) {
         supabaseClient.removeChannel(Estado.canalRealtimeColeccion);
     }
@@ -386,7 +387,7 @@ function iniciarSuscripcionesRealtimeAdmin() {
             }
         });
 
-    // 2. Nueva suscripción para los pagos pendientes en tiempo real
+    // 2. Suscripción para los pagos pendientes en tiempo real
     if (Estado.canalRealtimePagos) {
         supabaseClient.removeChannel(Estado.canalRealtimePagos);
     }
@@ -743,7 +744,7 @@ async function generar2000CombinacionesEnLote() {
 }
 
 // -----------------------------------------------------------------------------
-// 💳 GESTIÓN DE LA TABLA `compras_barajitas`
+// 💳 GESTIÓN DE LA TABLA `compras_barajitas` y `pagos_pendientes`
 // -----------------------------------------------------------------------------
 async function cargarTablaComprasBarajitas() {
     const tbody = DOM.get('tabla-compras-barajitas');
@@ -794,7 +795,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
     logEstado(`⏳ Aprobando pago ID #${idPago}...`);
     try {
-        // 1. Cambiar estado a aprobado en pagos_pendientes
         const { error: errPago } = await supabaseClient
             .from('pagos_pendientes')
             .update({ 
@@ -808,7 +808,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
         alert(`✅ ¡Pago aprobado con éxito!`);
         logEstado(`✅ Pago #${idPago} procesado correctamente.`);
         
-        // Recargar la tabla del panel de administración
         await cargarTablaComprasBarajitas();
         await cargarMetricasServidor();
 
@@ -949,7 +948,5 @@ window.limpiarStorageHuerfano = limpiarStorageHuerfano;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.procesarReclamacionPremio = procesarReclamacionPremio;
-window.aprobarCompraBarajita = aprobarCompraBarajita;
 window.cargarTablaComprasBarajitas = cargarTablaComprasBarajitas;
-window.aprobarCompraBarajita = aprobarCompraBarajita;
 window.aprobarPagoPendiente = aprobarPagoPendiente;

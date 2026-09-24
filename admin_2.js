@@ -984,5 +984,4 @@ window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.procesarReclamacionPremio = procesarReclamacionPremio;
 window.aprobarCompraBarajita = aprobarCompraBarajita;
 window.cargarTablaComprasBarajitas = cargarTablaComprasBarajitas;
-// Asegúrate de exponer la nueva función globalmente al final del archivo si es necesario
-window.aprobarPagoPendiente = aprobarPagoPendiente;
+window.aprobarCompraBarajita = aprobarCompraBarajita;

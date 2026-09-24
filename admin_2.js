@@ -21,7 +21,7 @@ const Estado = {
     cartasCatalogoCache: []
 };
 
-// BANCOS ALGORÍTMICOS PARA GENERACIÓN AUTÓNOMA (SIN DEPENDENCIA DE PLANTILLAS NI EMOJIS)
+// BANCOS ALGORÍTMICOS PARA GENERACIÓN AUTÓNOMA
 const BANCO_NOMBRES_ANIME = [
     "Aoi", "Akira", "Ren", "Sora", "Hikari", "Kaito", "Yuki", "Haruto", "Rin", "Tatsuya",
     "Kenji", "Shin", "Asuka", "Rei", "Mei", "Kira", "Zero", "Luffy", "Naruto", "Goku",
@@ -56,9 +56,6 @@ const PALETAS_ERA = Object.freeze({
     antiguo:    { fondo: '#1c120c', borde: '#d4af37', acento: '#ff4500', texto: '#f3e5ab' }
 });
 
-// =============================================================================
-// 🎨 PALETAS Y PROCEDIMIENTOS DE PERSONAJES PIXEL ART ANIME (CANVAS 32x32)
-// =============================================================================
 const skinPalettes = [
     { base: '#ffe0bd', shadow: '#ffd0a1', blush: '#ffb3b3' },
     { base: '#fcd5b5', shadow: '#e5b38f', blush: '#f8a5a5' },
@@ -67,14 +64,14 @@ const skinPalettes = [
 ];
 
 const hairPalettes = [
-    { base: '#3b82f6', light: '#93c5fd', shadow: '#1d4ed8' }, // Azul
-    { base: '#ec4899', light: '#fbcfe8', shadow: '#be185d' }, // Rosa
-    { base: '#a855f7', light: '#e9d5ff', shadow: '#6b21a8' }, // Púrpura
-    { base: '#eab308', light: '#fef08a', shadow: '#a16207' }, // Rubio
-    { base: '#10b981', light: '#a7f3d0', shadow: '#047857' }, // Verde Menta
-    { base: '#ef4444', light: '#fca5a5', shadow: '#991b1b' }, // Rojo
-    { base: '#1e293b', light: '#64748b', shadow: '#0f172a' }, // Negro
-    { base: '#f97316', light: '#fed7aa', shadow: '#c2410c' }  // Naranja
+    { base: '#3b82f6', light: '#93c5fd', shadow: '#1d4ed8' },
+    { base: '#ec4899', light: '#fbcfe8', shadow: '#be185d' },
+    { base: '#a855f7', light: '#e9d5ff', shadow: '#6b21a8' },
+    { base: '#eab308', light: '#fef08a', shadow: '#a16207' },
+    { base: '#10b981', light: '#a7f3d0', shadow: '#047857' },
+    { base: '#ef4444', light: '#fca5a5', shadow: '#991b1b' },
+    { base: '#1e293b', light: '#64748b', shadow: '#0f172a' },
+    { base: '#f97316', light: '#fed7aa', shadow: '#c2410c' }
 ];
 
 const eyeColors = ['#2563eb', '#dc2626', '#059669', '#9333ea', '#d97706', '#ec4899', '#06b6d4'];
@@ -94,7 +91,7 @@ function generarDatosPersonajeAnime() {
         bgType: getRandomItem(backgroundStyles),
         hasCatEars: Math.random() > 0.6,
         hasGlasses: Math.random() > 0.7,
-        hairstyle: Math.floor(Math.random() * 3), // 0: corto, 1: largo, 2: coletas
+        hairstyle: Math.floor(Math.random() * 3),
         animSpeed: 0.05 + Math.random() * 0.05,
         animOffset: Math.random() * Math.PI * 2
     };
@@ -102,7 +99,6 @@ function generarDatosPersonajeAnime() {
 
 function drawAnimeBackground(ctx, bgType, time) {
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
     if (bgType === 'cyberpunk') {
         ctx.fillStyle = '#0f051d';
         ctx.fillRect(0, 0, 32, 32);
@@ -147,7 +143,7 @@ function drawAnimeBackground(ctx, bgType, time) {
         const p2Y = (Math.floor(time * 12 + 10) % 32);
         ctx.fillRect(6, p1Y, 2, 2);
         ctx.fillRect(22, p2Y, 2, 2);
-    } else { // neon_grid
+    } else {
         ctx.fillStyle = '#18181b';
         ctx.fillRect(0, 0, 32, 32);
         ctx.fillStyle = '#a855f7';
@@ -166,10 +162,8 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
     const t = isAnimated ? (time * data.animSpeed + data.animOffset) : 0;
     const breathY = isAnimated ? Math.round(Math.sin(t) * 0.8) : 0;
 
-    // 1. Dibujar Fondo Animado
     drawAnimeBackground(ctx, data.bgType, t);
 
-    // 2. Cabello Posterior (Largo o Coletas)
     if (data.hairstyle === 1 || data.hairstyle === 2) {
         ctx.fillStyle = data.hair.shadow;
         ctx.fillRect(7, 12 + breathY, 18, 16);
@@ -183,7 +177,6 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
         }
     }
 
-    // 3. Cuello y Hombros / Uniforme
     ctx.fillStyle = data.clothColor;
     ctx.fillRect(8, 24 + breathY, 16, 8);
     ctx.fillStyle = '#ffffff';
@@ -191,30 +184,25 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
     ctx.fillStyle = '#ef4444';
     ctx.fillRect(15, 26 + breathY, 2, 3);
 
-    // Cuello
     ctx.fillStyle = data.skin.shadow;
     ctx.fillRect(14, 21 + breathY, 4, 4);
     ctx.fillStyle = data.skin.base;
     ctx.fillRect(14, 21 + breathY, 4, 2);
 
-    // 4. Rostro Base Anime
     ctx.fillStyle = data.skin.base;
     ctx.fillRect(10, 10 + breathY, 12, 11);
     ctx.fillRect(11, 21 + breathY, 10, 1);
     ctx.fillRect(12, 22 + breathY, 8, 1);
     ctx.fillRect(13, 23 + breathY, 6, 1);
 
-    // Sombra rostro
     ctx.fillStyle = data.skin.shadow;
     ctx.fillRect(10, 10 + breathY, 1, 11);
     ctx.fillRect(21, 10 + breathY, 1, 11);
 
-    // Rubor (Blush)
     ctx.fillStyle = data.skin.blush;
     ctx.fillRect(11, 17 + breathY, 3, 1);
     ctx.fillRect(18, 17 + breathY, 3, 1);
 
-    // 5. Ojos Anime (Parpadeo)
     const isBlinking = isAnimated && Math.sin(t * 3) > 0.95;
 
     if (isBlinking) {
@@ -222,7 +210,6 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
         ctx.fillRect(11, 15 + breathY, 3, 1);
         ctx.fillRect(18, 15 + breathY, 3, 1);
     } else {
-        // Ojo Izquierdo
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(11, 14 + breathY, 3, 4);
         ctx.fillStyle = data.eyeColor;
@@ -230,7 +217,6 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(12, 14 + breathY, 1, 1);
 
-        // Ojo Derecho
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(18, 14 + breathY, 3, 4);
         ctx.fillStyle = data.eyeColor;
@@ -238,33 +224,27 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(18, 14 + breathY, 1, 1);
 
-        // Pestañas
         ctx.fillStyle = data.hair.shadow;
         ctx.fillRect(10, 13 + breathY, 5, 1);
         ctx.fillRect(17, 13 + breathY, 5, 1);
     }
 
-    // Boca
     ctx.fillStyle = '#b91c1c';
     ctx.fillRect(15, 20 + breathY, 2, 1);
 
-    // 6. Cabello Frontal (Flequillo)
     ctx.fillStyle = data.hair.shadow;
     ctx.fillRect(9, 8 + breathY, 14, 5);
     ctx.fillStyle = data.hair.base;
     ctx.fillRect(10, 7 + breathY, 12, 5);
 
-    // Mechones
     ctx.fillRect(10, 11 + breathY, 2, 3);
     ctx.fillRect(13, 11 + breathY, 2, 4);
     ctx.fillRect(17, 11 + breathY, 2, 4);
     ctx.fillRect(20, 11 + breathY, 2, 3);
 
-    // Brillo del cabello
     ctx.fillStyle = data.hair.light;
     ctx.fillRect(11, 8 + breathY, 10, 1);
 
-    // 7. Gafas (Accesorio)
     if (data.hasGlasses) {
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(10, 14 + breathY, 5, 4);
@@ -275,7 +255,6 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
         ctx.fillRect(18, 15 + breathY, 1, 1);
     }
 
-    // 8. Orejas de Gato
     if (data.hasCatEars) {
         ctx.fillStyle = data.hair.base;
         ctx.fillRect(8, 4 + breathY, 3, 4);
@@ -291,7 +270,6 @@ function renderAnimeCharacterPixelArt(ctx, data, time, isAnimated) {
     ctx.restore();
 }
 
-// AYUDANTES DE DOM (DOM HELPERS)
 const DOM = {
     get: (id) => document.getElementById(id),
     findInput: (posiblesIds) => {
@@ -317,7 +295,6 @@ const DOM = {
     toggleClass: (id, className, force) => { const el = document.getElementById(id); if (el) el.classList.toggle(className, force); }
 };
 
-// 1. INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', async () => {
     logEstado("Inicializando Panel de Mando...");
     configurarEventosUI();
@@ -329,13 +306,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
         cargarMetricasServidor(),
         cargarCatalogoCartas(),
-        cargarRevisionPagos(),
-        cargarTablaPremiosServidor()
+        cargarTablaPremiosServidor(),
+        cargarTablaComprasBarajitas()
     ]);
     
     iniciarSuscripcionRealtimeAlbum();
 
-    // 🎨 Generar vista previa inicial aleatoria en Canvas
     Estado.cartaPreviewActual = {
         nombre: `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`,
         simbolo: "",
@@ -345,7 +321,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     dibujarCartaCanvas();
 });
 
-// 2. NAVEGACIÓN Y CAMBIO DE PESTAÑAS / PANELES
 function cambiarPestana(idPestana) {
     if (!idPestana) return;
 
@@ -360,16 +335,6 @@ function cambiarPestana(idPestana) {
     );
     if (botonActivo) botonActivo.classList.add('activo');
 
-    if (idPestana === 'tab-catalogo') {
-        setTimeout(() => {
-            iniciarBucleAnimacionCatalogo();
-        }, 50);
-    }
-
-    if (idPestana === 'tab-pagos') {
-        cargarRevisionPagos();
-    }
-
     try {
         localStorage.setItem('admin_pestana_activa', idPestana);
     } catch (e) {
@@ -377,19 +342,9 @@ function cambiarPestana(idPestana) {
     }
 }
 
-// =============================================================================
-// PARCHE DE OPTIMIZACIÓN: RENDERIZADO Y CONTROL DE FLUJO
-// =============================================================================
-
 function seleccionarModoRender(modo) {
     Estado.modoRenderActual = modo;
     const esCanvas = modo === 'canvas';
-
-    // Detener bucles de render previos para liberar memoria e hilos
-    if (Estado.animacionPreviewId) {
-        cancelAnimationFrame(Estado.animacionPreviewId);
-        Estado.animacionPreviewId = null;
-    }
 
     DOM.toggleClass('btn-modo-canvas', 'activo', esCanvas);
     DOM.toggleClass('btn-modo-ia', 'activo', !esCanvas);
@@ -404,12 +359,9 @@ function seleccionarModoRender(modo) {
         : "EN VIVO: MOTOR GENERATIVO POLLINATIONS IA"
     );
 
-    if (esCanvas) {
-        dibujarCartaCanvas();
-    }
+    if (esCanvas) dibujarCartaCanvas();
 }
 
-// 3. SUSCRIPCIÓN EN TIEMPO REAL (REALTIME)
 function iniciarSuscripcionRealtimeAlbum() {
     if (Estado.canalRealtimeColeccion) {
         supabaseClient.removeChannel(Estado.canalRealtimeColeccion);
@@ -429,91 +381,11 @@ function iniciarSuscripcionRealtimeAlbum() {
         )
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-                logEstado("🟢 Suscripción Realtime activa: El álbum se actualizará instantáneamente.");
+                logEstado("🟢 Suscripción Realtime activa.");
             }
         });
 }
 
-// =============================================================================
-// 💳 MÓDULO DE REVISIÓN Y VERIFICACIÓN DE PAGOS MÓVILES
-// =============================================================================
-async function cargarRevisionPagos() {
-    const tbody = DOM.get('tabla-revision-pagos');
-    if (!tbody) return;
-
-    tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #38bdf8;">Consultando pagos en Supabase...</td></tr>`;
-
-    try {
-        const { data: pagos, error } = await supabaseClient
-            .from('pagos_moviles')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            // Si la tabla no existe o hay error de consulta
-            tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #ef4444;">Error al cargar pagos: ${error.message}. (Verifica que la tabla 'pagos_moviles' exista en Supabase).</td></tr>`;
-            return;
-        }
-
-        if (!pagos || pagos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #888;">No hay referencias de pago registradas.</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = pagos.map(p => {
-            const estado = (p.estado || 'pendiente').toLowerCase();
-            const colorEstado = estado === 'aprobado' ? '#22c55e' : (estado === 'rechazado' ? '#ef4444' : '#eab308');
-            
-            return `
-                <tr style="border-bottom: 1px solid #222;">
-                    <td style="padding: 8px; color: #00ffcc; font-weight: bold;">@${p.usuario_id || p.usuario || 'anónimo'}</td>
-                    <td style="padding: 8px;">${p.telefono || p.phone || 'N/D'}</td>
-                    <td style="padding: 8px; color: #38bdf8; font-weight: bold;">${p.referencia || p.ref || 'N/D'}</td>
-                    <td style="padding: 8px; color: ${colorEstado}; font-weight: bold;">${estado.toUpperCase()}</td>
-                    <td style="padding: 8px; text-align: center;">
-                        ${estado === 'pendiente' 
-                            ? `<button onclick="aprobarPagoMovil('${p.id}', '${p.usuario_id || p.usuario || ''}')" style="background:#22c55e; border:none; color:#000; font-size:7px; padding:4px 8px; cursor:pointer; font-weight:bold; border-radius:2px;">APROBAR</button>`
-                            : `<span style="color:#888; font-size:7px;">VERIFICADO</span>`
-                        }
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #ef4444;">Excepción: ${e.message}</td></tr>`;
-    }
-}
-
-async function aprobarPagoMovil(pagoId, usuarioId) {
-    if (!confirm(`¿Estás seguro de aprobar el pago del usuario @${usuarioId}? Esto actualizará el estado a aprobado.`)) {
-        return;
-    }
-
-    logEstado(`⏳ Aprobando pago ID ${pagoId} para @${usuarioId}...`);
-
-    try {
-        const { error } = await supabaseClient
-            .from('pagos_moviles')
-            .update({ estado: 'aprobado' })
-            .eq('id', pagoId);
-
-        if (error) {
-            alert("Error al actualizar el pago en Supabase: " + error.message);
-            return;
-        }
-
-        alert(`✅ Pago aprobado con éxito para @${usuarioId}.`);
-        logEstado(`✅ Pago ${pagoId} aprobado para @${usuarioId}.`);
-        await cargarRevisionPagos();
-        await cargarMetricasServidor();
-
-    } catch (e) {
-        alert("Error al procesar la aprobación: " + e.message);
-    }
-}
-
-// Función auxiliar para parsear entradas como "1-10", "1; 7; 12", "1,2,3"
 function parsearIdsCartasEntrada(inputStr) {
     if (!inputStr) return [];
     
@@ -549,7 +421,6 @@ function parsearIdsCartasEntrada(inputStr) {
     return Array.from(idsSet).sort((a, b) => a - b);
 }
 
-// 4. ASIGNAR / REGALAR CARTAS A USUARIO (UPSERT DIRECTO A BD)
 async function regalarCartaAUsuario() {
     const targetUser = DOM.findInput(['target-user', 'regalo-usuario', 'usuario-destino'])?.value?.trim();
     const inputCartas = DOM.findInput(['target-cartas-input', 'target-carta-id'])?.value?.trim();
@@ -561,9 +432,8 @@ async function regalarCartaAUsuario() {
     }
 
     const listaIds = parsearIdsCartasEntrada(inputCartas);
-
     if (listaIds.length === 0) {
-        alert("Formato de cartas inválido. Usa un rango (ej: 1-10) o una lista (ej: 1; 7; 12; 14).");
+        alert("Formato de cartas inválido.");
         return;
     }
 
@@ -582,13 +452,10 @@ async function regalarCartaAUsuario() {
         }
 
         const idsValidos = cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : [];
-
         if (idsValidos.length === 0) {
-            alert("Ninguna de las cartas especificadas existe en la tabla Cartas.");
+            alert("Ninguna de las cartas especificadas existe.");
             return;
         }
-
-        logEstado(`Procesando ${idsValidos.length} carta(s) para @${idLimpio}...`);
 
         const { data: registrosExistentes } = await supabaseClient
             .from('Coleccion_Usuario')
@@ -617,18 +484,12 @@ async function regalarCartaAUsuario() {
             .upsert(filasUpsert, { onConflict: 'usuario_id,carta_id' });
 
         if (errUpsert) {
-            const { error: errUpsertAlt } = await supabaseClient
-                .from('Coleccion_Usuario')
-                .upsert(filasUpsert);
-
-            if (errUpsertAlt) {
-                alert("Error durante la asignación: " + errUpsertAlt.message);
-                return;
-            }
+            alert("Error durante la asignación: " + errUpsert.message);
+            return;
         }
 
-        alert(`🎉 ¡Éxito! Se asignaron ${idsValidos.length} carta(s) a @${idLimpio}.\n\nCartas procesadas: [${idsValidos.join(', ')}]`);
-        logEstado(`✅ Regalo masivo completado: [${idsValidos.join(', ')}] -> @${idLimpio}`);
+        alert(`🎉 ¡Éxito! Se asignaron ${idsValidos.length} carta(s) a @${idLimpio}.`);
+        logEstado(`✅ Regalo completado para @${idLimpio}`);
         await cargarMetricasServidor();
 
     } catch (e) {
@@ -636,32 +497,13 @@ async function regalarCartaAUsuario() {
     }
 }
 
-// 5. RENDERIZADO DEL CATÁLOGO DINÁMICO EN MOVIMIENTO (CANVAS EN VIVO)
 async function cargarCatalogoCartas() {
-    const grid = DOM.get('grid-catalogo-admin');
-    if (!grid) return;
-
-    if (Estado.animacionCatalogoId) {
-        cancelAnimationFrame(Estado.animacionCatalogoId);
-        Estado.animacionCatalogoId = null;
-    }
-
-    grid.innerHTML = `<div style="color:#00ffcc; font-size:10px;">Cargando catálogo dinámico desde Supabase...</div>`;
-
     const { data: cartas, error } = await supabaseClient
         .from('Cartas')
         .select('*')
         .order('id', { ascending: true });
 
-    if (error) {
-        grid.innerHTML = `<div style="color:#ef4444; font-size:10px;">Error: ${error.message}</div>`;
-        return;
-    }
-
-    if (!cartas || cartas.length === 0) {
-        grid.innerHTML = `<div style="color:#888; font-size:10px;">No hay cartas registradas en la base de datos.</div>`;
-        return;
-    }
+    if (error || !cartas) return;
 
     Estado.cartasCatalogoCache = cartas.map(carta => {
         let personajeData = null;
@@ -671,99 +513,11 @@ async function cargarCatalogoCartas() {
                 if (parsed.personajeData) personajeData = parsed.personajeData;
             } catch (e) {}
         }
-        if (!personajeData) {
-            personajeData = generarDatosPersonajeAnime();
-        }
+        if (!personajeData) personajeData = generarDatosPersonajeAnime();
         return { ...carta, personajeData };
     });
-
-    grid.innerHTML = Estado.cartasCatalogoCache.map(carta => renderizarCartaDesdeBD(carta)).join('');
-    
-    setTimeout(() => {
-        iniciarBucleAnimacionCatalogo();
-    }, 50);
 }
 
-function renderizarCartaDesdeBD(carta) {
-    const rarezaTexto = (carta.rareza || 'Común').toString().trim();
-    const rarezaClase = `rareza-${rarezaTexto.toLowerCase()}`;
-    const paleta = PALETAS_ERA[rarezaTexto.toLowerCase()] || PALETAS_ERA.cyber;
-
-    const rawUrl = String(carta.imagen_url || '').trim();
-    const esImagenHttp = rawUrl.startsWith('http://') || rawUrl.startsWith('https://');
-
-    return `
-        <div class="tarjeta-carta ${rarezaClase}" data-id="${carta.id || ''}">
-            <div class="fondo-movil-animado"></div>
-            <div class="efecto-brillo-holografico"></div>
-            <div style="display:flex; justify-content:space-between; font-size:8px; border-bottom:1px solid ${paleta.borde}; padding-bottom:4px; margin-bottom:6px; position:relative; z-index:2;">
-                <span style="font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">#${carta.id || '?'} ${carta.nombre || 'Sin nombre'}</span>
-                <span class="badge-rareza" style="color:${paleta.acento}; font-weight:bold;">${rarezaTexto}</span>
-            </div>
-            <div style="text-align:center; margin:8px 0; background:rgba(0,0,0,0.5); border: 1px solid ${paleta.borde}44; border-radius:4px; padding:4px; height:110px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; overflow:hidden;">
-                ${esImagenHttp 
-                    ? `<img src="${rawUrl}" alt="${carta.nombre}" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering: pixelated; image-rendering: crisp-edges;">` 
-                    : `<canvas id="canvas-cat-${carta.id}" width="150" height="100" style="max-width:100%; max-height:100%; display:block; image-rendering: pixelated; image-rendering: crisp-edges;"></canvas>`
-                }
-            </div>
-            <div style="font-size:7px; font-style:italic; line-height:1.2; color:#eee; height:28px; overflow:hidden; position:relative; z-index:2; text-shadow: 1px 1px 2px #000; margin-bottom:4px;">
-                "${carta.lore || 'Sin descripción disponible.'}"
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:6px; text-transform:uppercase; color:${paleta.acento}; font-weight:bold; position:relative; z-index:2; border-top:1px solid ${paleta.borde}33; padding-top:4px;">
-                <span>${carta.tipo || 'Humanoide Pixel'}</span>
-                <span>${rarezaTexto}</span>
-            </div>
-        </div>
-    `;
-}
-
-function animarMiniCanvasCarta(canvas, carta, tiempo) {
-    if (!canvas || !canvas.getContext) return;
-    if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
-
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = 32;
-    offscreenCanvas.height = 32;
-    const offCtx = offscreenCanvas.getContext('2d');
-    offCtx.imageSmoothingEnabled = false;
-
-    renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
-
-    const targetSize = 90;
-    const targetX = (width - targetSize) / 2;
-    const targetY = (height - targetSize) / 2;
-
-    ctx.drawImage(offscreenCanvas, targetX, targetY, targetSize, targetSize);
-}
-
-function iniciarBucleAnimacionCatalogo() {
-    if (Estado.animacionCatalogoId) {
-        cancelAnimationFrame(Estado.animacionCatalogoId);
-        Estado.animacionCatalogoId = null;
-    }
-
-    function loop(tiempo) {
-        if (Estado.cartasCatalogoCache && Estado.cartasCatalogoCache.length > 0) {
-            Estado.cartasCatalogoCache.forEach(carta => {
-                const canvasEl = DOM.get(`canvas-cat-${carta.id}`);
-                if (canvasEl) {
-                    animarMiniCanvasCarta(canvasEl, carta, tiempo);
-                }
-            });
-        }
-        Estado.animacionCatalogoId = requestAnimationFrame(loop);
-    }
-    Estado.animacionCatalogoId = requestAnimationFrame(loop);
-}
-
-// 6. GENERADOR CANVAS EN VIVO ANIMADO
 function escucharDibujoCanvas() {
     DOM.get('btn-randomizar')?.addEventListener('click', seleccionarPlantillaAleatoria);
     DOM.get('btn-regalar-carta')?.addEventListener('click', regalarCartaAUsuario);
@@ -778,18 +532,8 @@ function dibujarCartaCanvas() {
         Estado.animacionPreviewId = null;
     }
 
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = 32;
-    offscreenCanvas.height = 32;
-    const offCtx = offscreenCanvas.getContext('2d');
-    offCtx.imageSmoothingEnabled = false;
-
     function loopPreview(tiempo) {
-        if (Estado.modoRenderActual !== 'canvas') return;
-
         const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-
         const carta = Estado.cartaPreviewActual || {
             nombre: `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`,
             simbolo: "",
@@ -797,35 +541,34 @@ function dibujarCartaCanvas() {
             personajeData: generarDatosPersonajeAnime()
         };
 
-        if (!carta.personajeData) {
-            carta.personajeData = generarDatosPersonajeAnime();
-        }
+        if (!carta.personajeData) carta.personajeData = generarDatosPersonajeAnime();
 
         const nombre = carta.nombre || "Carta Anime";
         const rareza = carta.rareza || "Común";
         const paleta = PALETAS_ERA[rareza.toLowerCase()] || PALETAS_ERA.cyber;
-
         const width = canvas.width;
         const height = canvas.height;
 
         ctx.clearRect(0, 0, width, height);
-
         ctx.fillStyle = paleta.fondo;
         ctx.fillRect(0, 0, width, height);
-
         ctx.strokeStyle = paleta.borde;
         ctx.lineWidth = 4;
         ctx.strokeRect(6, 6, width - 12, height - 12);
 
-        offCtx.clearRect(0, 0, 32, 32);
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = 32;
+        offscreenCanvas.height = 32;
+        const offCtx = offscreenCanvas.getContext('2d');
+
         renderAnimeCharacterPixelArt(offCtx, carta.personajeData, tiempo * 0.005, true);
 
+        ctx.imageSmoothingEnabled = false;
         const targetSize = 180;
         const targetX = (width - targetSize) / 2;
         const targetY = 30;
 
         ctx.drawImage(offscreenCanvas, targetX, targetY, targetSize, targetSize);
-
         ctx.strokeStyle = paleta.acento;
         ctx.lineWidth = 2;
         ctx.strokeRect(targetX, targetY, targetSize, targetSize);
@@ -838,13 +581,14 @@ function dibujarCartaCanvas() {
 
         DOM.setText('info-semilla', `Rareza: ${rareza.toUpperCase()} | Pelo: ${carta.personajeData.hair.base}`);
 
-        Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
+        if (Estado.modoRenderActual === 'canvas') {
+            Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
+        }
     }
 
     Estado.animacionPreviewId = requestAnimationFrame(loopPreview);
 }
 
-// 7. MOTOR POLLINATIONS IA
 async function generarImagenPollinationsDirecta() {
     const promptCustom = DOM.get('prompt-ia-custom')?.value?.trim();
     const nombre = Estado.cartaPreviewActual?.nombre || "creature";
@@ -857,75 +601,48 @@ async function generarImagenPollinationsDirecta() {
     DOM.setDisplay('spinnerIA', 'block');
 
     if (imgIa) {
-        imgIa.onload = () => {
-            DOM.setDisplay('spinnerIA', 'none');
-            logEstado("⚡ Imagen IA generada con éxito.");
-        };
-        imgIa.onerror = () => {
-            DOM.setDisplay('spinnerIA', 'none');
-            logEstado("❌ Fallo al generar imagen con Pollinations IA.");
-        };
+        imgIa.onload = () => { DOM.setDisplay('spinnerIA', 'none'); logEstado("⚡ Imagen IA generada."); };
+        imgIa.onerror = () => { DOM.setDisplay('spinnerIA', 'none'); logEstado("❌ Fallo IA."); };
         imgIa.src = urlIa;
     }
 }
 
-// =============================================================================
-// 🎲 GENERADOR INDIVIDUAL Y GENERACIÓN MASIVA AUTÓNOMA (HASTA 2000 CARTAS)
-// =============================================================================
-
 function actualizarTextoTituloId(cantidadActualBD) {
     const textoFormateado = `ID DE CARTA (${cantidadActualBD} a 2000):`;
     const labelId = DOM.get('label-carta-id');
-    if (labelId) {
-        labelId.textContent = textoFormateado;
-    }
+    if (labelId) labelId.textContent = textoFormateado;
 }
 
-// GENERADOR INDIVIDUAL AUTÓNOMO
 async function seleccionarPlantillaAleatoria() {
-    logEstado("🎲 Generando personaje anime procedimental e insertando en BD...");
+    logEstado("🎲 Generando personaje anime...");
 
     try {
         const { data: cartasExistentes, error: errCartas } = await supabaseClient
             .from('Cartas')
             .select('id, nombre');
 
-        if (errCartas) {
-            alert("Error consultando Cartas: " + errCartas.message);
-            return;
-        }
+        if (errCartas) return alert("Error: " + errCartas.message);
 
         const idsOcupados = new Set(cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : []);
         const nombresExistentes = new Set(cartasExistentes ? cartasExistentes.map(c => c.nombre?.toLowerCase().trim()) : []);
 
         let proximoIdLibre = null;
         for (let i = 1; i <= 2000; i++) {
-            if (!idsOcupados.has(i)) {
-                proximoIdLibre = i;
-                break;
-            }
+            if (!idsOcupados.has(i)) { proximoIdLibre = i; break; }
         }
 
-        if (!proximoIdLibre) {
-            alert("Se ha alcanzado el límite máximo de 2000 cartas creadas.");
-            return;
-        }
+        if (!proximoIdLibre) return alert("Límite de 2000 cartas alcanzado.");
 
         let nombreGenerado = "";
         let intentos = 0;
         do {
             nombreGenerado = `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`;
             intentos++;
-            if (intentos > 100) {
-                nombreGenerado = `${getRandomItem(BANCO_NOMBRES_ANIME)} #${proximoIdLibre}`;
-                break;
-            }
+            if (intentos > 100) { nombreGenerado = `${getRandomItem(BANCO_NOMBRES_ANIME)} #${proximoIdLibre}`; break; }
         } while (nombresExistentes.has(nombreGenerado.toLowerCase().trim()));
 
         const rarezas = ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria'];
         const rarezaElegida = getRandomItem(rarezas);
-        const tipoElegido = getRandomItem(BANCO_CLASES_TIPO);
-        const loreElegido = getRandomItem(BANCO_LORE_AUTONOMO);
         const nuevosDatosAnime = generarDatosPersonajeAnime();
 
         Estado.cartaPreviewActual = {
@@ -940,150 +657,174 @@ async function seleccionarPlantillaAleatoria() {
             id: proximoIdLibre,
             nombre: nombreGenerado,
             rareza: rarezaElegida,
-            tipo: tipoElegido,
-            lore: loreElegido,
-            imagen_url: JSON.stringify({
-                personajeData: nuevosDatosAnime,
-                simbolo: ""
-            })
+            tipo: getRandomItem(BANCO_CLASES_TIPO),
+            lore: getRandomItem(BANCO_LORE_AUTONOMO),
+            imagen_url: JSON.stringify({ personajeData: nuevosDatosAnime, simbolo: "" })
         };
 
-        const { error: errInsert } = await supabaseClient
-            .from('Cartas')
-            .insert([payloadCarta]);
-
-        if (errInsert) {
-            alert("Error al guardar la carta en Supabase: " + errInsert.message);
-            return;
-        }
+        const { error: errInsert } = await supabaseClient.from('Cartas').insert([payloadCarta]);
+        if (errInsert) return alert("Error al guardar: " + errInsert.message);
 
         const nuevoTotal = idsOcupados.size + 1;
         DOM.setValue(['carta-id', 'id-carta'], proximoIdLibre);
         actualizarTextoTituloId(nuevoTotal);
         DOM.setText('total-cartas-count', nuevoTotal);
 
-        logEstado(`✅ Carta #${proximoIdLibre} "${nombreGenerado}" guardada en Supabase.`);
+        logEstado(`✅ Carta #${proximoIdLibre} "${nombreGenerado}" guardada.`);
         await cargarCatalogoCartas();
         await cargarMetricasServidor();
-
     } catch (e) {
-        logEstado(`❌ Error procesando generación procedimental: ${e.message}`);
+        logEstado(`❌ Error: ${e.message}`);
     }
 }
 
-// GENERACIÓN MASIVA AUTÓNOMA HASTA COMPLETAR 2000 CARTAS
 async function generar2000CombinacionesEnLote() {
-    logEstado("⚡ Iniciando generación procedimental autónoma masiva en lote...");
-
+    logEstado("⚡ Generando lote automático...");
     try {
-        const { data: cartasExistentes, error: errCartas } = await supabaseClient
-            .from('Cartas')
-            .select('id, nombre');
-
-        if (errCartas) {
-            alert("Error al consultar cartas existentes: " + errCartas.message);
-            return;
-        }
-
+        const { data: cartasExistentes } = await supabaseClient.from('Cartas').select('id, nombre');
         const idsOcupados = new Set(cartasExistentes ? cartasExistentes.map(c => Number(c.id)) : []);
         const nombresExistentes = new Set(cartasExistentes ? cartasExistentes.map(c => c.nombre?.toLowerCase().trim()) : []);
 
         const idsLibres = [];
-        for (let i = 1; i <= 2000; i++) {
-            if (!idsOcupados.has(i)) idsLibres.push(i);
-        }
+        for (let i = 1; i <= 2000; i++) { if (!idsOcupados.has(i)) idsLibres.push(i); }
 
-        if (idsLibres.length === 0) {
-            alert("Ya existen 2000 cartas registradas en la base de datos.");
-            return;
-        }
+        if (idsLibres.length === 0) return alert("Ya existen 2000 cartas.");
+
+        if (!confirm(`Se generarán e insertarán ${idsLibres.length} cartas. ¿Continuar?`)) return;
 
         const rarezas = ['Común', 'Poco Común', 'Rara', 'Épica', 'Legendaria'];
-        const numAInsertar = idsLibres.length;
-
-        if (!confirm(`Se generarán procedimentalmente e insertarán ${numAInsertar} nuevas cartas anime sin emojis en Supabase. ¿Deseas continuar?`)) {
-            return;
-        }
-
-        const loteAInsertar = [];
-        for (let k = 0; k < numAInsertar; k++) {
-            const currentId = idsLibres[k];
-            let nombreGen = "";
-            let intentos = 0;
-
-            do {
-                nombreGen = `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`;
-                intentos++;
-                if (intentos > 50) {
-                    nombreGen = `${getRandomItem(BANCO_NOMBRES_ANIME)} #${currentId}`;
-                    break;
-                }
-            } while (nombresExistentes.has(nombreGen.toLowerCase().trim()));
-
+        const loteAInsertar = idsLibres.map(currentId => {
+            let nombreGen = `${getRandomItem(BANCO_NOMBRES_ANIME)} ${getRandomItem(BANCO_APELLIDOS_ANIME)}`;
             nombresExistentes.add(nombreGen.toLowerCase().trim());
-
             const nuevosDatosAnime = generarDatosPersonajeAnime();
-
-            loteAInsertar.push({
+            return {
                 id: currentId,
                 nombre: nombreGen,
                 rareza: getRandomItem(rarezas),
                 tipo: getRandomItem(BANCO_CLASES_TIPO),
                 lore: getRandomItem(BANCO_LORE_AUTONOMO),
-                imagen_url: JSON.stringify({
-                    personajeData: nuevosDatosAnime,
-                    simbolo: ""
-                })
-            });
+                imagen_url: JSON.stringify({ personajeData: nuevosDatosAnime, simbolo: "" })
+            };
+        });
+
+        for (let i = 0; i < loteAInsertar.length; i += 100) {
+            await supabaseClient.from('Cartas').insert(loteAInsertar.slice(i, i + 100));
         }
 
-        logEstado(`⏳ Insertando lote autónomo de ${loteAInsertar.length} cartas en Supabase...`);
-
-        const TAMANO_BLOQUE = 100;
-        let insertados = 0;
-
-        for (let i = 0; i < loteAInsertar.length; i += TAMANO_BLOQUE) {
-            const bloque = loteAInsertar.slice(i, i + TAMANO_BLOQUE);
-            const { error: errBloque } = await supabaseClient.from('Cartas').insert(bloque);
-
-            if (errBloque) {
-                logEstado(`❌ Error al insertar bloque: ${errBloque.message}`);
-                break;
-            }
-            insertados += bloque.length;
-            logEstado(`🔄 Insertadas ${insertados}/${loteAInsertar.length} cartas...`);
-        }
-
-        alert(`🎉 ¡Lote procesado exitosamente! Se guardaron ${insertados} cartas procedimentales en la base de datos.`);
+        alert("🎉 ¡Lote procesado con éxito!");
         await cargarCatalogoCartas();
         await cargarMetricasServidor();
-
     } catch (err) {
-        logEstado(`❌ Excepción durante la generación en lote: ${err.message}`);
+        logEstado(`❌ Error en lote: ${err.message}`);
     }
 }
 
-// 9. DIAGNÓSTICO Y MÉTRICAS DEL SERVIDOR
+// -----------------------------------------------------------------------------
+// 💳 GESTIÓN DE LA TABLA `compras_barajitas`
+// -----------------------------------------------------------------------------
+async function cargarTablaComprasBarajitas() {
+    const tbody = DOM.get('tabla-compras-barajitas');
+    if (!tbody) return;
+
+    try {
+        const { data: compras, error } = await supabaseClient
+            .from('compras_barajitas')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(15);
+
+        if (error || !compras || compras.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #666;">No hay solicitudes de compra recientes.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = compras.map(compra => {
+            const estadoColor = compra.estado === 'aprobado' ? '#22c55e' : (compra.estado === 'rechazado' ? '#ef4444' : '#eab308');
+            return `
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 4px; color: #00ffcc;">@${compra.user_id || 'anónimo'}<br><span style="font-size:6px; color:#888;">${compra.telefono || 'S/T'}</span></td>
+                    <td style="padding: 4px; font-weight: bold;">#${compra.barajita_id}</td>
+                    <td style="padding: 4px;">Ref: ${compra.referencia || 'N/A'}<br><span style="color:#38bdf8;">$${compra.monto || '0.00'}</span></td>
+                    <td style="padding: 4px; color: ${estadoColor}; font-weight: bold;">${(compra.estado || 'pendiente').toUpperCase()}</td>
+                    <td style="padding: 4px; text-align: center;">
+                        ${compra.estado !== 'aprobado' 
+                            ? `<button onclick="aprobarCompraBarajita('${compra.id}', '${compra.user_id}',${compra.barajita_id})" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:3px 6px; cursor:pointer; font-weight:bold;">APROBAR & DAR</button>`
+                            : `<span style="color:#22c55e;">COMPLETADO</span>`
+                        }
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #ef4444;">Error al cargar compras: ${e.message}</td></tr>`;
+    }
+}
+
+async function aprobarCompraBarajita(idCompra, usuarioId, barajitaId) {
+    if (!confirm(`¿Deseas aprobar la compra #${idCompra} y sumar la barajita #${barajitaId} a @${usuarioId}?`)) return;
+
+    logEstado(`⏳ Aprobando compra de barajita ID #${barajitaId} para @${usuarioId}...`);
+    try {
+        const usuarioLimpio = usuarioId.replace(/^@/, '').trim().toLowerCase();
+
+        // 1. Marcar compra como aprobada en la tabla `compras_barajitas`
+        const { error: errCompra } = await supabaseClient
+            .from('compras_barajitas')
+            .update({ 
+                estado: 'aprobado',
+                procesado_at: new Date().toISOString()
+            })
+            .eq('id', idCompra);
+
+        if (errCompra) {
+            alert("Error actualizando la compra: " + errCompra.message);
+            return;
+        }
+
+        // 2. Consultar existencia actual en la colección del usuario
+        const { data: regActual } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .select('cantidad')
+            .eq('usuario_id', usuarioLimpio)
+            .eq('carta_id', barajitaId)
+            .maybeSingle();
+
+        const cantidadActual = regActual ? (Number(regActual.cantidad) || 0) : 0;
+
+        // 3. Hacer UPSERT en `Coleccion_Usuario` sumando +1
+        const { error: errColeccion } = await supabaseClient
+            .from('Coleccion_Usuario')
+            .upsert({
+                usuario_id: usuarioLimpio,
+                carta_id: Number(barajitaId),
+                cantidad: cantidadActual + 1
+            }, { onConflict: 'usuario_id,carta_id' });
+
+        if (errColeccion) {
+            alert("Error al entregar la barajita al álbum: " + errColeccion.message);
+            return;
+        }
+
+        alert(`✅ ¡Compra aprobada con éxito! Se añadió la barajita #${barajitaId} al usuario @${usuarioLimpio}.`);
+        logEstado(`✅ Compra #${idCompra} procesada y barajita #${barajitaId} asignada a @${usuarioLimpio}`);
+        
+        await cargarTablaComprasBarajitas();
+        await cargarMetricasServidor();
+
+    } catch (e) {
+        alert("Error crítico procesando compra: " + e.message);
+    }
+}
+
 async function cargarMetricasServidor() {
     logEstado("🔄 Comprobando métricas del servidor Supabase...");
     const inicio = Date.now();
     
     try {
-        const { count: countCartas } = await supabaseClient
-            .from('Cartas')
-            .select('*', { count: 'exact', head: true });
-
-        const { count: countUsuarios } = await supabaseClient
-            .from('usuarios')
-            .select('*', { count: 'exact', head: true });
-
-        const { count: countPremios } = await supabaseClient
-            .from('reclamaciones_premios')
-            .select('*', { count: 'exact', head: true });
-
-        const { count: countColecciones } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .select('*', { count: 'exact', head: true });
+        const { count: countCartas } = await supabaseClient.from('Cartas').select('*', { count: 'exact', head: true });
+        const { count: countUsuarios } = await supabaseClient.from('usuarios').select('*', { count: 'exact', head: true });
+        const { count: countPremios } = await supabaseClient.from('reclamaciones_premios').select('*', { count: 'exact', head: true });
+        const { count: countColecciones } = await supabaseClient.from('Coleccion_Usuario').select('*', { count: 'exact', head: true });
 
         const latencia = Date.now() - inicio;
 
@@ -1092,40 +833,17 @@ async function cargarMetricasServidor() {
         if (statusEl) statusEl.style.color = "#00ff66";
 
         const creadasReales = countCartas ?? 0;
-        
         actualizarTextoTituloId(creadasReales);
         DOM.setText('total-cartas-count', creadasReales);
-
         DOM.setText('ping-supabase', `${latencia} ms`);
         DOM.setText('kpi-usuarios-totales', countUsuarios ?? 0);
         DOM.setText('kpi-premios-pendientes', countPremios ?? 0);
         DOM.setText('kpi-total-colecciones', countColecciones ?? 0);
 
-        const { data: cartasActivas } = await supabaseClient
-            .from('Cartas')
-            .select('id')
-            .gte('id', 1)
-            .lte('id', 2000);
-
-        let primerIdLibre = 1;
-        if (cartasActivas) {
-            const setIds = new Set(cartasActivas.map(c => Number(c.id)));
-            for (let i = 1; i <= 2000; i++) {
-                if (!setIds.has(i)) {
-                    primerIdLibre = i;
-                    break;
-                }
-            }
-        }
-
-        const inputId = DOM.findInput(['carta-id', 'id-carta']);
-        if (inputId) {
-            DOM.setValue(['carta-id', 'id-carta'], primerIdLibre);
-        }
-
         await cargarTablaPremiosServidor();
+        await cargarTablaComprasBarajitas();
 
-        logEstado(`🟢 Servidor activo | Cartas en BD: ${creadasReales}/2000 | Próximo ID disponible: #${primerIdLibre}`);
+        logEstado(`🟢 Servidor activo | Cartas en BD: ${creadasReales}/2000`);
     } catch (e) {
         DOM.setText('status-supabase', "● DESCONECTADO");
         const statusEl = DOM.get('status-supabase');
@@ -1146,14 +864,14 @@ async function cargarTablaPremiosServidor() {
             .limit(10);
 
         if (error || !reclamaciones || reclamaciones.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #666;">No hay solicitudes de premios registradas.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #666;">No hay solicitudes de premios.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = reclamaciones.map(rec => `
             <tr style="border-bottom: 1px solid #222;">
                 <td style="padding: 4px; color: #00ffcc;">@${rec.usuario_id || 'anónimo'}</td>
-                <td style="padding: 4px;">${rec.premio_nombre || 'Hito Desconocido'}</td>
+                <td style="padding: 4px;">${rec.premio_nombre || 'Premio'}</td>
                 <td style="padding: 4px; color: ${rec.estado === 'completado' ? '#22c55e' : '#eab308'};">${(rec.estado || 'pendiente').toUpperCase()}</td>
                 <td style="padding: 4px; text-align: center;">
                     ${rec.estado !== 'completado' 
@@ -1163,87 +881,42 @@ async function cargarTablaPremiosServidor() {
                 </td>
             </tr>
         `).join('');
-
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #ef4444;">Error al cargar solicitudes: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #ef4444;">Error: ${e.message}</td></tr>`;
     }
 }
 
 async function procesarReclamacionPremio(idReclamacion, nuevoEstado) {
-    logEstado(`⏳ Actualizando estado de premio #${idReclamacion} a ${nuevoEstado}...`);
     try {
-        const { error } = await supabaseClient
-            .from('reclamaciones_premios')
-            .update({ estado: nuevoEstado })
-            .eq('id', idReclamacion);
-
-        if (error) {
-            alert("Error al actualizar la reclamación: " + error.message);
-        } else {
-            alert(`✅ Reclamación #${idReclamacion} actualizada.`);
-            await cargarMetricasServidor();
-        }
+        await supabaseClient.from('reclamaciones_premios').update({ estado: nuevoEstado }).eq('id', idReclamacion);
+        alert(`✅ Reclamación #${idReclamacion} actualizada.`);
+        await cargarMetricasServidor();
     } catch (e) {
-        alert("Error procesando premio: " + e.message);
+        alert("Error: " + e.message);
     }
 }
 
 async function testearConexionSupabase() {
-    logEstado("🔄 Testeando conexión directa con Supabase...");
+    logEstado("🔄 Testeando conexión con Supabase...");
     const inicio = Date.now();
     try {
-        const { error } = await supabaseClient
-            .from('Cartas')
-            .select('id', { count: 'exact', head: true });
-
+        const { error } = await supabaseClient.from('Cartas').select('id', { count: 'exact', head: true });
         const latencia = Date.now() - inicio;
 
         if (error) {
-            DOM.setText('status-supabase', "● DESCONECTADO");
-            const statusEl = DOM.get('status-supabase');
-            if (statusEl) statusEl.style.color = "#ef4444";
-            logEstado(`❌ Fallo en test de conexión: ${error.message}`);
+            logEstado(`❌ Fallo en test: ${error.message}`);
         } else {
             DOM.setText('status-supabase', "● CONECTADO");
-            const statusEl = DOM.get('status-supabase');
-            if (statusEl) statusEl.style.color = "#00ff66";
             DOM.setText('ping-supabase', `${latencia} ms`);
             logEstado(`🟢 Test exitoso | Latencia: ${latencia}ms`);
         }
     } catch (e) {
-        DOM.setText('status-supabase', "● DESCONECTADO");
-        const statusEl = DOM.get('status-supabase');
-        if (statusEl) statusEl.style.color = "#ef4444";
-        logEstado(`❌ Error crítico al probar conexión: ${e.message}`);
-    }
-}
-
-async function vaciarTablaPlantillas() {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODAS las plantillas de la base de datos?")) return;
-    logEstado("⏳ Limpiando tabla plantillas_criaturas...");
-    try {
-        const { error } = await supabaseClient.from('plantillas_criaturas').delete().neq('id', 0);
-        if (error) {
-            alert("Error al vaciar plantillas: " + error.message);
-        } else {
-            alert("✅ Tabla 'plantillas_criaturas' vaciada correctamente.");
-            logEstado("🧹 Tabla de plantillas vaciada.");
-        }
-    } catch (err) {
-        logEstado(`❌ Error al vaciar plantillas: ${err.message}`);
+        logEstado(`❌ Error de conexión: ${e.message}`);
     }
 }
 
 async function limpiarStorageHuerfano() {
-    logEstado("🧹 Módulo de limpieza de Storage ejecutado.");
     alert("Operación de mantenimiento completada.");
-}
-
-function limpiarLogServidor() {
-    const logServidor = DOM.get('servidor-log-output');
-    if (logServidor) {
-        logServidor.innerHTML = `[${new Date().toLocaleTimeString()}] 🧹 Consola de servidor limpiada.`;
-    }
 }
 
 function logEstado(mensaje) {
@@ -1263,7 +936,7 @@ function configurarEventosUI() {
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
 }
 
-// EXPOSICIÓN GLOBAL DE FUNCIONES PARA EVENTOS ONCLICK EN EL DOM
+// EXPOSICIÓN GLOBAL
 window.cambiarPestana = cambiarPestana;
 window.seleccionarModoRender = seleccionarModoRender;
 window.generar2000CombinacionesEnLote = generar2000CombinacionesEnLote;
@@ -1272,9 +945,7 @@ window.regalarCartaAUsuario = regalarCartaAUsuario;
 window.cargarMetricasServidor = cargarMetricasServidor;
 window.testearConexionSupabase = testearConexionSupabase;
 window.limpiarStorageHuerfano = limpiarStorageHuerfano;
-window.limpiarLogServidor = limpiarLogServidor;
 window.cargarCatalogoCartas = cargarCatalogoCartas;
 window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.procesarReclamacionPremio = procesarReclamacionPremio;
-window.cargarRevisionPagos = cargarRevisionPagos;
-window.aprobarPagoMovil = aprobarPagoMovil;
+window.aprobarCompraBarajita = aprobarCompraBarajita;

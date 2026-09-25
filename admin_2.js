@@ -810,7 +810,54 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
         if (errPago) throw errPago;
 
-        // 2. Enviar notificación oficial a Telegram Bot API
+        // 2. Acreditar las barajitas/sobres automáticamente al usuario en la colección
+        if (usuarioId && usuarioId !== 'Anónimo') {
+            const idLimpio = usuarioId.replace(/^@/, '').trim().toLowerCase();
+            
+            // Seleccionar algunas cartas aleatorias del catálogo para agregarlas como recompensa del sobre
+            const { data: cartasCatalogo } = await supabaseClient
+                .from('Cartas')
+                .select('id')
+                .limit(200);
+
+            if (cartasCatalogo && cartasCatalogo.length > 0) {
+                // Seleccionar tantas barajitas como sobres comprados (o simular la entrega)
+                const cartasAAsignar = [];
+                for (let i = 0; i < Number(cantidadSobres || 1); i++) {
+                    const cartaAleatoria = getRandomItem(cartasCatalogo);
+                    if (cartaAleatoria) cartasAAsignar.push(Number(cartaAleatoria.id));
+                }
+
+                if (cartasAAsignar.length > 0) {
+                    // Consultar inventario actual del usuario
+                    const { data: regExistentes } = await supabaseClient
+                        .from('Coleccion_Usuario')
+                        .select('carta_id, cantidad')
+                        .eq('usuario_id', idLimpio)
+                        .in('carta_id', cartasAAsignar);
+
+                    const mapaInv = new Map();
+                    if (regExistentes) {
+                        regExistentes.forEach(r => mapaInv.set(Number(r.carta_id), Number(r.cantidad) || 0));
+                    }
+
+                    const upsertData = cartasAAsignar.map(cId => {
+                        const actual = mapaInv.get(cId) || 0;
+                        return {
+                            usuario_id: idLimpio,
+                            carta_id: cId,
+                            cantidad: actual + 1
+                        };
+                    });
+
+                    await supabaseClient
+                        .from('Coleccion_Usuario')
+                        .upsert(upsertData, { onConflict: 'usuario_id,carta_id' });
+                }
+            }
+        }
+
+        // 3. Enviar notificación oficial a Telegram Bot API
         if (CONFIG.TELEGRAM_BOT_TOKEN && CONFIG.TELEGRAM_BOT_TOKEN !== "TU_BOT_TOKEN_AQUI") {
             const mensajeTelegram = `✅ *PAGO APROBADO EXITOSAMENTE*\n\n` +
                 `👤 *Usuario:* @${usuarioId || 'Anónimo'}\n` +
@@ -839,8 +886,8 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
             }
         }
 
-        alert(`✅ ¡Pago aprobado y notificación enviada con éxito!`);
-        logEstado(`✅ Pago #${idPago} procesado.`);
+        alert(`✅ ¡Pago aprobado y barajitas acreditadas al usuario con éxito!`);
+        logEstado(`✅ Pago #${idPago} procesado y barajitas entregadas.`);
         
         await cargarTablaComprasBarajitas();
         await cargarMetricasServidor();

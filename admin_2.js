@@ -6,7 +6,9 @@
 const CONFIG = {
     SUPABASE_URL: "https://ddbdemxrntjqncetyrnr.supabase.co",
     SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs",
-    POLLINATIONS_URL: "https://pollinations.ai/p/"
+    POLLINATIONS_URL: "https://pollinations.ai/p/",
+    TELEGRAM_BOT_TOKEN: "TU_BOT_TOKEN_AQUI", // Reemplaza con tu token de Telegram si usas uno propio
+    TELEGRAM_CHAT_ID: "TU_CHAT_ID_AQUI"       // Reemplaza con el chat o canal de notificaciones
 };
 
 const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
@@ -798,6 +800,7 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
     logEstado(`⏳ Aprobando pago ID #${idPago} para @${usuarioId}...`);
     try {
+        // 1. Actualizar estado del pago en Supabase
         const { error: errPago } = await supabaseClient
             .from('pagos_pendientes')
             .update({ 
@@ -807,7 +810,36 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
         if (errPago) throw errPago;
 
-        alert(`✅ ¡Pago aprobado con éxito!`);
+        // 2. Enviar notificación oficial a Telegram Bot API
+        if (CONFIG.TELEGRAM_BOT_TOKEN && CONFIG.TELEGRAM_BOT_TOKEN !== "TU_BOT_TOKEN_AQUI") {
+            const mensajeTelegram = `✅ *PAGO APROBADO EXITOSAMENTE*\n\n` +
+                `👤 *Usuario:* @${usuarioId || 'Anónimo'}\n` +
+                `📦 *Sobres asignados:* ${cantidadSobres}\n` +
+                `🆔 *ID de Pago:* #${idPago}\n\n` +
+                `_Tus sobres ya se encuentran disponibles en tu colección._`;
+
+            try {
+                const responseTg = await fetch(`https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CONFIG.TELEGRAM_CHAT_ID,
+                        text: mensajeTelegram,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                
+                if (!responseTg.ok) {
+                    console.warn("No se pudo enviar la notificación a Telegram, pero el pago se aprobó correctamente.");
+                } else {
+                    logEstado(`📤 Notificación enviada a Telegram exitosamente.`);
+                }
+            } catch (errTg) {
+                console.error("Error al conectar con la API de Telegram:", errTg);
+            }
+        }
+
+        alert(`✅ ¡Pago aprobado y notificación enviada con éxito!`);
         logEstado(`✅ Pago #${idPago} procesado.`);
         
         await cargarTablaComprasBarajitas();

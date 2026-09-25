@@ -773,6 +773,10 @@ async function cargarTablaComprasBarajitas() {
             const sobres = pago.cantidad_sobres || 1;
             const referencia = pago.referencia || 'N/A';
             const monto = pago.monto || '0.00';
+            
+            // Extraer IDs de Telegram si vienen guardados en la tabla de pagos
+            const telegramChatId = pago.telegram_chat_id || '';
+            const telegramMessageId = pago.telegram_message_id || '';
 
             return `
                 <tr style="border-bottom: 1px solid #222;">
@@ -782,7 +786,7 @@ async function cargarTablaComprasBarajitas() {
                     <td style="padding: 6px; color: ${estadoColor}; font-weight: bold;">${(pago.estado || 'pendiente').toUpperCase()}</td>
                     <td style="padding: 6px; text-align: center;">
                         ${pago.estado !== 'aprobado' 
-                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${pago.usuario_id}',${sobres})" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:4px 8px; cursor:pointer; font-weight:bold;">APROBAR</button>`
+                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${pago.usuario_id \vert{}\vert{} ''}',${sobres}, '${telegramChatId}', '${telegramMessageId}')" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:4px 8px; cursor:pointer; font-weight:bold;">APROBAR</button>`
                             : `<span style="color:#22c55e;">COMPLETADO</span>`
                         }
                     </td>
@@ -796,9 +800,9 @@ async function cargarTablaComprasBarajitas() {
 }
 
 // =============================================================================
-// FUNCIÓN CORREGIDA: Comunica el panel con el servidor Flask en Render
+// FUNCIÓN CORREGIDA: Comunica el panel con el servidor Flask en Render enviando IDs de Telegram
 // =============================================================================
-async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
+async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
 
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
@@ -811,7 +815,9 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
             body: JSON.stringify({
                 idPago: idPago,
                 usuarioId: usuarioId,
-                cantidadSobres: cantidadSobres
+                cantidadSobres: cantidadSobres,
+                telegramChatId: telegramChatId,
+                telegramMessageId: telegramMessageId
             })
         });
 

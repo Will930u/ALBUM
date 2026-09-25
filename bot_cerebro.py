@@ -3,6 +3,7 @@
 # =============================================================================
 import os
 import threading
+import random
 from flask import Flask, request, jsonify
 import telebot
 from telebot import types
@@ -89,7 +90,75 @@ def recibir_alerta_payout_supabase():
         return jsonify({"status": "error_interno", "error": str(e)}), 500
 
 # =============================================================================
-# 🔘 MANEJADOR DEL BOTÓN INLINE DE TELEGRAM (APROBACIÓN DE PAGO)
+# 💳 RUTA DE APROBACIÓN DE PAGOS DE SOBRES (Desde el Panel Web Admin)
+# =============================================================================
+@app.route('/api/aprobar-pago', methods=['POST'])
+def aprobar_pago_sobres():
+    try:
+        datos = request.json
+        print("📨 Petición de aprobación de pago recibida:", datos)
+
+        id_pago = datos.get('idPago')
+        usuario_id = datos.get('usuarioId')
+        cantidad_sobres = int(datos.get('cantidadSobres', 1))
+
+        if not id_pago:
+            return jsonify({"success": False, "error": "Falta el ID del pago"}), 400
+
+        # 1. Actualizar el estado del pago a 'aprobado' en Supabase
+        supabase.table("pagos_pendientes").update({
+            "estado": "aprobado"
+        }).eq("id", id_pago).execute()
+
+        # 2. Asignar las barajitas al álbum del usuario si está identificado
+        if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null']:
+            id_limpio = str(usuario_id).replace('@', '').strip().lower()
+
+            # Consultar cartas disponibles en el catálogo
+            res_cartas = supabase.table("Cartas").select("id").limit(200).execute()
+            cartas_catalogo = res_cartas.data if res_cartas.data else []
+
+            if cartas_catalogo:
+                barajitas_a_asignar = []
+                for _ in range(cantidad_sobres):
+                    carta_aleatoria = random.choice(cartas_catalogo)
+                    if carta_aleatoria:
+                        barajitas_a_asignar.append(int(carta_aleatoria['id']))
+
+                # Procesar inserción o actualización en la colección del usuario
+                for c_id in barajitas_a_asignar:
+                    inv_res = supabase.table("Coleccion_Usuario").select("cantidad").eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
+                    
+                    if inv_res.data and len(inv_res.data) > 0:
+                        cant_actual = int(inv_res.data[0].get('cantidad', 0))
+                        supabase.table("Coleccion_Usuario").update({
+                            "cantidad": cant_actual + 1
+                        }).eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
+                    else:
+                        supabase.table("Coleccion_Usuario").insert({
+                            "usuario_id": id_limpio,
+                            "carta_id": c_id,
+                            "cantidad": 1
+                        }).execute()
+
+        # 3. Enviar notificación oficial a Telegram con el texto requerido
+        if TELEGRAM_BOT_TOKEN and ID_CANAL_ALERTAS:
+            mensaje_telegram = (
+                f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
+                f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
+                f"📦 *Sobres acreditados:* {cantidad_sobres}\n\n"
+                f"_Su pago a sido verificado gracias por nu participacion_"
+            )
+            bot.send_message(ID_CANAL_ALERTAS, mensaje_telegram, parse_mode="Markdown")
+
+        return jsonify({"success": True, "message": "Pago aprobado, barajitas asignadas y Telegram notificado."}), 200
+
+    except Exception as e:
+        print("❌ Error al procesar la aprobación del pago de sobres:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# =============================================================================
+# 🔘 MANEJADOR DEL BOTÓN INLINE DE TELEGRAM (APROBACIÓN DE RECOMPENSA)
 # =============================================================================
 @bot.callback_query_handler(func=lambda call: call.data.startswith('aprobar_'))
 def procesar_confirmacion_pago(call):
@@ -157,16 +226,13 @@ def procesar_confirmacion_pago(call):
 # ⚙️ ARRANQUE MULTITHREADING (FLASK + TELEGRAM POLLING) EN RENDER
 # =============================================================================
 def iniciar_bot_polling():
-    # Elimina webhooks previos para evitar conflictos con Long Polling
     bot.remove_webhook()
     bot.infinity_polling(skip_pending=True)
 
 if __name__ == "__main__":
-    # Iniciar el proceso de lectura de botones de Telegram en un hilo secundario
     hilo_bot = threading.Thread(target=iniciar_bot_polling)
     hilo_bot.daemon = True
     hilo_bot.start()
 
-    # Arrancar el servidor Flask en el puerto asignado por Render
     puerto_servidor = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=puerto_servidor)

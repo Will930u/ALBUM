@@ -753,11 +753,11 @@ async function cargarTablaComprasBarajitas() {
     logEstado("🔄 Consultando pagos en la base de datos...");
 
     try {
-        // Consultamos sin restricciones estrictas de estado para verificar si hay registros en la tabla
+        // Consulta segura ordenada por ID de forma descendente (sin depender de created_at)
         const { data: pagos, error } = await supabaseClient
             .from('pagos_pendientes')
             .select('*')
-            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(15);
 
         if (error) {
@@ -810,20 +810,18 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
         const { error: errPago } = await supabaseClient
             .from('pagos_pendientes')
             .update({ 
-                estado: 'aprobado',
-                updated_at: new Date().toISOString()
+                estado: 'aprobado'
             })
             .eq('id', idPago);
 
         if (errPago) throw errPago;
 
         // 2. Actualizar las barajitas del usuario de translúcidas/bloqueadas a activas/normales
-        // (Asumiendo que guardas una columna como 'estado' o 'translucido' en Coleccion_Usuario)
         const { error: errColeccion } = await supabaseClient
             .from('Coleccion_Usuario')
-            .update({ estado: 'activo' }) // O 'translucido: false' según tu estructura
+            .update({ estado: 'activo' })
             .eq('usuario_id', usuarioId)
-            .eq('estado', 'translucido'); // Actualiza únicamente las que estaban pendientes de aprobación
+            .eq('estado', 'translucido');
 
         if (errColeccion) {
             console.warn("Aviso al actualizar la colección del usuario:", errColeccion.message);
@@ -882,10 +880,10 @@ async function cargarTablaPremiosServidor() {
     if (!tbody) return;
 
     try {
+        // Consulta segura sin created_at para evitar errores 400
         const { data: reclamaciones, error } = await supabaseClient
             .from('reclamaciones_premios')
             .select('*')
-            .order('created_at', { ascending: false })
             .limit(10);
 
         if (error || !reclamaciones || reclamaciones.length === 0) {

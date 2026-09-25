@@ -2,13 +2,13 @@
 // 💻 CONTROLADOR DE ADMINISTRACIÓN, GENERADOR PROCEDURAL / IA Y SERVIDOR
 // =============================================================================
 
-// CONFIGURACIÓN CENTRALIZADA
+// CONFIGURACIÓN CENTRALIZADA (Sincronizada con variables de entorno de Render / Servidor)
 const CONFIG = {
-    SUPABASE_URL: "https://ddbdemxrntjqncetyrnr.supabase.co",
-    SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs",
+    SUPABASE_URL: (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || "https://ddbdemxrntjqncetyrnr.supabase.co",
+    SUPABASE_KEY: (typeof process !== 'undefined' && process.env?.SUPABASE_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs",
     POLLINATIONS_URL: "https://pollinations.ai/p/",
-    TELEGRAM_BOT_TOKEN: "TU_BOT_TOKEN_AQUI", // Reemplaza con tu token de Telegram si usas uno propio
-    TELEGRAM_CHAT_ID: "TU_CHAT_ID_AQUI"       // Reemplaza con el chat o canal de notificaciones
+    TELEGRAM_BOT_TOKEN: (typeof process !== 'undefined' && process.env?.TELEGRAM_BOT_TOKEN) || "TU_BOT_TOKEN_AQUI", 
+    TELEGRAM_CHAT_ID: (typeof process !== 'undefined' && process.env?.TELEGRAM_CHAT_ID) || "TU_CHAT_ID_AQUI"       
 };
 
 const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
@@ -800,7 +800,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
     logEstado(`⏳ Aprobando pago ID #${idPago} para @${usuarioId}...`);
     try {
-        // 1. Actualizar estado del pago en Supabase
         const { error: errPago } = await supabaseClient
             .from('pagos_pendientes')
             .update({ 
@@ -810,18 +809,18 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
         if (errPago) throw errPago;
 
-        // 2. Acreditar las barajitas/sobres automáticamente al usuario en la colección
-        if (usuarioId && usuarioId !== 'Anónimo') {
-            const idLimpio = usuarioId.replace(/^@/, '').trim().toLowerCase();
+        if (usuarioId && usuarioId !== 'Anónimo' && usuarioId !== 'undefined' && usuarioId !== 'null') {
+            const idLimpio = String(usuarioId).replace(/^@/, '').trim().toLowerCase();
+            logEstado(`📦 Asignando barajitas al usuario: ${idLimpio}`);
             
-            // Seleccionar algunas cartas aleatorias del catálogo para agregarlas como recompensa del sobre
-            const { data: cartasCatalogo } = await supabaseClient
+            const { data: cartasCatalogo, error: errCat } = await supabaseClient
                 .from('Cartas')
                 .select('id')
                 .limit(200);
 
+            if (errCat) throw new Error("Error al consultar el catálogo de cartas: " + errCat.message);
+
             if (cartasCatalogo && cartasCatalogo.length > 0) {
-                // Seleccionar tantas barajitas como sobres comprados (o simular la entrega)
                 const cartasAAsignar = [];
                 for (let i = 0; i < Number(cantidadSobres || 1); i++) {
                     const cartaAleatoria = getRandomItem(cartasCatalogo);
@@ -829,7 +828,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
                 }
 
                 if (cartasAAsignar.length > 0) {
-                    // Consultar inventario actual del usuario
                     const { data: regExistentes } = await supabaseClient
                         .from('Coleccion_Usuario')
                         .select('carta_id, cantidad')
@@ -850,14 +848,19 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
                         };
                     });
 
-                    await supabaseClient
+                    const { error: errUpsert } = await supabaseClient
                         .from('Coleccion_Usuario')
                         .upsert(upsertData, { onConflict: 'usuario_id,carta_id' });
+
+                    if (errUpsert) {
+                        throw new Error("Error al guardar en Coleccion_Usuario: " + errUpsert.message);
+                    }
                 }
             }
+        } else {
+            console.warn("⚠️ El usuario_id asociado al pago no es válido para asignación automática:", usuarioId);
         }
 
-        // 3. Enviar notificación oficial a Telegram Bot API
         if (CONFIG.TELEGRAM_BOT_TOKEN && CONFIG.TELEGRAM_BOT_TOKEN !== "TU_BOT_TOKEN_AQUI") {
             const mensajeTelegram = `✅ *PAGO APROBADO EXITOSAMENTE*\n\n` +
                 `👤 *Usuario:* @${usuarioId || 'Anónimo'}\n` +

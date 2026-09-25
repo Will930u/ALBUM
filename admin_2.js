@@ -7,9 +7,8 @@ const CONFIG = {
     SUPABASE_URL: (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || "https://ddbdemxrntjqncetyrnr.supabase.co",
     SUPABASE_KEY: (typeof process !== 'undefined' && process.env?.SUPABASE_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs",
     POLLINATIONS_URL: "https://pollinations.ai/p/",
-    TELEGRAM_BOT_TOKEN: (typeof process !== 'undefined' && process.env?.TELEGRAM_BOT_TOKEN) || "8732196907:AAE_f_erMkFBtK32QhLuaOOdKvv09TEfyC4", 
-    TELEGRAM_CHAT_ID: (typeof process !== 'undefined' && process.env?.TELEGRAM_CHAT_ID) || "8732196907"       
-};
+    TELEGRAM_BOT_TOKEN: "<%= TELEGRAM_BOT_TOKEN %>",
+        ID_CANAL_ALERTAS: "<%= ID_CANAL_ALERTAS %>"
 
 const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 

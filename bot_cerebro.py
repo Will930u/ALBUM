@@ -102,6 +102,10 @@ def aprobar_pago_sobres():
         id_pago = datos.get('idPago')
         usuario_id = datos.get('usuarioId')
         cantidad_sobres = int(datos.get('cantidadSobres', 1))
+        
+        # Nuevos parámetros para ubicar el mensaje original en Telegram
+        telegram_chat_id = datos.get('telegramChatId', ID_CANAL_ALERTAS)
+        telegram_message_id = datos.get('telegramMessageId')
 
         if not id_pago:
             return jsonify({"success": False, "error": "Falta el ID del pago"}), 400
@@ -142,17 +146,44 @@ def aprobar_pago_sobres():
                             "cantidad": 1
                         }).execute()
 
-        # 3. Enviar notificación oficial a Telegram con el texto requerido
-        if TELEGRAM_BOT_TOKEN and ID_CANAL_ALERTAS:
+        # 3. Editar o actualizar el mensaje original en Telegram si se cuenta con el message_id
+        if TELEGRAM_BOT_TOKEN and telegram_chat_id and telegram_message_id:
+            try:
+                texto_actualizado = (
+                    f"🛒 *[PAGO APROBADO MANUALMENTE DESDE ADMIN]*\n\n"
+                    f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
+                    f"📦 *Sobres acreditados:* {cantidad_sobres}\n"
+                    f"🟢 *Estado:* APROBADO ✅\n\n"
+                    f"_Pago verificado y barajitas asignadas exitosamente._"
+                )
+                bot.edit_message_text(
+                    chat_id=telegram_chat_id,
+                    message_id=int(telegram_message_id),
+                    text=texto_actualizado,
+                    parse_mode="Markdown",
+                    reply_markup=None
+                )
+            except Exception as e_tg:
+                print(f"⚠️ No se pudo editar el mensaje de Telegram (posible mensaje muy antiguo o ID inválido): {e_tg}")
+                # Fallback: Enviar mensaje nuevo si falla la edición
+                mensaje_telegram = (
+                    f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
+                    f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
+                    f"📦 *Sobres acreditados:* {cantidad_sobres}\n\n"
+                    f"_Su pago ha sido verificado gracias por su participación_"
+                )
+                bot.send_message(ID_CANAL_ALERTAS, mensaje_telegram, parse_mode="Markdown")
+        elif TELEGRAM_BOT_TOKEN and ID_CANAL_ALERTAS:
+            # Comportamiento anterior por respaldo si no se envían los IDs
             mensaje_telegram = (
                 f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
                 f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
                 f"📦 *Sobres acreditados:* {cantidad_sobres}\n\n"
-                f"_Su pago a sido verificado gracias por nu participacion_"
+                f"_Su pago ha sido verificado gracias por su participación_"
             )
             bot.send_message(ID_CANAL_ALERTAS, mensaje_telegram, parse_mode="Markdown")
 
-        return jsonify({"success": True, "message": "Pago aprobado, barajitas asignadas y Telegram notificado."}), 200
+        return jsonify({"success": True, "message": "Pago aprobado, barajitas asignadas y Telegram actualizado."}), 200
 
     except Exception as e:
         print("❌ Error al procesar la aprobación del pago de sobres:", str(e))

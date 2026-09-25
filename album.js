@@ -139,7 +139,7 @@ async function cargarInventarioInicial() {
             .in('estado', ['pendiente', 'aprobado']);
 
         if (errCompras) {
-            console.warn("⚠️ No se pudieron consultar compras pendientes:", errCompras.message);
+            console.warn("⚠️ No se pudieron consultar compras:", errCompras.message);
         }
 
         inventarioUsuarioCache.clear();
@@ -167,7 +167,7 @@ async function cargarInventarioInicial() {
             datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
         }
 
-        // 1. Cargar colección aprobada de la tabla habitual
+        // 1. Cargar colección oficial de la tabla de colección
         if (coleccion) {
             coleccion.forEach(item => {
                 if (item.carta_id !== undefined && item.carta_id !== null) {
@@ -185,23 +185,24 @@ async function cargarInventarioInicial() {
             });
         }
 
-        // 2. Fusionar compras pendientes (marcar como translúcidas)
+        // 2. Fusionar compras (si está aprobado, no debe marcarse como pendiente)
         if (compras) {
             compras.forEach(compra => {
                 const idCartaNum = Number(compra.barajita_id);
                 const infoCarta = mapaCartas.get(idCartaNum);
+                const esAprobado = (compra.estado === 'aprobado');
 
                 if (!inventarioUsuarioCache.has(idCartaNum)) {
                     inventarioUsuarioCache.set(idCartaNum, {
                         carta_id: idCartaNum,
                         cantidad: 1,
-                        pendiente: (compra.estado === 'pendiente'),
+                        pendiente: !esAprobado, // Si está aprobado, pendiente pasa a ser false
                         datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
                     });
                 } else {
                     const itemExistente = inventarioUsuarioCache.get(idCartaNum);
-                    if (compra.estado === 'pendiente' && itemExistente.cantidad === 0) {
-                        itemExistente.pendiente = true;
+                    if (esAprobado) {
+                        itemExistente.pendiente = false;
                     }
                 }
             });
@@ -260,7 +261,6 @@ async function registrarCompraBarajita(idCarta, telefono, referencia, monto) {
             return false;
         }
 
-        // Actualizar la caché local en estado translúcido (pendiente)
         if (!inventarioUsuarioCache.has(barajitaIdNum)) {
             inventarioUsuarioCache.set(barajitaIdNum, {
                 carta_id: barajitaIdNum,
@@ -304,7 +304,7 @@ async function verificarNotificacionesRechazadas() {
             if (!localStorage.getItem(vistoKey)) {
                 mostrarModalReferenciaInvalida(compra);
                 localStorage.setItem(vistoKey, "true");
-                break; // Muestra un modal a la vez
+                break;
             }
         }
     } catch (e) {
@@ -564,7 +564,6 @@ function renderizarLibro(pagina) {
         if (itemPoseido) {
             slot.classList.add('poseida');
 
-            // REEMPLAZO LIMPIO: Añadir o quitar la clase CSS según el estado pendiente
             if (itemPoseido.pendiente) {
                 slot.classList.add('translucida');
             } else {
@@ -604,7 +603,6 @@ function pseudoRandom(seed) {
 function generarPersonajeProceduralAutomatico(idCarta) {
     const id = Number(idCarta);
     
-    // Alternancia estricta e innegable de género (50% Masculino / 50% Femenino)
     const esFemenino = (id % 2 === 0);
 
     let rIdx = 0;
@@ -1211,7 +1209,6 @@ function desplegarVisor(datosCarta, idCarta, cantidad) {
 function activarAlbumEnTiempoReal() {
     if (!supabaseClient) return;
 
-    // Escuchar aprobaciones / rechazos en compras_barajitas
     supabaseClient
         .channel(`realtime-compras-tienda`)
         .on(
@@ -1232,7 +1229,6 @@ function activarAlbumEnTiempoReal() {
                     const idCartaNum = Number(registro.barajita_id);
 
                     if (registro.estado === 'aprobado') {
-                        // Cambiar estado a normal en el álbum
                         if (inventarioUsuarioCache.has(idCartaNum)) {
                             inventarioUsuarioCache.get(idCartaNum).pendiente = false;
                         } else {
@@ -1244,8 +1240,8 @@ function activarAlbumEnTiempoReal() {
                             });
                         }
                         renderizarLibro(paginaActual);
+                        mostrarNotificacionCartaRecibida(registro);
                     } else if (registro.estado === 'rechazado') {
-                        // Eliminar barajita del álbum y mostrar modal de advertencia
                         inventarioUsuarioCache.delete(idCartaNum);
                         renderizarLibro(paginaActual);
                         mostrarModalReferenciaInvalida(registro);
@@ -1273,7 +1269,7 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
         font-family: 'Press Start 2P', monospace;
         font-size: 8px;
     `;
-    toast.innerText = `🎉 ¡DATOS RECIBIDOS! (ID: #${datosNuevos?.carta_id || datosNuevos?.barajita_id || ''})`;
+    toast.innerText = `🎉 ¡PAGO APROBADO! BARAJITA #${datosNuevos?.carta_id || datosNuevos?.barajita_id || ''} ACTIVADA`;
     document.body.appendChild(toast);
 
     setTimeout(() => toast.remove(), 4000);

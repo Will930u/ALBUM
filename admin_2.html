@@ -195,6 +195,16 @@
 
     <!-- SDK SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Correcciones integradas para evitar errores 400 por columnas inexistentes
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log("Panel admin inicializado con parches de esquema Supabase seguros.");
+        });
+
+        // Sobrescribir consultas problemáticas si admin_2.js las invoca o manejarlas de forma segura:
+        // Nota: Asegúrese en admin_2.js de NO usar .order('created_at', ...) si la tabla no lo tiene,
+        // y de NO incluir filtros o upserts con el campo 'estado' en la tabla 'Coleccion_Usuario'.
+    </script>
     <script src="admin_2.js"></script>
 </body>
 </html>

@@ -166,7 +166,6 @@ async function cargarInventarioInicial() {
             datosCartas.forEach(c => mapaCartas.set(Number(c.id), c));
         }
 
-        // 1. Cargar colección oficial de la tabla de colección
         if (coleccion) {
             coleccion.forEach(item => {
                 if (item.carta_id !== undefined && item.carta_id !== null) {
@@ -184,7 +183,6 @@ async function cargarInventarioInicial() {
             });
         }
 
-        // 2. Fusionar compras considerando la cantidad solicitada
         if (compras) {
             compras.forEach(compra => {
                 const idCartaNum = Number(compra.barajita_id);
@@ -204,6 +202,11 @@ async function cargarInventarioInicial() {
                     if (esAprobado) {
                         itemExistente.pendiente = false;
                         itemExistente.cantidad = Math.max(itemExistente.cantidad, cantCompra);
+                    } else {
+                        // Si ya lo tiene en colección pero hay una compra pendiente nueva o adicional
+                        if (!itemExistente.pendiente && itemExistente.cantidad <= 0) {
+                            itemExistente.pendiente = true;
+                        }
                     }
                 }
             });
@@ -219,10 +222,6 @@ async function cargarInventarioInicial() {
         console.error("Excepción en cargarInventarioInicial:", err);
     }
 }
-
-// =============================================================================
-// 🛒 REGISTRO DE COMPRA DE BARAJITA (SOPORTANDO CANTIDADES MÚLTIPLES)
-// =============================================================================
 
 async function registrarCompraBarajita(idCarta, telefono, referencia, monto, cantidad = 1) {
     try {
@@ -287,10 +286,6 @@ async function registrarCompraBarajita(idCarta, telefono, referencia, monto, can
         return false;
     }
 }
-
-// =============================================================================
-// ⚠️ VERIFICACIÓN DE RECHAZOS (MODAL REFERENCIA INVÁLIDA)
-// =============================================================================
 
 async function verificarNotificacionesRechazadas() {
     try {
@@ -604,10 +599,6 @@ function renderizarLibro(pagina) {
     }
 }
 
-// =============================================================================
-// 🎨 GENERADOR PROCEDURAL DETERMINÍSTICO (2000 COMBINACIONES ÚNICAS)
-// =============================================================================
-
 function pseudoRandom(seed) {
     let x = Math.sin(seed++) * 10000;
     return x - Math.floor(x);
@@ -750,10 +741,6 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
         marcoColor: config.marcoColor || config.colorPrimario || datosCarta.marcoColor || "#00f3ff"
     };
 }
-
-// =============================================================================
-// 👾 MOTOR PROCEDURAL DE PIXEL ART AVANZADO
-// =============================================================================
 
 function drawAnimeBackgroundProcedural(ctx, data, width = 32, height = 32) {
     const h1 = data.hueBase !== undefined ? data.hueBase : 220;

@@ -588,6 +588,10 @@ function renderizarLibro(pagina) {
             slot.innerText = idCarta;
         }
 
+        grillaCartas.appendChild(slot);
+    }
+}
+
 // =============================================================================
 // 🎨 GENERADOR PROCEDURAL DETERMINÍSTICO (2000 COMBINACIONES ÚNICAS)
 // =============================================================================

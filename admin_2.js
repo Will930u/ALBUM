@@ -364,7 +364,6 @@ function seleccionarModoRender(modo) {
 }
 
 function iniciarSuscripcionesRealtimeAdmin() {
-    // 1. Suscripción para la colección de usuarios
     if (Estado.canalRealtimeColeccion) {
         supabaseClient.removeChannel(Estado.canalRealtimeColeccion);
     }
@@ -387,7 +386,6 @@ function iniciarSuscripcionesRealtimeAdmin() {
             }
         });
 
-    // 2. Suscripción para los pagos pendientes en tiempo real
     if (Estado.canalRealtimePagos) {
         supabaseClient.removeChannel(Estado.canalRealtimePagos);
     }
@@ -743,9 +741,6 @@ async function generar2000CombinacionesEnLote() {
     }
 }
 
-// -----------------------------------------------------------------------------
-// 💳 GESTIÓN DE LA TABLA `compras_barajitas` y `pagos_pendientes`
-// -----------------------------------------------------------------------------
 async function cargarTablaComprasBarajitas() {
     const tbody = DOM.get('tabla-compras-barajitas');
     if (!tbody) return;
@@ -753,16 +748,13 @@ async function cargarTablaComprasBarajitas() {
     logEstado("🔄 Consultando pagos en la base de datos...");
 
     try {
-        // Consulta segura ordenada por ID de forma descendente (sin depender de created_at)
         const { data: pagos, error } = await supabaseClient
             .from('pagos_pendientes')
             .select('*')
             .order('id', { ascending: false })
             .limit(15);
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
         if (!pagos || pagos.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #666;">No hay registros de pagos en la tabla.</td></tr>`;
@@ -806,7 +798,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
     logEstado(`⏳ Aprobando pago ID #${idPago} para @${usuarioId}...`);
     try {
-        // 1. Marcar el pago como aprobado en la tabla pagos_pendientes
         const { error: errPago } = await supabaseClient
             .from('pagos_pendientes')
             .update({ 
@@ -816,19 +807,8 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
 
         if (errPago) throw errPago;
 
-        // 2. Actualizar las barajitas del usuario de translúcidas/bloqueadas a activas/normales
-        const { error: errColeccion } = await supabaseClient
-            .from('Coleccion_Usuario')
-            .update({ estado: 'activo' })
-            .eq('usuario_id', usuarioId)
-            .eq('estado', 'translucido');
-
-        if (errColeccion) {
-            console.warn("Aviso al actualizar la colección del usuario:", errColeccion.message);
-        }
-
-        alert(`✅ ¡Pago aprobado y barajitas activadas con éxito!`);
-        logEstado(`✅ Pago #${idPago} procesado y colección actualizada.`);
+        alert(`✅ ¡Pago aprobado con éxito!`);
+        logEstado(`✅ Pago #${idPago} procesado.`);
         
         await cargarTablaComprasBarajitas();
         await cargarMetricasServidor();
@@ -880,7 +860,6 @@ async function cargarTablaPremiosServidor() {
     if (!tbody) return;
 
     try {
-        // Consulta segura sin created_at para evitar errores 400
         const { data: reclamaciones, error } = await supabaseClient
             .from('reclamaciones_premios')
             .select('*')

@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport corregido para móviles (evita zoom y emulación de escritorio) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Álbum Digital - Cyberpunk Synthwave Edition</title>
     <!-- SDK Oficial de Telegram Mini Apps -->
@@ -12,18 +11,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
-    <!-- Versionado del CSS para romper la caché del teléfono -->
     <link rel="stylesheet" href="album-style.css?v=1.1">
 </head>
 <body>
     <!-- PANTALLA DE PORTADA (SPLASH SCREEN) -->
     <div id="pantalla-portada" class="portada-overlay">
         <div class="contenido-portada">
-            <!-- TÍTULO NEÓN -->
             <h1 class="titulo-portada">NEON<br>CYBER<br>ALBUM</h1>
             <p class="subtitulo-portada">SYNTHWAVE ERA 2026</p>
 
-            <!-- INDICADOR / BOTÓN PLAY -->
             <div class="contenedor-play">
                 <span class="texto-tap">TAP TO INITIATE MATRIX</span>
                 <button id="btn-play-ingresar" class="btn-play-neon" onclick="iniciarApp()">
@@ -31,7 +27,6 @@
                 </button>
             </div>
 
-            <!-- BARRA DE CARGA DECORATIVA -->
             <div class="barra-carga-box">
                 <div class="barra-carga-progreso"></div>
             </div>
@@ -40,13 +35,11 @@
     </div>
 
     <div class="interfaz-juego">
-        <!-- Cabecera Temática Cyberpunk -->
         <div class="cabecera-album">
             <h1 class="titulo-album">NEON CYBER ALBUM</h1>
             <div class="temporada-tag">★ SYNTHWAVE ERA <span id="ano-actual">2026</span> ★</div>
         </div>
 
-        <!-- Marcador de Progreso Estilo HUD Neón -->
         <div class="marcador-progreso">
             <div class="info-header-hud">
                 <div class="bloque-orilla-izquierda">
@@ -72,14 +65,10 @@
             </div>
         </div>
 
-        <!-- Libro y Cuadrícula de 25 casilleros (5x5) -->
         <div class="libro-contenedor">
-            <div class="pagina-cuadrula" id="grilla-cartas">
-                <!-- Inyectado dinámicamente por album.js -->
-            </div>
+            <div class="pagina-cuadrula" id="grilla-cartas"></div>
         </div>
 
-        <!-- Información de Paginación y Usuario -->
         <div class="panel-usuario-telegram">
             <span class="indicador-pagina" id="indicador-pagina">PÁGINA 1/80</span>
             <div class="perfil-telegram">
@@ -95,9 +84,7 @@
     <!-- VENTANA MODAL VISOR -->
     <div class="modal-visor" id="modal-visor" style="display: none;">
         <div class="carta-box-animacion" id="carta-animada">
-            <div class="carta-cara cara-frontal" id="contenido-carta-frontal">
-                <!-- Detalle expandido inyectado dinámicamente -->
-            </div>
+            <div class="carta-cara cara-frontal" id="contenido-carta-frontal"></div>
         </div>
     </div>
 
@@ -110,11 +97,8 @@
 
             <form id="form-reclamo-premio" onsubmit="event.preventDefault(); enviarSolicitudPremio();" style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="hidden" id="input-premio-nivel" value="">
-                
                 <input type="text" id="input-premio-cedula" placeholder="Cédula de Identidad" required style="background: #121324; border: 1px solid #00f3ff; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
-                
                 <input type="tel" id="input-premio-telefono" placeholder="Teléfono Pago Móvil" required style="background: #121324; border: 1px solid #00f3ff; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
-                
                 <input type="text" id="input-premio-banco" placeholder="Banco (Ej: Banesco, Venezuela)" required style="background: #121324; border: 1px solid #00f3ff; color: #fff; padding: 8px; font-size: 8px; font-family: inherit; border-radius: 4px; outline: none; text-align: center;">
 
                 <button type="submit" id="btn-enviar-premio" class="btn-retro" style="background: linear-gradient(135deg, #ff007f, #7928ca); color: #fff; border: none; padding: 10px; font-size: 8px; font-weight: bold; cursor: pointer; margin-top: 6px; border-radius: 4px; text-shadow: 0 0 5px #000;">
@@ -133,10 +117,8 @@
             <div style="background: #121324; border: 1px dashed #7928ca; padding: 12px; border-radius: 6px; margin-bottom: 14px; text-align: left;">
                 <p style="color: #a5b4fc; font-size: 6px; margin-bottom: 6px;">MONTO ABONADO:</p>
                 <p id="comp-monto-bs" style="color: #00f3ff; font-size: 10px; margin-bottom: 10px; font-weight: bold;"></p>
-                
                 <p style="color: #a5b4fc; font-size: 6px; margin-bottom: 6px;">Nº TRANSACCIÓN:</p>
                 <p id="comp-referencia" style="color: #fff; font-size: 8px; margin-bottom: 10px; font-weight: bold; word-break: break-all;"></p>
-
                 <p style="color: #a5b4fc; font-size: 6px; margin-bottom: 6px;">TIMESTAMP:</p>
                 <p id="comp-fecha" style="color: #a5b4fc; font-size: 7px;"></p>
             </div>
@@ -172,8 +154,8 @@
 
     <!-- BARRA DE NAVEGACIÓN FIJA INFERIOR -->
     <div class="menu-navegacion-fijo">
-        <button class="btn-nav" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
-        <button class="btn-nav activo" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
+        <button class="btn-nav activo" onclick="window.location.href='index.html'">📔 ÁLBUM</button>
+        <button class="btn-nav" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
     </div>
 
     <!-- Carga de Librerías -->

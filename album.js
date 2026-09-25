@@ -564,13 +564,11 @@ function renderizarLibro(pagina) {
         if (itemPoseido) {
             slot.classList.add('poseida');
 
-            // Efecto translúcido si está pendiente de aprobación
+            // REEMPLAZO LIMPIO: Añadir o quitar la clase CSS según el estado pendiente
             if (itemPoseido.pendiente) {
-                slot.style.opacity = '0.45';
-                slot.style.filter = 'grayscale(50%)';
+                slot.classList.add('translucida');
             } else {
-                slot.style.opacity = '1';
-                slot.style.filter = 'none';
+                slot.classList.remove('translucida');
             }
 
             dibujarBarajitaAlgoritmicaSlot(slot, itemPoseido.datosCarta, idCarta);
@@ -589,10 +587,6 @@ function renderizarLibro(pagina) {
         } else {
             slot.innerText = idCarta;
         }
-
-        grillaCartas.appendChild(slot);
-    }
-}
 
 // =============================================================================
 // 🎨 GENERADOR PROCEDURAL DETERMINÍSTICO (2000 COMBINACIONES ÚNICAS)

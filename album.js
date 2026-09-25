@@ -573,7 +573,6 @@ function renderizarLibro(pagina) {
 
             if (itemPoseido.pendiente) {
                 slot.classList.add('translucida');
-                // Añadir etiqueta visual de comprobación
                 const lblComprobando = document.createElement('div');
                 lblComprobando.className = 'badge-comprobando';
                 lblComprobando.style.cssText = "position:absolute; top:2px; left:2px; background:rgba(234,179,8,0.85); color:#000; font-size:5px; padding:2px; z-index:5; font-family:'Press Start 2P';";
@@ -616,7 +615,6 @@ function pseudoRandom(seed) {
 
 function generarPersonajeProceduralAutomatico(idCarta) {
     const id = Number(idCarta);
-    
     const esFemenino = (id % 2 === 0);
 
     let rIdx = 0;
@@ -754,7 +752,7 @@ function extraerAtributosCarta(datosCarta, idCarta = 1) {
 }
 
 // =============================================================================
-// 👾 MOTOR PROCEDURAL DE PIXEL ART AVANZADO (MASCULINO / FEMENINO Y FONDOS)
+// 👾 MOTOR PROCEDURAL DE PIXEL ART AVANZADO
 // =============================================================================
 
 function drawAnimeBackgroundProcedural(ctx, data, width = 32, height = 32) {
@@ -1244,9 +1242,7 @@ function activarAlbumEnTiempoReal() {
                     const cantidadAprobada = Number(registro.cantidad) || 1;
 
                     if (registro.estado === 'aprobado') {
-                        // 🛠️ PERSISTIR LA CANTIDAD EXACTA COMPRADA EN COLECCION_USUARIO
                         try {
-                            // Consultar primero si ya existe para sumar la cantidad de forma segura
                             let { data: existente } = await supabaseClient
                                 .from('Coleccion_Usuario')
                                 .select('cantidad')

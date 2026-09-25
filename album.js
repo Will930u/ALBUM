@@ -7,6 +7,17 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 let supabaseAdminClient = null;
 
+// Función global requerida para el evento onclick del botón inicial en el HTML
+window.iniciarApp = function() {
+    console.log("Iniciando matriz y aplicación...");
+    const pantallaInicio = document.getElementById('pantalla-inicio') || document.querySelector('.pantalla-inicio');
+    if (pantallaInicio) {
+        pantallaInicio.style.display = 'none';
+    }
+    // Ejecutar la consulta inicial al entrar a la consola de la matriz
+    consultarPagosPendientesAdmin();
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
     if (typeof supabase !== 'undefined') {
         supabaseAdminClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);

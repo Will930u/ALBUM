@@ -185,7 +185,7 @@ async function cargarInventarioInicial() {
             });
         }
 
-        // 2. Fusionar compras (si está aprobado, no debe marcarse como pendiente)
+        // 2. Fusionar compras (si está aprobado, aseguramos que pendiente sea false)
         if (compras) {
             compras.forEach(compra => {
                 const idCartaNum = Number(compra.barajita_id);
@@ -196,7 +196,7 @@ async function cargarInventarioInicial() {
                     inventarioUsuarioCache.set(idCartaNum, {
                         carta_id: idCartaNum,
                         cantidad: 1,
-                        pendiente: !esAprobado, // Si está aprobado, pendiente pasa a ser false
+                        pendiente: !esAprobado, 
                         datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
                     });
                 } else {
@@ -1218,7 +1218,7 @@ function activarAlbumEnTiempoReal() {
                 schema: 'public',
                 table: 'compras_barajitas'
             },
-            (payload) => {
+            async (payload) => {
                 const registro = payload.new;
                 if (!registro) return;
 
@@ -1229,6 +1229,21 @@ function activarAlbumEnTiempoReal() {
                     const idCartaNum = Number(registro.barajita_id);
 
                     if (registro.estado === 'aprobado') {
+                        // 🛠️ GARANTIZAR PERSISTENCIA EN COLECCION_USUARIO AL APROBAR
+                        try {
+                            await supabaseClient
+                                .from('Coleccion_Usuario')
+                                .upsert([
+                                    {
+                                        usuario_id: uId,
+                                        carta_id: idCartaNum,
+                                        cantidad: 1
+                                    }
+                                ], { onConflict: 'usuario_id,carta_id' });
+                        } catch (errSupabase) {
+                            console.error("Error al persistir barajita aprobada:", errSupabase);
+                        }
+
                         if (inventarioUsuarioCache.has(idCartaNum)) {
                             inventarioUsuarioCache.get(idCartaNum).pendiente = false;
                         } else {

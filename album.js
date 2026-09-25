@@ -131,7 +131,6 @@ async function cargarInventarioInicial() {
             return;
         }
 
-        // Consultar compras pendientes/aprobadas para fusionar estado
         let { data: compras, error: errCompras } = await supabaseClient
             .from('compras_barajitas')
             .select('*')
@@ -185,17 +184,18 @@ async function cargarInventarioInicial() {
             });
         }
 
-        // 2. Fusionar compras (si está aprobado, aseguramos que pendiente sea false)
+        // 2. Fusionar compras considerando la cantidad solicitada
         if (compras) {
             compras.forEach(compra => {
                 const idCartaNum = Number(compra.barajita_id);
                 const infoCarta = mapaCartas.get(idCartaNum);
                 const esAprobado = (compra.estado === 'aprobado');
+                const cantCompra = Number(compra.cantidad) || 1;
 
                 if (!inventarioUsuarioCache.has(idCartaNum)) {
                     inventarioUsuarioCache.set(idCartaNum, {
                         carta_id: idCartaNum,
-                        cantidad: 1,
+                        cantidad: cantCompra,
                         pendiente: !esAprobado, 
                         datosCarta: infoCarta || { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
                     });
@@ -203,6 +203,7 @@ async function cargarInventarioInicial() {
                     const itemExistente = inventarioUsuarioCache.get(idCartaNum);
                     if (esAprobado) {
                         itemExistente.pendiente = false;
+                        itemExistente.cantidad = Math.max(itemExistente.cantidad, cantCompra);
                     }
                 }
             });
@@ -220,10 +221,10 @@ async function cargarInventarioInicial() {
 }
 
 // =============================================================================
-// 🛒 REGISTRO DE COMPRA DE BARAJITA (TIENDA -> SUPABASE)
+// 🛒 REGISTRO DE COMPRA DE BARAJITA (SOPORTANDO CANTIDADES MÚLTIPLES)
 // =============================================================================
 
-async function registrarCompraBarajita(idCarta, telefono, referencia, monto) {
+async function registrarCompraBarajita(idCarta, telefono, referencia, monto, cantidad = 1) {
     try {
         if (!supabaseClient || !idUsuarioTelegram) {
             alert("Error: Cliente no inicializado o usuario no identificado.");
@@ -232,6 +233,7 @@ async function registrarCompraBarajita(idCarta, telefono, referencia, monto) {
 
         const barajitaIdNum = Number(idCarta);
         const montoNum = parseFloat(monto);
+        const cantNum = parseInt(cantidad) || 1;
         const refLimpia = String(referencia).trim();
         const telLimpio = String(telefono).trim();
         const idLimpio = idUsuarioTelegram.replace(/^@/, '').trim().toLowerCase();
@@ -250,6 +252,7 @@ async function registrarCompraBarajita(idCarta, telefono, referencia, monto) {
                     barajita_id: barajitaIdNum,
                     referencia: refLimpia,
                     monto: montoNum,
+                    cantidad: cantNum,
                     estado: 'pendiente'
                 }
             ])
@@ -264,14 +267,18 @@ async function registrarCompraBarajita(idCarta, telefono, referencia, monto) {
         if (!inventarioUsuarioCache.has(barajitaIdNum)) {
             inventarioUsuarioCache.set(barajitaIdNum, {
                 carta_id: barajitaIdNum,
-                cantidad: 1,
+                cantidad: cantNum,
                 pendiente: true,
                 datosCarta: { id: barajitaIdNum, nombre: `Cyber # ${barajitaIdNum}` }
             });
+        } else {
+            const item = inventarioUsuarioCache.get(barajitaIdNum);
+            item.cantidad += cantNum;
+            item.pendiente = true;
         }
 
         renderizarLibro(paginaActual);
-        alert("¡Pago registrado en revisión! La barajita se mostrará de forma translúcida hasta su verificación.");
+        alert(`¡Pago registrado en revisión! Las ${cantNum} barajita(s) se mostrarán como "comprobando" hasta su verificación.`);
         return true;
 
     } catch (e) {
@@ -566,6 +573,13 @@ function renderizarLibro(pagina) {
 
             if (itemPoseido.pendiente) {
                 slot.classList.add('translucida');
+                // Añadir etiqueta visual de comprobación
+                const lblComprobando = document.createElement('div');
+                lblComprobando.className = 'badge-comprobando';
+                lblComprobando.style.cssText = "position:absolute; top:2px; left:2px; background:rgba(234,179,8,0.85); color:#000; font-size:5px; padding:2px; z-index:5; font-family:'Press Start 2P';";
+                lblComprobando.textContent = "COMPROBANDO";
+                slot.style.position = "relative";
+                slot.appendChild(lblComprobando);
             } else {
                 slot.classList.remove('translucida');
             }
@@ -1227,29 +1241,45 @@ function activarAlbumEnTiempoReal() {
 
                 if (uId === usuarioLimpio || uId === `@${usuarioLimpio}`) {
                     const idCartaNum = Number(registro.barajita_id);
+                    const cantidadAprobada = Number(registro.cantidad) || 1;
 
                     if (registro.estado === 'aprobado') {
-                        // 🛠️ GARANTIZAR PERSISTENCIA EN COLECCION_USUARIO AL APROBAR
+                        // 🛠️ PERSISTIR LA CANTIDAD EXACTA COMPRADA EN COLECCION_USUARIO
                         try {
+                            // Consultar primero si ya existe para sumar la cantidad de forma segura
+                            let { data: existente } = await supabaseClient
+                                .from('Coleccion_Usuario')
+                                .select('cantidad')
+                                .eq('usuario_id', uId)
+                                .eq('carta_id', idCartaNum)
+                                .maybeSingle();
+
+                            let nuevaCantidadTotal = cantidadAprobada;
+                            if (existente) {
+                                nuevaCantidadTotal = (Number(existente.cantidad) || 1) + cantidadAprobada;
+                            }
+
                             await supabaseClient
                                 .from('Coleccion_Usuario')
                                 .upsert([
                                     {
                                         usuario_id: uId,
                                         carta_id: idCartaNum,
-                                        cantidad: 1
+                                        cantidad: nuevaCantidadTotal
                                     }
                                 ], { onConflict: 'usuario_id,carta_id' });
                         } catch (errSupabase) {
-                            console.error("Error al persistir barajita aprobada:", errSupabase);
+                            console.error("Error al persistir cantidad aprobada:", errSupabase);
                         }
 
                         if (inventarioUsuarioCache.has(idCartaNum)) {
-                            inventarioUsuarioCache.get(idCartaNum).pendiente = false;
+                            const item = inventarioUsuarioCache.get(idCartaNum);
+                            item.pendiente = false;
+                            item.cantidad = Math.max(item.cantidad, cantidadAprobada);
                         } else {
                             inventarioUsuarioCache.set(idCartaNum, {
                                 carta_id: idCartaNum,
-                                cantidad: 1,
+                                cantidad: cantidadAprobada,
                                 pendiente: false,
                                 datosCarta: { id: idCartaNum, nombre: `Cyber # ${idCartaNum}` }
                             });
@@ -1284,7 +1314,7 @@ function mostrarNotificacionCartaRecibida(datosNuevos) {
         font-family: 'Press Start 2P', monospace;
         font-size: 8px;
     `;
-    toast.innerText = `🎉 ¡PAGO APROBADO! BARAJITA #${datosNuevos?.carta_id || datosNuevos?.barajita_id || ''} ACTIVADA`;
+    toast.innerText = `🎉 ¡PAGO APROBADO! BARAJITA #${datosNuevos?.carta_id || datosNuevos?.barajita_id || ''} (x${datosNuevos?.cantidad || 1}) ACTIVADA`;
     document.body.appendChild(toast);
 
     setTimeout(() => toast.remove(), 4000);

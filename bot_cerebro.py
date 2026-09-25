@@ -2,6 +2,7 @@
 # 🤖 BOT CEREBRO CENTRAL - PROCESADOR DE PAGO MÓVIL Y ALERTAS DE RECOMPENSAS
 # =============================================================================
 import os
+import time
 import threading
 import random
 from flask import Flask, request, jsonify
@@ -223,11 +224,16 @@ def procesar_confirmacion_pago(call):
         bot.answer_callback_query(call.id, f"❌ Error: {str(e)}", show_alert=True)
 
 # =============================================================================
-# ⚙️ ARRANQUE MULTITHREADING (FLASK + TELEGRAM POLLING) EN RENDER
+# ⚙️ ARRANQUE MULTITHREADING CON REINTENTO SEGURO
 # =============================================================================
 def iniciar_bot_polling():
-    bot.remove_webhook()
-    bot.infinity_polling(skip_pending=True)
+    while True:
+        try:
+            bot.remove_webhook()
+            bot.infinity_polling(skip_pending=True)
+        except Exception as e:
+            print(f"⚠️ Reiniciando polling de Telegram por conflicto: {e}")
+            time.sleep(5)
 
 if __name__ == "__main__":
     hilo_bot = threading.Thread(target=iniciar_bot_polling)

@@ -6,11 +6,13 @@ import time
 import threading
 import random
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # <--- Integrado para corregir definitivamente el bloqueo CORS
 import telebot
 from telebot import types
 from supabase import create_client, Client
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})  # <--- Habilita permisos CORS globales para el panel web
 
 # =============================================================================
 # 🔐 CONFIGURACIÓN SEGURA: VARIABLES DE ENTORNO EN RENDER
@@ -93,8 +95,12 @@ def recibir_alerta_payout_supabase():
 # =============================================================================
 # 💳 RUTA DE APROBACIÓN DE PAGOS DE SOBRES (Desde el Panel Web Admin)
 # =============================================================================
-@app.route('/api/aprobar-pago', methods=['POST'])
+@app.route('/api/aprobar-pago', methods=['POST', 'OPTIONS'])
 def aprobar_pago_sobres():
+    # Soporte para peticiones preflight de CORS
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "OK"}), 200
+
     try:
         datos = request.json
         print("📨 Petición de aprobación de pago recibida:", datos)

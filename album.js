@@ -10,11 +10,15 @@ let supabaseAdminClient = null;
 // Función global requerida para el evento onclick del botón inicial en el HTML
 window.iniciarApp = function() {
     console.log("Iniciando matriz y aplicación...");
-    const pantallaInicio = document.getElementById('pantalla-inicio') || document.querySelector('.pantalla-inicio');
+    
+    // Ocultar la pantalla de bienvenida o contenedor principal de presentación
+    const pantallaInicio = document.getElementById('pantalla-inicio') || document.querySelector('.pantalla-inicio') || document.querySelector('body > div:first-child');
     if (pantallaInicio) {
         pantallaInicio.style.display = 'none';
+        pantallaInicio.style.opacity = '0';
+        pantallaInicio.style.visibility = 'hidden';
     }
-    // Ejecutar la consulta inicial al entrar a la consola de la matriz
+    
     consultarPagosPendientesAdmin();
 };
 

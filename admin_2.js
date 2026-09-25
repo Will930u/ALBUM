@@ -8,7 +8,8 @@ const CONFIG = {
     SUPABASE_KEY: (typeof process !== 'undefined' && process.env?.SUPABASE_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYmRlbXhybnRqcW5jZXR5cm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDYyNzQsImV4cCI6MjEwNDE4MjI3NH0.caXUy6CeiEMIcS4cQoRjZ0QEOaq7-EuIOP9UepXHALs",
     POLLINATIONS_URL: "https://pollinations.ai/p/",
     TELEGRAM_BOT_TOKEN: "<%= TELEGRAM_BOT_TOKEN %>",
-        ID_CANAL_ALERTAS: "<%= ID_CANAL_ALERTAS %>"
+    ID_CANAL_ALERTAS: "<%= ID_CANAL_ALERTAS %>"
+};
 
 const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 
@@ -794,108 +795,39 @@ async function cargarTablaComprasBarajitas() {
     }
 }
 
+// =============================================================================
+// FUNCIÓN CORREGIDA: Comunica el panel con el servidor Flask en Render
+// =============================================================================
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres) {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
 
-    logEstado(`⏳ Aprobando pago ID #${idPago} para @${usuarioId}...`);
+    logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     try {
-        const { error: errPago } = await supabaseClient
-            .from('pagos_pendientes')
-            .update({ 
-                estado: 'aprobado'
+        const respuesta = await fetch('https://juego-barajitas.onrender.com/api/aprobar-pago', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                idPago: idPago,
+                usuarioId: usuarioId,
+                cantidadSobres: cantidadSobres
             })
-            .eq('id', idPago);
+        });
 
-        if (errPago) throw errPago;
+        const resultado = await respuesta.json();
 
-        if (usuarioId && usuarioId !== 'Anónimo' && usuarioId !== 'undefined' && usuarioId !== 'null') {
-            const idLimpio = String(usuarioId).replace(/^@/, '').trim().toLowerCase();
-            logEstado(`📦 Asignando barajitas al usuario: ${idLimpio}`);
-            
-            const { data: cartasCatalogo, error: errCat } = await supabaseClient
-                .from('Cartas')
-                .select('id')
-                .limit(200);
-
-            if (errCat) throw new Error("Error al consultar el catálogo de cartas: " + errCat.message);
-
-            if (cartasCatalogo && cartasCatalogo.length > 0) {
-                const cartasAAsignar = [];
-                for (let i = 0; i < Number(cantidadSobres || 1); i++) {
-                    const cartaAleatoria = getRandomItem(cartasCatalogo);
-                    if (cartaAleatoria) cartasAAsignar.push(Number(cartaAleatoria.id));
-                }
-
-                if (cartasAAsignar.length > 0) {
-                    const { data: regExistentes } = await supabaseClient
-                        .from('Coleccion_Usuario')
-                        .select('carta_id, cantidad')
-                        .eq('usuario_id', idLimpio)
-                        .in('carta_id', cartasAAsignar);
-
-                    const mapaInv = new Map();
-                    if (regExistentes) {
-                        regExistentes.forEach(r => mapaInv.set(Number(r.carta_id), Number(r.cantidad) || 0));
-                    }
-
-                    const upsertData = cartasAAsignar.map(cId => {
-                        const actual = mapaInv.get(cId) || 0;
-                        return {
-                            usuario_id: idLimpio,
-                            carta_id: cId,
-                            cantidad: actual + 1
-                        };
-                    });
-
-                    const { error: errUpsert } = await supabaseClient
-                        .from('Coleccion_Usuario')
-                        .upsert(upsertData, { onConflict: 'usuario_id,carta_id' });
-
-                    if (errUpsert) {
-                        throw new Error("Error al guardar en Coleccion_Usuario: " + errUpsert.message);
-                    }
-                }
-            }
+        if (resultado.success) {
+            alert(`✅ ¡Pago aprobado, barajitas acreditadas y Telegram notificado con éxito!`);
+            logEstado(`✅ Pago #${idPago} procesado exitosamente por el servidor.`);
+            await cargarTablaComprasBarajitas();
+            await cargarMetricasServidor();
         } else {
-            console.warn("⚠️ El usuario_id asociado al pago no es válido para asignación automática:", usuarioId);
+            throw new Error(resultado.error || "Error desconocido devuelto por el servidor.");
         }
-
-        if (CONFIG.TELEGRAM_BOT_TOKEN && CONFIG.TELEGRAM_BOT_TOKEN !== "TU_BOT_TOKEN_AQUI") {
-            const mensajeTelegram = `✅ *PAGO APROBADO EXITOSAMENTE*\n\n` +
-                `👤 *Usuario:* @${usuarioId || 'Anónimo'}\n` +
-                `📦 *Sobres asignados:* ${cantidadSobres}\n` +
-                `🆔 *ID de Pago:* #${idPago}\n\n` +
-                `_Tus sobres ya se encuentran disponibles en tu colección._`;
-
-            try {
-                const responseTg = await fetch(`https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: CONFIG.TELEGRAM_CHAT_ID,
-                        text: mensajeTelegram,
-                        parse_mode: 'Markdown'
-                    })
-                });
-                
-                if (!responseTg.ok) {
-                    console.warn("No se pudo enviar la notificación a Telegram, pero el pago se aprobó correctamente.");
-                } else {
-                    logEstado(`📤 Notificación enviada a Telegram exitosamente.`);
-                }
-            } catch (errTg) {
-                console.error("Error al conectar con la API de Telegram:", errTg);
-            }
-        }
-
-        alert(`✅ ¡Pago aprobado y barajitas acreditadas al usuario con éxito!`);
-        logEstado(`✅ Pago #${idPago} procesado y barajitas entregadas.`);
-        
-        await cargarTablaComprasBarajitas();
-        await cargarMetricasServidor();
 
     } catch (e) {
-        alert("Error crítico al procesar el pago: " + e.message);
+        alert("Error crítico al procesar el pago con el servidor: " + e.message);
         logEstado(`❌ Error al aprobar pago: ${e.message}`);
     }
 }

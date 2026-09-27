@@ -85,32 +85,53 @@ def aprobar_pago_sobres():
         datos = request.json or {}
         print("📨 Petición de aprobación recibida:", datos)
 
-        id_pago = datos.get('idPago')
+        id_pago_raw = datos.get('idPago')
         usuario_id = datos.get('usuarioId')
-        cantidad_sobres = int(datos.get('cantidadSobres', 1))
+        
+        try:
+            cantidad_sobres = int(datos.get('cantidadSobres', 1))
+        except (ValueError, TypeError):
+            cantidad_sobres = 1
+
         telegram_chat_id = datos.get('telegramChatId', ID_CANAL_ALERTAS)
         telegram_message_id = datos.get('telegramMessageId')
 
-        if not id_pago:
+        if not id_pago_raw:
             return jsonify({"success": False, "error": "Falta el ID del pago"}), 400
 
+        # Convertir id_pago a entero si es numérico, de lo dejarlo como string
+        try:
+            id_pago = int(id_pago_raw)
+        except ValueError:
+            id_pago = str(id_pago_raw)
+
+        print(f"🔍 Procesando pago ID: {id_pago} para usuario: {usuario_id} (Sobres: {cantidad_sobres})")
+
         # 1. Actualizar estado en Supabase
-        supabase.table("pagos_pendientes").update({
+        res_update = supabase.table("pagos_pendientes").update({
             "estado": "aprobado"
         }).eq("id", id_pago).execute()
+        
+        print("✅ Supabase - Estado de pago actualizado con éxito.")
 
-        # 2. Asignar barajitas
-        if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null']:
+        # 2. Asignar barajitas si hay un usuario válido
+        if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
             id_limpio = str(usuario_id).replace('@', '').strip().lower()
-            res_cartas = supabase.table("Cartas").select("id").limit(200).execute()
-            cartas_catalogo = res_cartas.data if res_cartas.data else []
+            
+            # Obtener catálogo de cartas
+            res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
+            cartas_catalogo = res_cartas.data if res_cartas and res_cartas.data else []
 
-            if cartas_catalogo:
-                for _ in range(cantidad_sobres):
+            if not cartas_catalogo:
+                print("⚠️ ADVERTENCIA: La tabla 'Cartas' está vacía en Supabase. No se pudieron asignar barajitas.")
+            else:
+                for i in range(cantidad_sobres):
                     carta_aleatoria = random.choice(cartas_catalogo)
                     c_id = int(carta_aleatoria['id'])
                     
+                    # Verificar si el usuario ya tiene esta carta
                     inv_res = supabase.table("Coleccion_Usuario").select("cantidad").eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
+                    
                     if inv_res.data and len(inv_res.data) > 0:
                         cant_actual = int(inv_res.data[0].get('cantidad', 0))
                         supabase.table("Coleccion_Usuario").update({
@@ -122,6 +143,7 @@ def aprobar_pago_sobres():
                             "carta_id": c_id,
                             "cantidad": 1
                         }).execute()
+                print(f"✅ Se asignaron {cantidad_sobres} sobres de barajitas al usuario {id_limpio}")
 
         # 3. Notificación Telegram opcional segura
         if bot and TELEGRAM_BOT_TOKEN:
@@ -155,7 +177,7 @@ def aprobar_pago_sobres():
     except Exception as e:
         print("❌ Error crítico en aprobar_pago_sobres:", str(e))
         return jsonify({"success": False, "error": str(e)}), 500
-
+        
 if __name__ == "__main__":
     puerto_servidor = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=puerto_servidor)

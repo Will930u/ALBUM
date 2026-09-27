@@ -801,12 +801,13 @@ async function cargarTablaComprasBarajitas() {
 }
 
 // =============================================================================
-// FUNCIÓN CORREGIDA: Comunica el panel con el servidor Flask en Render enviando IDs de Telegram
+// FUNCIÓN PARA APROBAR PAGOS DESDE EL PANEL DE ADMINISTRACIÓN
 // =============================================================================
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
 
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
+    
     try {
         const respuesta = await fetch('https://juego-barajitas.onrender.com/api/aprobar-pago', {
             method: 'POST',

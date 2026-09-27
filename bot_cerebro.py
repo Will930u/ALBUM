@@ -81,9 +81,12 @@ def aprobar_pago_sobres():
     if request.method == 'OPTIONS':
         return jsonify({"status": "OK"}), 200
 
+    # ASÍ DEBE QUEDAR:
     try:
-        datos = request.json or {}
-        print("📨 Petición de aprobación recibida:", datos)
+        # force=True ignora las cabeceras estrictas y silent=True evita el fallo 500 automático
+        datos = request.get_json(force=True, silent=True) or {} 
+        print("📨 Petición de aprobación recibida satisfactoriamente:", datos)
+
 
         id_pago_raw = datos.get('idPago')
         usuario_id = datos.get('usuarioId')

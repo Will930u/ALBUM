@@ -11,36 +11,87 @@ import telebot
 from telebot import types
 from supabase import create_client, Client
 
+# =============================================================================
+# 🔧 CONFIGURACIÓN DE LA APLICACIÓN
+# =============================================================================
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # =============================================================================
 # 🔐 CONFIGURACIÓN SEGURA: VARIABLES DE ENTORNO EN RENDER
 # =============================================================================
-SUPABASE_URL = "https://zrxmjpgnwqxyzdjnnwae.supabase.co"
-
+# IMPORTANTE: Estas variables DEBEN estar configuradas en el panel de Render
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://zrxmjpgnwqxyzdjnnwae.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 ID_CANAL_ALERTAS = os.environ.get("ID_CANAL_ALERTAS")
 
-# Inicialización segura
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN) if TELEGRAM_BOT_TOKEN else None
+# =============================================================================
+# ⚙️ INICIALIZACIÓN DE SERVICIOS
+# =============================================================================
+def inicializar_servicios():
+    """Inicializa Supabase y Telegram con validación"""
+    global supabase, bot
+    
+    # Validar variables de entorno
+    if not SUPABASE_KEY:
+        print("⚠️ ADVERTENCIA: SUPABASE_SERVICE_ROLE_KEY no está configurada")
+    if not TELEGRAM_BOT_TOKEN:
+        print("⚠️ ADVERTENCIA: TELEGRAM_BOT_TOKEN no está configurada")
+    if not ID_CANAL_ALERTAS:
+        print("⚠️ ADVERTENCIA: ID_CANAL_ALERTAS no está configurada")
+    
+    # Inicializar Supabase
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print(f"✅ Supabase conectado a: {SUPABASE_URL}")
+    except Exception as e:
+        print(f"❌ Error al conectar con Supabase: {e}")
+        supabase = None
+    
+    # Inicializar Telegram Bot
+    try:
+        if TELEGRAM_BOT_TOKEN:
+            bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+            print("✅ Telegram Bot inicializado")
+        else:
+            bot = None
+            print("⚠️ Telegram Bot no inicializado (falta token)")
+    except Exception as e:
+        print(f"❌ Error al inicializar Telegram Bot: {e}")
+        bot = None
+
+# Ejecutar inicialización
+inicializar_servicios()
 
 print("🚀 El Bot Cerebro de Recompensas está listo y escuchando peticiones...")
 
+# =============================================================================
+# 🏥 ENDPOINT DE VERIFICACIÓN DE SALUD
+# =============================================================================
 @app.route('/', methods=['GET'])
 def verificar_servidor_activo():
-    return "<h1>💻 Servidor del Bot de Barajitas en Línea (24/7)</h1>", 200
+    """Endpoint para verificar que el servidor está activo"""
+    return jsonify({
+        "status": "online",
+        "servicio": "Bot Cerebro de Barajitas",
+        "supabase_conectado": supabase is not None,
+        "telegram_conectado": bot is not None
+    }), 200
 
+# =============================================================================
+# 🏆 WEBHOOK DE PAYOUTS (Reclamos de Recompensas)
+# =============================================================================
 @app.route('/webhook_payout', methods=['POST'])
 def recibir_alerta_payout_supabase():
+    """Recibe notificaciones de nuevos reclamos de recompensas"""
     try:
         datos_recibidos = request.json
         nueva_fila = datos_recibidos.get('record', datos_recibidos)
+        
         if not nueva_fila:
             return jsonify({"status": "error", "message": "No se encontraron datos"}), 400
-
+        
         id_reclamo = nueva_fila.get('id')
         user_id = nueva_fila.get('user_id')
         username = nueva_fila.get('username_telegram', 'Jugador_Anonimo')
@@ -51,136 +102,247 @@ def recibir_alerta_payout_supabase():
         telefono = nueva_fila.get('telefono', 'N/A')
         banco = nueva_fila.get('banco', 'N/A')
         cedula = nueva_fila.get('cedula', 'N/A')
-
+        
         mensaje_admin = (
             f"🏆 *¡NUEVO RECLAMO DE RECOMPENSA!* 🏆\n\n"
-            f"👤 *Usuario:* @{username} (ID: `{user_id}`)\n"
-            f"🎯 *Hito:* Nivel {hito} ({cant_barajitas} Barajitas)\n"
+            f" *Usuario:* @{username} (ID: `{user_id}`)\n"
+            f" *Hito:* Nivel {hito} ({cant_barajitas} Barajitas)\n"
             f"💵 *Monto:* ${monto:.2f} USD\n"
             f"🔑 *Código:* `{codigo_hash}`\n\n"
-            f"📌 *PAGO MÓVIL:*\n📱 *Teléfono:* `{telefono}`\n🏦 *Banco:* {banco}\n𝟌 *Cédula:* `{cedula}`"
+            f"📌 *PAGO MÓVIL:*\n"
+            f" *Teléfono:* `{telefono}`\n"
+            f"🏦 *Banco:* {banco}\n"
+            f"🆔 *Cédula:* `{cedula}`"
         )
-
+        
         markup = types.InlineKeyboardMarkup()
         btn_aprobar = types.InlineKeyboardButton(
             text="✅ Recompensa Procesada", 
             callback_data=f"aprobar_{id_reclamo}"
         )
         markup.add(btn_aprobar)
-
+        
         if bot and ID_CANAL_ALERTAS:
-            bot.send_message(ID_CANAL_ALERTAS, mensaje_admin, parse_mode="Markdown", reply_markup=markup)
-
+            bot.send_message(
+                ID_CANAL_ALERTAS, 
+                mensaje_admin, 
+                parse_mode="Markdown", 
+                reply_markup=markup
+            )
+            print(f"✅ Notificación de reclamo #{id_reclamo} enviada a Telegram")
+        
         return jsonify({"status": "solicitud_notificada_exitosamente"}), 200
+        
     except Exception as e:
-        print("❌ Error en Webhook payout:", str(e))
+        print(f"❌ Error en Webhook payout: {str(e)}")
         return jsonify({"status": "error_interno", "error": str(e)}), 500
 
+# =============================================================================
+# 💳 ENDPOINT PRINCIPAL: APROBAR PAGOS DE SOBRES/BARAJITAS
+# =============================================================================
 @app.route('/api/aprobar-pago', methods=['POST', 'OPTIONS'])
 def aprobar_pago_sobres():
+    """
+    Aprueba un pago pendiente y asigna barajitas al usuario.
+    Incluye sistema de reintentos para errores de DNS/conexión.
+    """
+    
+    # Manejar preflight CORS
     if request.method == 'OPTIONS':
         return jsonify({"status": "OK"}), 200
-
-    # ASÍ DEBE QUEDAR:
-    try:
-        # force=True ignora las cabeceras estrictas y silent=True evita el fallo 500 automático
-        datos = request.get_json(force=True, silent=True) or {} 
-        print("📨 Petición de aprobación recibida satisfactoriamente:", datos)
-
-
-        id_pago_raw = datos.get('idPago')
-        usuario_id = datos.get('usuarioId')
-        
+    
+    # Sistema de reintentos (hasta 3 intentos)
+    max_reintentos = 3
+    ultimo_error = None
+    
+    for intento in range(1, max_reintentos + 1):
         try:
-            cantidad_sobres = int(datos.get('cantidadSobres', 1))
-        except (ValueError, TypeError):
-            cantidad_sobres = 1
-
-        telegram_chat_id = datos.get('telegramChatId', ID_CANAL_ALERTAS)
-        telegram_message_id = datos.get('telegramMessageId')
-
-        if not id_pago_raw:
-            return jsonify({"success": False, "error": "Falta el ID del pago"}), 400
-
-        # Convertir id_pago a entero si es numérico, de lo dejarlo como string
-        try:
-            id_pago = int(id_pago_raw)
-        except ValueError:
-            id_pago = str(id_pago_raw)
-
-        print(f"🔍 Procesando pago ID: {id_pago} para usuario: {usuario_id} (Sobres: {cantidad_sobres})")
-
-        # 1. Actualizar estado en Supabase
-        res_update = supabase.table("pagos_pendientes").update({
-            "estado": "aprobado"
-        }).eq("id", id_pago).execute()
-        
-        print("✅ Supabase - Estado de pago actualizado con éxito.")
-
-        # 2. Asignar barajitas si hay un usuario válido
-        if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
-            id_limpio = str(usuario_id).replace('@', '').strip().lower()
+            print(f"\n{'='*60}")
+            print(f"🔄 INTENTO {intento}/{max_reintentos}")
+            print(f"{'='*60}")
             
-            # Obtener catálogo de cartas
-            res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
-            cartas_catalogo = res_cartas.data if res_cartas and res_cartas.data else []
-
-            if not cartas_catalogo:
-                print("⚠️ ADVERTENCIA: La tabla 'Cartas' está vacía en Supabase. No se pudieron asignar barajitas.")
-            else:
-                for i in range(cantidad_sobres):
-                    carta_aleatoria = random.choice(cartas_catalogo)
-                    c_id = int(carta_aleatoria['id'])
-                    
-                    # Verificar si el usuario ya tiene esta carta
-                    inv_res = supabase.table("Coleccion_Usuario").select("cantidad").eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
-                    
-                    if inv_res.data and len(inv_res.data) > 0:
-                        cant_actual = int(inv_res.data[0].get('cantidad', 0))
-                        supabase.table("Coleccion_Usuario").update({
-                            "cantidad": cant_actual + 1
-                        }).eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
-                    else:
-                        supabase.table("Coleccion_Usuario").insert({
-                            "usuario_id": id_limpio,
-                            "carta_id": c_id,
-                            "cantidad": 1
-                        }).execute()
-                print(f"✅ Se asignaron {cantidad_sobres} sobres de barajitas al usuario {id_limpio}")
-
-        # 3. Notificación Telegram opcional segura
-        if bot and TELEGRAM_BOT_TOKEN:
+            # Parsear datos de entrada
+            datos = request.get_json(force=True, silent=True) or {}
+            print(f"📨 Datos recibidos: {datos}")
+            
+            id_pago_raw = datos.get('idPago')
+            usuario_id = datos.get('usuarioId')
+            
+            # Validar cantidad de sobres
             try:
-                if telegram_chat_id and telegram_message_id:
-                    texto_actualizado = (
-                        f"🛒 *[PAGO APROBADO MANUALMENTE]*\n\n"
-                        f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
-                        f"📦 *Sobres:* {cantidad_sobres}\n"
-                        f"🟢 *Estado:* APROBADO ✅"
-                    )
-                    bot.edit_message_text(
-                        chat_id=telegram_chat_id,
-                        message_id=int(telegram_message_id),
-                        text=texto_actualizado,
-                        parse_mode="Markdown",
-                        reply_markup=None
-                    )
-                elif ID_CANAL_ALERTAS:
-                    mensaje_telegram = (
-                        f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
-                        f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
-                        f"📦 *Sobres:* {cantidad_sobres}"
-                    )
-                    bot.send_message(ID_CANAL_ALERTAS, mensaje_telegram, parse_mode="Markdown")
-            except Exception as e_tg:
-                print(f"⚠️ Aviso Telegram secundario: {e_tg}")
+                cantidad_sobres = int(datos.get('cantidadSobres', 1))
+                if cantidad_sobres < 1:
+                    cantidad_sobres = 1
+            except (ValueError, TypeError):
+                cantidad_sobres = 1
+            
+            # Datos de Telegram
+            telegram_chat_id = datos.get('telegramChatId', ID_CANAL_ALERTAS)
+            telegram_message_id = datos.get('telegramMessageId')
+            
+            # Validar ID de pago
+            if not id_pago_raw:
+                return jsonify({
+                    "success": False, 
+                    "error": "Falta el ID del pago"
+                }), 400
+            
+            # Convertir ID de pago
+            try:
+                id_pago = int(id_pago_raw)
+            except ValueError:
+                id_pago = str(id_pago_raw)
+            
+            print(f"🔍 Procesando pago ID: {id_pago}")
+            print(f"👤 Usuario: {usuario_id}")
+            print(f" Sobres: {cantidad_sobres}")
+            
+            # =================================================================
+            # PASO 1: ACTUALIZAR ESTADO EN SUPABASE
+            # =================================================================
+            print("⏳ Actualizando estado del pago en Supabase...")
+            res_update = supabase.table("pagos_pendientes").update({
+                "estado": "aprobado"
+            }).eq("id", id_pago).execute()
+            
+            print(f"✅ Pago #{id_pago} marcado como 'aprobado'")
+            
+            # =================================================================
+            # PASO 2: ASIGNAR BARAJITAS AL USUARIO
+            # =================================================================
+            if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
+                id_limpio = str(usuario_id).replace('@', '').strip().lower()
+                print(f"🎯 Asignando barajitas a: @{id_limpio}")
+                
+                # Obtener catálogo de cartas disponibles
+                print("📚 Obteniendo catálogo de cartas...")
+                res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
+                cartas_catalogo = res_cartas.data if res_cartas and res_cartas.data else []
+                
+                if not cartas_catalogo:
+                    print("⚠️ ADVERTENCIA: La tabla 'Cartas' está vacía")
+                else:
+                    print(f"📊 Catálogo cargado: {len(cartas_catalogo)} cartas disponibles")
+                    
+                    # Asignar cartas aleatorias
+                    for i in range(cantidad_sobres):
+                        carta_aleatoria = random.choice(cartas_catalogo)
+                        c_id = int(carta_aleatoria['id'])
+                        
+                        print(f"  🎲 Sobre {i+1}/{cantidad_sobres}: Carta #{c_id}")
+                        
+                        # Verificar si el usuario ya tiene esta carta
+                        inv_res = supabase.table("Coleccion_Usuario").select("cantidad").eq(
+                            "usuario_id", id_limpio
+                        ).eq("carta_id", c_id).execute()
+                        
+                        if inv_res.data and len(inv_res.data) > 0:
+                            # Actualizar cantidad existente
+                            cant_actual = int(inv_res.data[0].get('cantidad', 0))
+                            supabase.table("Coleccion_Usuario").update({
+                                "cantidad": cant_actual + 1
+                            }).eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
+                            print(f"    ✅ Carta #{c_id} actualizada (cantidad: {cant_actual} → {cant_actual + 1})")
+                        else:
+                            # Insertar nueva carta
+                            supabase.table("Coleccion_Usuario").insert({
+                                "usuario_id": id_limpio,
+                                "carta_id": c_id,
+                                "cantidad": 1
+                            }).execute()
+                            print(f"    ✅ Carta #{c_id} añadida a la colección")
+                    
+                    print(f"✅ {cantidad_sobres} sobres asignados correctamente a @{id_limpio}")
+            else:
+                print("⚠️ Usuario no válido, omitiendo asignación de barajitas")
+            
+            # =================================================================
+            # PASO 3: NOTIFICACIÓN TELEGRAM
+            # =================================================================
+            if bot and TELEGRAM_BOT_TOKEN:
+                try:
+                    if telegram_chat_id and telegram_message_id:
+                        # Editar mensaje existente
+                        texto_actualizado = (
+                            f"🛒 *[PAGO APROBADO MANUALMENTE]*\n\n"
+                            f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
+                            f"📦 *Sobres:* {cantidad_sobres}\n"
+                            f" *Estado:* APROBADO ✅"
+                        )
+                        bot.edit_message_text(
+                            chat_id=telegram_chat_id,
+                            message_id=int(telegram_message_id),
+                            text=texto_actualizado,
+                            parse_mode="Markdown",
+                            reply_markup=None
+                        )
+                        print(f"✅ Mensaje de Telegram editado (Chat: {telegram_chat_id}, Msg: {telegram_message_id})")
+                    elif ID_CANAL_ALERTAS:
+                        # Enviar nuevo mensaje al canal
+                        mensaje_telegram = (
+                            f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
+                            f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
+                            f"📦 *Sobres:* {cantidad_sobres}"
+                        )
+                        bot.send_message(
+                            ID_CANAL_ALERTAS, 
+                            mensaje_telegram, 
+                            parse_mode="Markdown"
+                        )
+                        print(f"✅ Notificación enviada al canal de Telegram")
+                except Exception as e_tg:
+                    print(f"⚠️ Error secundario en Telegram: {e_tg}")
+            
+            # =================================================================
+            # ÉXITO TOTAL
+            # =================================================================
+            print(f"\n{'='*60}")
+            print(f"✅ PROCESAMIENTO COMPLETADO EXITOSAMENTE")
+            print(f"{'='*60}\n")
+            
+            return jsonify({
+                "success": True, 
+                "message": "Pago aprobado y procesado correctamente",
+                "detalles": {
+                    "id_pago": id_pago,
+                    "usuario": usuario_id,
+                    "sobres_asignados": cantidad_sobres
+                }
+            }), 200
+            
+        except Exception as e:
+            error_msg = str(e)
+            ultimo_error = error_msg
+            print(f"\n❌ ERROR EN INTENTO {intento}/{max_reintentos}: {error_msg}")
+            
+            # Si es error de DNS, esperar y reintentar
+            if "Name or service not known" in error_msg or "getaddrinfo" in error_msg:
+                if intento < max_reintentos:
+                    tiempo_espera = 5 * intento  # Espera progresiva: 5s, 10s, 15s
+                    print(f"⏳ Error de DNS detectado. Reintentando en {tiempo_espera} segundos...")
+                    time.sleep(tiempo_espera)
+                    continue
+                else:
+                    print("❌ Máximo de reintentos alcanzado para error de DNS")
+            else:
+                # Otros errores no se reintentan
+                print(f"❌ Error no recuperable: {error_msg}")
+                break
+    
+    # Si llegamos aquí, todos los reintentos fallaron
+    print(f"\n PROCESAMIENTO FALLÓ DESPUÉS DE {max_reintentos} INTENTOS")
+    return jsonify({
+        "success": False, 
+        "error": f"Error al procesar el pago: {ultimo_error}"
+    }), 500
 
-        return jsonify({"success": True, "message": "Pago aprobado y procesado correctamente."}), 200
-
-    except Exception as e:
-        print("❌ Error crítico en aprobar_pago_sobres:", str(e))
-        return jsonify({"success": False, "error": str(e)}), 500
-        
+# =============================================================================
+# 🚀 INICIALIZACIÓN DEL SERVIDOR
+# =============================================================================
 if __name__ == "__main__":
     puerto_servidor = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=puerto_servidor)
+    print(f"\n{'='*60}")
+    print(f" INICIANDO SERVIDOR EN PUERTO: {puerto_servidor}")
+    print(f"{'='*60}\n")
+    
+    app.run(host="0.0.0.0", port=puerto_servidor, debug=False)

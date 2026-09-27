@@ -808,7 +808,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
 
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     try {
-        // CÓDIGO CORREGIDO SIN LA LLAVE DE MÁS:
         const respuesta = await fetch('https://juego-barajitas.onrender.com/api/aprobar-pago', {
             method: 'POST',
             headers: {

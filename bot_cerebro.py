@@ -195,7 +195,7 @@ def aprobar_pago_sobres():
             
             print(f"🔍 Procesando pago ID: {id_pago}")
             print(f"👤 Usuario: {usuario_id}")
-            print(f" Sobres: {cantidad_sobres}")
+            print(f"📦 Sobres: {cantidad_sobres}")
             
             # =================================================================
             # PASO 1: ACTUALIZAR ESTADO EN SUPABASE
@@ -261,23 +261,28 @@ def aprobar_pago_sobres():
             # =================================================================
             if bot and TELEGRAM_BOT_TOKEN:
                 try:
-                    if telegram_chat_id and telegram_message_id:
+                    # Asegurar que el canal con arroba sea tratado de forma segura
+                    chat_objetivo = telegram_chat_id
+                    if isinstance(chat_objetivo, str) and chat_objetivo.startswith('@'):
+                        chat_objetivo = chat_objetivo.strip()
+
+                    if chat_objetivo and telegram_message_id:
                         # Editar mensaje existente
                         texto_actualizado = (
                             f"🛒 *[PAGO APROBADO MANUALMENTE]*\n\n"
                             f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
                             f"📦 *Sobres:* {cantidad_sobres}\n"
-                            f" *Estado:* APROBADO ✅"
+                            f"📌 *Estado:* APROBADO ✅"
                         )
                         bot.edit_message_text(
-                            chat_id=telegram_chat_id,
+                            chat_id=chat_objetivo,
                             message_id=int(telegram_message_id),
                             text=texto_actualizado,
                             parse_mode="Markdown",
                             reply_markup=None
                         )
-                        print(f"✅ Mensaje de Telegram editado (Chat: {telegram_chat_id}, Msg: {telegram_message_id})")
-                    elif ID_CANAL_ALERTAS:
+                        print(f"✅ Mensaje de Telegram editado (Chat: {chat_objetivo}, Msg: {telegram_message_id})")
+                    elif chat_objetivo:
                         # Enviar nuevo mensaje al canal
                         mensaje_telegram = (
                             f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
@@ -285,13 +290,13 @@ def aprobar_pago_sobres():
                             f"📦 *Sobres:* {cantidad_sobres}"
                         )
                         bot.send_message(
-                            ID_CANAL_ALERTAS, 
+                            chat_objetivo, 
                             mensaje_telegram, 
                             parse_mode="Markdown"
                         )
                         print(f"✅ Notificación enviada al canal de Telegram")
                 except Exception as e_tg:
-                    print(f"⚠️ Error secundario en Telegram: {e_tg}")
+                    print(f"⚠️ Error secundario en Telegram (no bloqueante): {e_tg}")
             
             # =================================================================
             # ÉXITO TOTAL
@@ -311,26 +316,27 @@ def aprobar_pago_sobres():
             }), 200
             
         except Exception as e:
+            import traceback
             error_msg = str(e)
             ultimo_error = error_msg
             print(f"\n❌ ERROR EN INTENTO {intento}/{max_reintentos}: {error_msg}")
+            traceback.print_exc()
             
             # Si es error de DNS, esperar y reintentar
             if "Name or service not known" in error_msg or "getaddrinfo" in error_msg:
                 if intento < max_reintentos:
                     tiempo_espera = 5 * intento  # Espera progresiva: 5s, 10s, 15s
-                    print(f"⏳ Error de DNS detectado. Reintentando en {tiempo_espera} segundos...")
+                    print(f"⏳ Error de red detectado. Reintentando en {tiempo_espera} segundos...")
                     time.sleep(tiempo_espera)
                     continue
                 else:
-                    print("❌ Máximo de reintentos alcanzado para error de DNS")
+                    print("❌ Máximo de reintentos alcanzado")
             else:
-                # Otros errores no se reintentan
-                print(f"❌ Error no recuperable: {error_msg}")
+                # Si ocurre otro error crítico de base de datos o lógica, romper bucle
                 break
     
     # Si llegamos aquí, todos los reintentos fallaron
-    print(f"\n PROCESAMIENTO FALLÓ DESPUÉS DE {max_reintentos} INTENTOS")
+    print(f"\n❌ PROCESAMIENTO FALLÓ DESPUÉS DE {max_reintentos} INTENTOS")
     return jsonify({
         "success": False, 
         "error": f"Error al procesar el pago: {ultimo_error}"

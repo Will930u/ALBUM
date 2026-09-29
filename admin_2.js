@@ -414,7 +414,7 @@ function iniciarSuscripcionesRealtimeAdmin() {
         )
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-                logEstado(" Suscripción Realtime de Pagos Pendientes activa.");
+                logEstado("🟢 Suscripción Realtime de Pagos Pendientes activa.");
             }
         });
 }
@@ -522,7 +522,7 @@ async function regalarCartaAUsuario() {
             return;
         }
         
-        alert(` ¡Éxito! Se asignaron ${idsValidos.length} carta(s) a @${idLimpio}.`);
+        alert(`🎉 ¡Éxito! Se asignaron ${idsValidos.length} carta(s) a @${idLimpio}.`);
         logEstado(`✅ Regalo completado para @${idLimpio}`);
         await cargarMetricasServidor();
     } catch (e) {
@@ -658,7 +658,7 @@ function actualizarTextoTituloId(cantidadActualBD) {
 
 // SELECCIONAR PLANTILLA ALEATORIA
 async function seleccionarPlantillaAleatoria() {
-    logEstado(" Generando personaje anime...");
+    logEstado("🎲 Generando personaje anime...");
     
     try {
         const { data: cartasExistentes, error: errCartas } = await supabaseClient
@@ -731,7 +731,7 @@ async function seleccionarPlantillaAleatoria() {
 
 // GENERAR 2000 CARTAS EN LOTE
 async function generar2000CombinacionesEnLote() {
-    logEstado(" Generando lote automático...");
+    logEstado("⚡ Generando lote automático...");
     
     try {
         const { data: cartasExistentes } = await supabaseClient.from('Cartas').select('id, nombre');
@@ -830,13 +830,11 @@ async function cargarTablaComprasBarajitas() {
 }
 
 // APROBAR PAGO PENDIENTE
-// APROBAR PAGO PENDIENTE
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
     
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     
-    // Limpiar variables para evitar que viajen strings malformados como "undefined" o "null"
     const tChatId = (!telegramChatId || telegramChatId === 'undefined' || telegramChatId === 'null') ? '' : String(telegramChatId).trim();
     const tMsgId = (!telegramMessageId || telegramMessageId === 'undefined' || telegramMessageId === 'null') ? '' : String(telegramMessageId).trim();
     const uIdLimpio = (!usuarioId || usuarioId === 'undefined' || usuarioId === 'null') ? '' : String(usuarioId).replace(/^@/, '').trim();
@@ -847,7 +845,7 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
         try {
             const respuesta = await fetch(`${CONFIG.RENDER_SERVER_URL}/api/aprobar-pago`, {
                 method: 'POST',
-                    headers: {
+                headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -976,7 +974,7 @@ async function testearConexionSupabase() {
         const latencia = Date.now() - inicio;
         
         if (error) {
-            logEstado(` Fallo en test: ${error.message}`);
+            logEstado(`❌ Fallo en test: ${error.message}`);
         } else {
             DOM.setText('status-supabase', "● CONECTADO");
             DOM.setText('ping-supabase', `${latencia} ms`);

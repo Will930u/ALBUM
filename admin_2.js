@@ -830,26 +830,32 @@ async function cargarTablaComprasBarajitas() {
 }
 
 // APROBAR PAGO PENDIENTE
+// APROBAR PAGO PENDIENTE
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
     
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     
+    // Limpiar variables para evitar que viajen strings malformados como "undefined" o "null"
+    const tChatId = (!telegramChatId || telegramChatId === 'undefined' || telegramChatId === 'null') ? '' : String(telegramChatId).trim();
+    const tMsgId = (!telegramMessageId || telegramMessageId === 'undefined' || telegramMessageId === 'null') ? '' : String(telegramMessageId).trim();
+    const uIdLimpio = (!usuarioId || usuarioId === 'undefined' || usuarioId === 'null') ? '' : String(usuarioId).replace(/^@/, '').trim();
+
     const maxReintentos = 3;
     
     for (let intento = 1; intento <= maxReintentos; intento++) {
         try {
             const respuesta = await fetch(`${CONFIG.RENDER_SERVER_URL}/api/aprobar-pago`, {
                 method: 'POST',
-                headers: {
+                    headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     idPago: idPago,
-                    usuarioId: usuarioId,
+                    usuarioId: uIdLimpio,
                     cantidadSobres: cantidadSobres,
-                    telegramChatId: telegramChatId,
-                    telegramMessageId: telegramMessageId
+                    telegramChatId: tChatId,
+                    telegramMessageId: tMsgId
                 })
             });
             

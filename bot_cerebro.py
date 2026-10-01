@@ -177,10 +177,16 @@ def aprobar_pago_sobres():
                     "error": "Falta el ID del pago"
                 }), 400
             
-            try:
-                id_pago = int(id_pago_raw)
-            except ValueError:
-                id_pago = str(id_pago_raw)
+            if not id_pago_raw:
+                return jsonify({
+                    "success": False, 
+                    "error": "Falta el ID del pago"
+                }), 400
+            
+            # No forzar int si la base de datos usa UUID o IDs alfanuméricos
+            id_pago = str(id_pago_raw).strip()
+            if id_pago.isdigit():
+                id_pago = int(id_pago)
             
             print(f"🔍 Procesando pago ID: {id_pago}")
             print(f"👤 Usuario: {usuario_id}")

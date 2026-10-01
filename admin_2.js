@@ -831,13 +831,13 @@ async function cargarTablaComprasBarajitas() {
     }
 }
 
-// APROBAR PAGO PENDIENTE (Integración completa del fetch al backend)
-async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '') {
+// APROBAR PAGO PENDIENTE (Versión robusta con todos los parámetros)
+async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '', referencia = '', monto = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
     
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     
-    // Sanitización estricta de parámetros para evitar enviar literales de valores nulos
+    // Sanitización estricta de parámetros
     const tChatId = (!telegramChatId || telegramChatId === 'undefined' || telegramChatId === 'null' || telegramChatId === 'None') ? '' : String(telegramChatId).trim();
     const tMsgId = (!telegramMessageId || telegramMessageId === 'undefined' || telegramMessageId === 'null' || telegramMessageId === 'None') ? '' : String(telegramMessageId).trim();
     const uIdLimpio = (!usuarioId || usuarioId === 'undefined' || usuarioId === 'null' || usuarioId === 'None') ? '' : String(usuarioId).replace(/^@/, '').trim();
@@ -846,7 +846,7 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
     
     for (let intento = 1; intento <= maxReintentos; intento++) {
         try {
-            // Petición fetch hacia tu servidor backend en Render
+            // Petición fetch hacia tu servidor backend en Render con parámetros completos
             const respuesta = await fetch(`${CONFIG.RENDER_SERVER_URL}/api/aprobar-pago`, {
                 method: 'POST',
                 headers: {
@@ -857,7 +857,9 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
                     usuarioId: uIdLimpio,
                     cantidadSobres: Number(cantidadSobres) || 1,
                     telegramChatId: tChatId,
-                    telegramMessageId: tMsgId
+                    telegramMessageId: tMsgId,
+                    referencia: String(referencia || ''),
+                    monto: String(monto || '')
                 })
             });
             

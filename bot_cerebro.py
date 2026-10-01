@@ -20,7 +20,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # =============================================================================
 # 🔐 CONFIGURACIÓN SEGURA: VARIABLES DE ENTORNO EN RENDER
 # =============================================================================
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://zrxmjpgnwqxyzdjnnwae.supabase.co")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://ddbdemxrntjqncetyrnr.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 ID_CANAL_ALERTAS = os.environ.get("ID_CANAL_ALERTAS")

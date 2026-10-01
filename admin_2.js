@@ -804,8 +804,10 @@ async function cargarTablaComprasBarajitas() {
             const sobres = pago.cantidad_sobres || 1;
             const referencia = pago.referencia || 'N/A';
             const monto = pago.monto || '0.00';
-            const telegramChatId = pago.telegram_chat_id || '';
-            const telegramMessageId = pago.telegram_message_id || '';
+            
+            // Extracción flexible de IDs de Telegram desde la base de datos
+            const telegramChatId = pago.telegram_chat_id || pago.chat_id || '';
+            const telegramMessageId = pago.telegram_message_id || pago.telegram_msg_id || pago.message_id || '';
             const usuarioIdSeguro = pago.usuario_id || '';
             
             return `
@@ -835,6 +837,7 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
     
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     
+    // Sanitización estricta de parámetros para evitar enviar literales de valores nulos
     const tChatId = (!telegramChatId || telegramChatId === 'undefined' || telegramChatId === 'null' || telegramChatId === 'None') ? '' : String(telegramChatId).trim();
     const tMsgId = (!telegramMessageId || telegramMessageId === 'undefined' || telegramMessageId === 'null' || telegramMessageId === 'None') ? '' : String(telegramMessageId).trim();
     const uIdLimpio = (!usuarioId || usuarioId === 'undefined' || usuarioId === 'null' || usuarioId === 'None') ? '' : String(usuarioId).replace(/^@/, '').trim();

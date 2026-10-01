@@ -835,9 +835,9 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
     
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     
-    const tChatId = (!telegramChatId || telegramChatId === 'undefined' || telegramChatId === 'null') ? '' : String(telegramChatId).trim();
-    const tMsgId = (!telegramMessageId || telegramMessageId === 'undefined' || telegramMessageId === 'null') ? '' : String(telegramMessageId).trim();
-    const uIdLimpio = (!usuarioId || usuarioId === 'undefined' || usuarioId === 'null') ? '' : String(usuarioId).replace(/^@/, '').trim();
+    const tChatId = (!telegramChatId || telegramChatId === 'undefined' || telegramChatId === 'null' || telegramChatId === 'None') ? '' : String(telegramChatId).trim();
+    const tMsgId = (!telegramMessageId || telegramMessageId === 'undefined' || telegramMessageId === 'null' || telegramMessageId === 'None') ? '' : String(telegramMessageId).trim();
+    const uIdLimpio = (!usuarioId || usuarioId === 'undefined' || usuarioId === 'null' || usuarioId === 'None') ? '' : String(usuarioId).replace(/^@/, '').trim();
 
     const maxReintentos = 3;
     
@@ -849,9 +849,9 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    idPago: idPago,
+                    idPago: String(idPago),
                     usuarioId: uIdLimpio,
-                    cantidadSobres: cantidadSobres,
+                    cantidadSobres: Number(cantidadSobres) || 1,
                     telegramChatId: tChatId,
                     telegramMessageId: tMsgId
                 })

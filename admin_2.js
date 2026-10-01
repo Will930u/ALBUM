@@ -831,7 +831,7 @@ async function cargarTablaComprasBarajitas() {
     }
 }
 
-// APROBAR PAGO PENDIENTE
+// APROBAR PAGO PENDIENTE (Integración completa del fetch al backend)
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
     
@@ -846,6 +846,7 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
     
     for (let intento = 1; intento <= maxReintentos; intento++) {
         try {
+            // Petición fetch hacia tu servidor backend en Render
             const respuesta = await fetch(`${CONFIG.RENDER_SERVER_URL}/api/aprobar-pago`, {
                 method: 'POST',
                 headers: {

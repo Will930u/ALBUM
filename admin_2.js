@@ -818,7 +818,7 @@ async function cargarTablaComprasBarajitas() {
                     <td style="padding: 6px; color: ${estadoColor}; font-weight: bold;">${(pago.estado || 'pendiente').toUpperCase()}</td>
                     <td style="padding: 6px; text-align: center;">
                         ${pago.estado !== 'aprobado' 
-                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}',${sobres}, '${telegramChatId}', '${telegramMessageId}')" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:4px 8px; cursor:pointer; font-weight:bold;">APROBAR</button>`
+                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}', ${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" ...>APROBAR</button>`
                             : `<span style="color:#22c55e;">COMPLETADO</span>`
                         }
                     </td>

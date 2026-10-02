@@ -93,9 +93,9 @@
         <div id="tab-verificacion" class="contenido-pestana">
             <div class="subtitulo-admin">VERIFICACIÓN DE PAGOS MÓVILES Y USDT</div>
             
-            <button type="button" onclick="cargarTablaComprasBarajitas()" style="...">
+            <button type="button" class="btn-admin-final" style="background-color: #22c55e; margin-bottom: 10px; width: 100%; font-size: 10px; padding: 10px; cursor: pointer;" onclick="cargarTablaComprasBarajitas()">
                  🔍 CONSULTAR PAGOS PENDIENTES
-                </button>
+            </button>
             
             <div style="background: #000; border: 1px solid #333; padding: 10px;">
                 <table style="width: 100%; text-align: left; color: #fff; font-size: 8px; border-collapse: collapse;">
@@ -196,14 +196,9 @@
     <!-- SDK SUPABASE -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // Correcciones integradas para evitar errores 400 por columnas inexistentes
         window.addEventListener('DOMContentLoaded', () => {
             console.log("Panel admin inicializado con parches de esquema Supabase seguros.");
         });
-
-        // Sobrescribir consultas problemáticas si admin_2.js las invoca o manejarlas de forma segura:
-        // Nota: Asegúrese en admin_2.js de NO usar .order('created_at', ...) si la tabla no lo tiene,
-        // y de NO incluir filtros o upserts con el campo 'estado' en la tabla 'Coleccion_Usuario'.
     </script>
     <script src="admin_2.js"></script>
 </body>

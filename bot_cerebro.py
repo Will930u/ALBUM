@@ -35,7 +35,7 @@ def inicializar_servicios():
     if not SUPABASE_KEY:
         print("⚠️ ADVERTENCIA: SUPABASE_SERVICE_ROLE_KEY no está configurada")
     if not TELEGRAM_BOT_TOKEN:
-        print("⚠️️ ADVERTENCIA: TELEGRAM_BOT_TOKEN no está configurada")
+        print("⚠️ ADVERTENCIA: TELEGRAM_BOT_TOKEN no está configurada")
     if not ID_CANAL_ALERTAS:
         print("⚠️ ADVERTENCIA: ID_CANAL_ALERTAS no está configurada")
     
@@ -126,7 +126,7 @@ def recibir_alerta_payout_supabase():
             )
             print(f"✅ Notificación de reclamo #{id_reclamo} enviada a Telegram")
             
-            # Guardamos automáticamente el message_id y chat_id en Supabase
+            # Intentar guardar los IDs de Telegram (requiere columnas telegram_message_id y telegram_chat_id en pagos_pendientes)
             if supabase and sent_msg:
                 try:
                     supabase.table("pagos_pendientes").update({
@@ -135,7 +135,7 @@ def recibir_alerta_payout_supabase():
                     }).eq("id", id_reclamo).execute()
                     print(f"📌 IDs de Telegram guardados en Supabase para el pago #{id_reclamo}")
                 except Exception as db_err:
-                    print(f"⚠️ Error al guardar IDs de Telegram en Supabase: {db_err}")
+                    print(f"⚠️ Nota: Las columnas de Telegram en 'pagos_pendientes' no están creadas o falló el registro: {db_err}")
         
         return jsonify({"status": "solicitud_notificada_exitosamente"}), 200
         
@@ -157,7 +157,7 @@ if bot:
             if data.startswith("aprobar_"):
                 id_pago = data.replace("aprobar_", "").strip()
                 
-                # Consultar datos del pago en Supabase
+                # Consultar datos del pago en Supabase usando la tabla correcta: pagos_pendientes
                 pago_info = supabase.table("pagos_pendientes").select("*").eq("id", id_pago).execute()
                 
                 if not pago_info.data:
@@ -168,18 +168,18 @@ if bot:
                 usuario_id = pago.get('usuario_id', pago.get('username_telegram', 'Anónimo'))
                 
                 try:
-                    cantidad_sobres = int(pago.get('barajitas_requeridas', 1) // 500)
+                    cantidad_sobres = int(pago.get('cantidad_sobres', 1))
                     if cantidad_sobres < 1:
                         cantidad_sobres = 1
                 except:
                     cantidad_sobres = 1
 
-                # 1. Actualizar estado en Supabase
+                # 1. Actualizar estado en pagos_pendientes
                 supabase.table("pagos_pendientes").update({
                     "estado": "aprobado"
                 }).eq("id", id_pago).execute()
                 
-                # 2. Asignar barajitas si aplica
+                # 2. Asignar barajitas consultando la tabla Cartas y Coleccion_Usuario
                 if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
                     id_limpio = str(usuario_id).replace('@', '').strip().lower()
                     res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
@@ -283,16 +283,18 @@ def aprobar_pago_sobres():
             print(f"👤 Usuario: {usuario_id}")
             print(f"📦 Sobres: {cantidad_sobres}")
             
-            # Buscar IDs de Telegram en Supabase si el frontend no los envió
+            # Intentar buscar IDs de Telegram en Supabase si el frontend no los envió
             if not telegram_message_id or not telegram_chat_id:
-                print("🔍 Buscando IDs de Telegram faltantes en Supabase...")
-                pago_db = supabase.table("pagos_pendientes").select("telegram_message_id, telegram_chat_id").eq("id", id_pago).execute()
-                if pago_db.data and len(pago_db.data) > 0:
-                    telegram_message_id = telegram_message_id or pago_db.data[0].get('telegram_message_id')
-                    telegram_chat_id = telegram_chat_id or pago_db.data[0].get('telegram_chat_id')
+                try:
+                    pago_db = supabase.table("pagos_pendientes").select("telegram_message_id, telegram_chat_id").eq("id", id_pago).execute()
+                    if pago_db.data and len(pago_db.data) > 0:
+                        telegram_message_id = telegram_message_id or pago_db.data[0].get('telegram_message_id')
+                        telegram_chat_id = telegram_chat_id or pago_db.data[0].get('telegram_chat_id')
+                except Exception:
+                    pass # Ignora si las columnas de telegram no existen en la tabla
             
             # =================================================================
-            # PASO 1: ACTUALIZAR ESTADO EN SUPABASE
+            # PASO 1: ACTUALIZAR ESTADO EN SUPABASE (`pagos_pendientes`)
             # =================================================================
             print("⏳ Actualizando estado del pago en Supabase...")
             supabase.table("pagos_pendientes").update({
@@ -302,7 +304,7 @@ def aprobar_pago_sobres():
             print(f"✅ Pago #{id_pago} marcado como 'aprobado'")
             
             # =================================================================
-            # PASO 2: ASIGNAR BARAJITAS AL USUARIO
+            # PASO 2: ASIGNAR BARAJITAS (`Cartas` y `Coleccion_Usuario`)
             # =================================================================
             if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
                 id_limpio = str(usuario_id).replace('@', '').strip().lower()
@@ -403,7 +405,7 @@ def aprobar_pago_sobres():
             print(f"\n❌ ERROR EN INTENTO {intento}/{max_reintentos}: {error_msg}")
             traceback.print_exc()
             
-            if "Name or service not known" in error_msg or "getaddrinfo" in error_png if 'error_png' in locals() else "getaddrinfo" in error_msg:
+            if "Name or service not known" in error_msg or "getaddrinfo" in error_msg:
                 if intento < max_reintentos:
                     tiempo_espera = 5 * intento
                     print(f"⏳ Error de red detectado. Reintentando en {tiempo_espera} segundos...")
@@ -414,14 +416,14 @@ def aprobar_pago_sobres():
             else:
                 break
     
-    print(f"\n❌ PROCESAMIENTO FALLÓ DESPUÉS DE {max_reintentos} INTENTOS")
+    print(f"\n❌ PROCESAMIENTO FALLÓ DESPUÉS DE {max_reintent_o if 'max_reintent_o' in locals() else max_reintentos} INTENTOS")
     return jsonify({
         "success": False, 
         "error": f"Error al procesar el pago: {ultimo_error}"
     }), 500
 
 # =============================================================================
-# 🚀 INICIALIZACIÓN DEL SERVIDOR
+# 🚀 INICIALIZACIÓN DELSERVIDOR
 # =============================================================================
 if __name__ == "__main__":
     puerto_servidor = int(os.environ.get("PORT", 5000))

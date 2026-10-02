@@ -773,7 +773,7 @@ async function generar2000CombinacionesEnLote() {
     }
 }
 
-// CARGAR TABLA DE COMPRAS (CORREGIDA PARA MOSTRAR TODO EL HISTORIAL)
+// CARGAR TABLA DE COMPRAS (CORREGIDA Y ROBUSTA)
 async function cargarTablaComprasBarajitas() {
     const tbody = DOM.get('tabla-compras-barajitas');
     if (!tbody) return;
@@ -785,12 +785,12 @@ async function cargarTablaComprasBarajitas() {
             .from('pagos_pendientes')
             .select('*')
             .order('id', { ascending: false })
-            .limit(15);
+            .limit(20);
         
         if (error) throw error;
         
         if (!pagos || pagos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #666;">No hay registros de pagos en la tabla.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #888;">No hay registros de pagos pendientes en la tabla.</td></tr>`;
             logEstado("ℹ️ La tabla 'pagos_pendientes' no devolvió registros.");
             return;
         }
@@ -798,41 +798,44 @@ async function cargarTablaComprasBarajitas() {
         logEstado(`✅ Se encontraron ${pagos.length} registros de pagos.`);
         
         tbody.innerHTML = pagos.map(pago => {
-            const estadoColor = pago.estado === 'aprobado' ? '#22c55e' : (pago.estado === 'rechazado' ? '#ef4444' : '#eab308');
-            const usuario = pago.usuario_id ? `@${pago.usuario_id}` : 'Anónimo';
-            const telefono = pago.telefono_origen || pago.telefono || 'S/T';
-            const sobres = pago.cantidad_sobres || 1;
-            const referencia = pago.referencia || 'N/A';
-            const monto = pago.monto || '0.00';
+            // Mapeo flexible adaptado a posibles diferentes nombres de columnas en la BD
+            const usuarioRaw = pago.usuario_id || pago.username || pago.usuario || 'Anónimo';
+            const usuario = usuarioRaw.startsWith('@') ? usuarioRaw : `@${usuarioRaw}`;
+            const telefono = pago.telefono_origen || pago.telefono || pago.phone || 'S/T';
+            const sobres = pago.cantidad_sobres || pago.sobres || pago.cantidad || 1;
+            const referencia = pago.referencia || pago.ref || pago.nro_referencia || 'N/A';
+            const monto = pago.monto || pago.amount || pago.precio || '0.00';
+            const estadoActual = (pago.estado || pago.status || 'pendiente').toLowerCase();
             
             const telegramChatId = pago.telegram_chat_id || pago.chat_id || '';
             const telegramMessageId = pago.telegram_message_id || pago.telegram_msg_id || pago.message_id || '';
-            const usuarioIdSeguro = pago.usuario_id || '';
+            const usuarioIdSeguro = String(pago.usuario_id || pago.username || '').replace(/^@/, '');
             
-            const esAprobado = (pago.estado || '').toLowerCase() === 'aprobado';
+            const esAprobado = estadoActual === 'aprobado' || estadoActual === 'completado';
+            const estadoColor = esAprobado ? '#22c55e' : (estadoActual === 'rechazado' ? '#ef4444' : '#eab308');
 
             return `
                 <tr style="border-bottom: 1px solid #222;">
-                    <td style="padding: 6px; color: #00ffcc;">${usuario}<br><span style="font-size:6px; color:#888;">📱 ${telefono}</span></td>
-                    <td style="padding: 6px; font-weight: bold;">📦 ${sobres} Sobre(s)</td>
-                    <td style="padding: 6px;">Ref: ${referencia}<br><span style="color:#38bdf8;">$${monto}</span></td>
-                    <td style="padding: 6px; color: ${estadoColor}; font-weight: bold;">${(pago.estado || 'pendiente').toUpperCase()}</td>
-                    <td style="padding: 6px; text-align: center;">
+                    <td style="padding: 8px; color: #00ffcc;">${usuario}<br><span style="font-size:7px; color:#aaa;">📱 ${telefono}</span></td>
+                    <td style="padding: 8px; font-weight: bold;">📦 ${sobres} Sobre(s)</td>
+                    <td style="padding: 8px;">Ref: ${referencia}<br><span style="color:#38bdf8; font-weight:bold;">$${monto}</span></td>
+                    <td style="padding: 8px; color: ${estadoColor}; font-weight: bold;">${estadoActual.toUpperCase()}</td>
+                    <td style="padding: 8px; text-align: center;">
                         ${!esAprobado 
-                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}',${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:4px 8px; cursor:pointer; font-weight:bold;">APROBAR</button>`
-                            : `<span style="color:#22c55e; font-weight:bold;">COMPLETADO</span>`
+                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}',${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" style="background:#22c55e; border:none; color:#000; font-size:7px; padding:6px 10px; cursor:pointer; font-weight:bold; border-radius:4px;">APROBAR</button>`
+                            : `<span style="color:#22c55e; font-weight:bold;">✓ COMPLETADO</span>`
                         }
                     </td>
                 </tr>
             `;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 8px; text-align: center; color: #ef4444;">Error al cargar: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #ef4444;">Error al cargar pagos: ${e.message}</td></tr>`;
         logEstado(`❌ Error en consulta de pagos: ${e.message}`);
     }
 }
 
-// APROBAR PAGO PENDIENTE (Versión robusta con todos los parámetros)
+// APROBAR PAGO PENDIENTE (Versión robusta con reintentos)
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '', referencia = '', monto = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
     

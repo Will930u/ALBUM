@@ -35,7 +35,7 @@ def inicializar_servicios():
     if not SUPABASE_KEY:
         print("⚠️ ADVERTENCIA: SUPABASE_SERVICE_ROLE_KEY no está configurada")
     if not TELEGRAM_BOT_TOKEN:
-        print("⚠️ ADVERTENCIA: TELEGRAM_BOT_TOKEN no está configurada")
+        print("⚠️️ ADVERTENCIA: TELEGRAM_BOT_TOKEN no está configurada")
     if not ID_CANAL_ALERTAS:
         print("⚠️ ADVERTENCIA: ID_CANAL_ALERTAS no está configurada")
     
@@ -112,13 +112,12 @@ def recibir_alerta_payout_supabase():
         
         markup = types.InlineKeyboardMarkup()
         btn_aprobar = types.InlineKeyboardButton(
-            text="✅ Recompensa Procesada", 
+            text="✅ Aprobar y Procesar Pago", 
             callback_data=f"aprobar_{id_reclamo}"
         )
         markup.add(btn_aprobar)
         
         if bot and ID_CANAL_ALERTAS:
-            # Enviamos el mensaje a Telegram y capturamos la respuesta con los IDs de Telegram
             sent_msg = bot.send_message(
                 ID_CANAL_ALERTAS, 
                 mensaje_admin, 
@@ -127,7 +126,7 @@ def recibir_alerta_payout_supabase():
             )
             print(f"✅ Notificación de reclamo #{id_reclamo} enviada a Telegram")
             
-            # 🔄 INTEGRACIÓN: Guardamos automáticamente el message_id y chat_id en Supabase
+            # Guardamos automáticamente el message_id y chat_id en Supabase
             if supabase and sent_msg:
                 try:
                     supabase.table("pagos_pendientes").update({
@@ -145,12 +144,101 @@ def recibir_alerta_payout_supabase():
         return jsonify({"status": "error_interno", "error": str(e)}), 500
 
 # =============================================================================
-# 💳 ENDPOINT PRINCIPAL: APROBAR PAGOS DE SOBRES/BARAJITAS
+# 🔘 MANEJADOR DE CLICS EN LOS BOTONES DE TELEGRAM (CALLBACK QUERY)
+# =============================================================================
+if bot:
+    @bot.callback_query_handler(func=lambda call: True)
+    def manejar_botones_telegram(call):
+        """Atrapa cuando el administrador presiona el botón interactivo en Telegram"""
+        try:
+            data = call.data
+            msg = call.message
+            
+            if data.startswith("aprobar_"):
+                id_pago = data.replace("aprobar_", "").strip()
+                
+                # Consultar datos del pago en Supabase
+                pago_info = supabase.table("pagos_pendientes").select("*").eq("id", id_pago).execute()
+                
+                if not pago_info.data:
+                    bot.answer_callback_query(call.id, "⚠️ El pago no existe o ya fue procesado.", show_alert=True)
+                    return
+                
+                pago = pago_info.data[0]
+                usuario_id = pago.get('usuario_id', pago.get('username_telegram', 'Anónimo'))
+                
+                try:
+                    cantidad_sobres = int(pago.get('barajitas_requeridas', 1) // 500)
+                    if cantidad_sobres < 1:
+                        cantidad_sobres = 1
+                except:
+                    cantidad_sobres = 1
+
+                # 1. Actualizar estado en Supabase
+                supabase.table("pagos_pendientes").update({
+                    "estado": "aprobado"
+                }).eq("id", id_pago).execute()
+                
+                # 2. Asignar barajitas si aplica
+                if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
+                    id_limpio = str(usuario_id).replace('@', '').strip().lower()
+                    res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
+                    cartas_catalogo = res_cartas.data if res_cartas and res_cartas.data else []
+                    
+                    if cartas_catalogo:
+                        for i in range(cantidad_sobres):
+                            carta_aleatoria = random.choice(cartas_catalogo)
+                            c_id = int(carta_aleatoria['id'])
+                            
+                            inv_res = supabase.table("Coleccion_Usuario").select("cantidad").eq(
+                                "usuario_id", id_limpio
+                            ).eq("carta_id", c_id).execute()
+                            
+                            if inv_res.data and len(inv_res.data) > 0:
+                                cant_actual = int(inv_res.data[0].get('cantidad', 0))
+                                supabase.table("Coleccion_Usuario").update({
+                                    "cantidad": cant_actual + 1
+                                }).eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
+                            else:
+                                supabase.table("Coleccion_Usuario").insert({
+                                    "usuario_id": id_limpio,
+                                    "carta_id": c_id,
+                                    "cantidad": 1
+                                }).execute()
+
+                # 3. Editar el mensaje original de Telegram a estado APROBADO
+                texto_actualizado = (
+                    f"✅ *[PAGO APROBADO DESDE TELEGRAM]* ✅\n\n"
+                    f"👤 *Usuario:* @{usuario_id}\n"
+                    f"📦 *Sobres Asignados:* {cantidad_sobres}\n"
+                    f"📌 *Estado:* COMPLETADO Y CONCILIADO"
+                )
+                
+                bot.edit_message_text(
+                    chat_id=msg.chat.id,
+                    message_id=msg.message_id,
+                    text=texto_actualizado,
+                    parse_mode="Markdown",
+                    reply_markup=None
+                )
+                
+                bot.answer_callback_query(call.id, "✅ ¡Pago aprobado y procesado con éxito!")
+                print(f"✅ Botón de Telegram procesado para el pago #{id_pago}")
+                
+        except Exception as e:
+            print(f"❌ Error en callback_query de Telegram: {e}")
+            try:
+                bot.answer_callback_query(call.id, "❌ Ocurrió un error al procesar el pago.", show_alert=True)
+            except:
+                pass
+
+# =============================================================================
+# 💳 ENDPOINT PRINCIPAL: APROBAR PAGOS DESDE LA CONSOLA WEB
 # =============================================================================
 @app.route('/api/aprobar-pago', methods=['POST', 'OPTIONS'])
 def aprobar_pago_sobres():
     """
-    Aprueba un pago pendiente, asigna barajitas al usuario y edita el mensaje exacto en Telegram.
+    Aprueba un pago pendiente desde la web, asigna barajitas y edita el mensaje en Telegram.
     """
     
     if request.method == 'OPTIONS':
@@ -178,7 +266,6 @@ def aprobar_pago_sobres():
             except (ValueError, TypeError):
                 cantidad_sobres = 1
             
-            # Resolver chat ID y message ID (pueden venir del frontend o ser consultados)
             telegram_chat_id = datos.get('telegramChatId')
             telegram_message_id = datos.get('telegramMessageId')
             
@@ -188,7 +275,6 @@ def aprobar_pago_sobres():
                     "error": "Falta el ID del pago"
                 }), 400
             
-            # No forzar int si la base de datos usa UUID o IDs alfanuméricos
             id_pago = str(id_pago_raw).strip()
             if id_pago.isdigit():
                 id_pago = int(id_pago)
@@ -197,7 +283,7 @@ def aprobar_pago_sobres():
             print(f"👤 Usuario: {usuario_id}")
             print(f"📦 Sobres: {cantidad_sobres}")
             
-            # Si el frontend no mandó los IDs de Telegram, los consultamos directamente de Supabase
+            # Buscar IDs de Telegram en Supabase si el frontend no los envió
             if not telegram_message_id or not telegram_chat_id:
                 print("🔍 Buscando IDs de Telegram faltantes en Supabase...")
                 pago_db = supabase.table("pagos_pendientes").select("telegram_message_id, telegram_chat_id").eq("id", id_pago).execute()
@@ -235,8 +321,6 @@ def aprobar_pago_sobres():
                         carta_aleatoria = random.choice(cartas_catalogo)
                         c_id = int(carta_aleatoria['id'])
                         
-                        print(f"  🎲 Sobre {i+1}/{cantidad_sobres}: Carta #{c_id}")
-                        
                         inv_res = supabase.table("Coleccion_Usuario").select("cantidad").eq(
                             "usuario_id", id_limpio
                         ).eq("carta_id", c_id).execute()
@@ -270,10 +354,10 @@ def aprobar_pago_sobres():
 
                     if chat_objetivo and telegram_message_id and str(telegram_message_id).strip() not in ['', 'undefined', 'null']:
                         texto_actualizado = (
-                            f"🛒 *[PAGO APROBADO MANUALMENTE]*\n\n"
+                            f"🛒 *[PAGO APROBADO DESDE LA WEB]* 🌐\n\n"
                             f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
                             f"📦 *Sobres:* {cantidad_sobres}\n"
-                            f"📌 *Estado:* APROBADO ✅"
+                            f"📌 *Estado:* APROBADO Y CONCILIADO ✅"
                         )
                         bot.edit_message_text(
                             chat_id=chat_objetivo,
@@ -319,7 +403,7 @@ def aprobar_pago_sobres():
             print(f"\n❌ ERROR EN INTENTO {intento}/{max_reintentos}: {error_msg}")
             traceback.print_exc()
             
-            if "Name or service not known" in error_msg or "getaddrinfo" in error_msg:
+            if "Name or service not known" in error_msg or "getaddrinfo" in error_png if 'error_png' in locals() else "getaddrinfo" in error_msg:
                 if intento < max_reintentos:
                     tiempo_espera = 5 * intento
                     print(f"⏳ Error de red detectado. Reintentando en {tiempo_espera} segundos...")

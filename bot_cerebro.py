@@ -33,7 +33,7 @@ def inicializar_servicios():
     global supabase, bot
     
     if not SUPABASE_KEY:
-        print("⚠️️ ADVERTENCIA: SUPABASE_SERVICE_ROLE_KEY no está configurada")
+        print("⚠️ ADVERTENCIA: SUPABASE_SERVICE_ROLE_KEY no está configurada")
     if not TELEGRAM_BOT_TOKEN:
         print("⚠️ ADVERTENCIA: TELEGRAM_BOT_TOKEN no está configurada")
     if not ID_CANAL_ALERTAS:
@@ -73,69 +73,6 @@ def verificar_servidor_activo():
         "supabase_conectado": supabase is not None,
         "telegram_conectado": bot is not None
     }), 200
-
-# =============================================================================
-# 🛒 WEBHOOK: NUEVO PAGO PENDIENTE (Envía la alerta inicial a Telegram y guarda IDs)
-# =============================================================================
-@app.route('/webhook_pago_pendiente', methods=['POST'])
-def recibir_nuevo_pago_pendiente():
-    """Recibe nuevos registros de pagos pendientes, los notifica a Telegram y guarda su message_id"""
-    try:
-        datos_recibidos = request.json
-        nueva_fila = datos_recibidos.get('record', datos_recibidos)
-        
-        if not nueva_fila:
-            return jsonify({"status": "error", "message": "No se encontraron datos"}), 400
-        
-        id_pago = nueva_fila.get('id')
-        usuario_id = nueva_fila.get('usuario_id', 'Anónimo')
-        referencia = nueva_fila.get('referencia', 'N/A')
-        telefono = nueva_fila.get('telefono', 'N/A')
-        monto = nueva_fila.get('monto', 0.0)
-        cantidad_sobres = nueva_fila.get('cantidad_sobres', 1)
-        
-        mensaje_admin = (
-            f"🛒 *[PAGO PENDIENTE DE VALIDACIÓN BANCARIA]*\n\n"
-            f"👤 *Usuario:* @{usuario_id}\n"
-            f"🔢 *Ref (6 dígitos):* `{referencia}`\n"
-            f"📱 *Teléfono:* `{telefono}`\n"
-            f"💵 *Monto:* {monto} Bs.\n"
-            f"📦 *Sobres:* {cantidad_sobres}\n\n"
-            f"⏳ *Guardado en cola de espera. Se conciliará manualmente o al entrar el correo del banco.*"
-        )
-        
-        markup = types.InlineKeyboardMarkup()
-        btn_aprobar = types.InlineKeyboardButton(
-            text="✅ Aprobar Pago", 
-            callback_data=f"aprobar_{id_pago}"
-        )
-        markup.add(btn_aprobar)
-        
-        if bot and ID_CANAL_ALERTAS:
-            sent_msg = bot.send_message(
-                ID_CANAL_ALERTAS, 
-                mensaje_admin, 
-                parse_mode="Markdown", 
-                reply_markup=markup
-            )
-            print(f"✅ Alerta de pago pendiente #{id_pago} enviada a Telegram")
-            
-            # Guardamos el message_id y chat_id exactos en la tabla pagos_pendientes
-            if supabase and sent_msg:
-                try:
-                    supabase.table("pagos_pendientes").update({
-                        "telegram_message_id": sent_msg.message_id,
-                        "telegram_chat_id": sent_msg.chat.id
-                    }).eq("id", id_pago).execute()
-                    print(f"📌 IDs de Telegram guardados para el pago #{id_pago}")
-                except Exception as db_err:
-                    print(f"⚠️ Nota: Asegúrate de tener las columnas telegram_message_id y telegram_chat_id en pagos_pendientes: {db_err}")
-        
-        return jsonify({"status": "alerta_enviada_exitosamente"}), 200
-        
-    except Exception as e:
-        print(f"❌ Error en Webhook pago pendiente: {str(e)}")
-        return jsonify({"status": "error_interno", "error": str(e)}), 500
 
 # =============================================================================
 # 🏆 WEBHOOK DE PAYOUTS (Reclamos de Recompensas)
@@ -189,14 +126,16 @@ def recibir_alerta_payout_supabase():
             )
             print(f"✅ Notificación de reclamo #{id_reclamo} enviada a Telegram")
             
+            # Intentar guardar los IDs de Telegram (requiere columnas telegram_message_id y telegram_chat_id en pagos_pendientes)
             if supabase and sent_msg:
                 try:
                     supabase.table("pagos_pendientes").update({
                         "telegram_message_id": sent_msg.message_id,
                         "telegram_chat_id": sent_msg.chat.id
                     }).eq("id", id_reclamo).execute()
+                    print(f"📌 IDs de Telegram guardados en Supabase para el pago #{id_reclamo}")
                 except Exception as db_err:
-                    print(f"⚠️ Error al guardar IDs de Telegram: {db_err}")
+                    print(f"⚠️ Nota: Las columnas de Telegram en 'pagos_pendientes' no están creadas o falló el registro: {db_err}")
         
         return jsonify({"status": "solicitud_notificada_exitosamente"}), 200
         
@@ -210,7 +149,7 @@ def recibir_alerta_payout_supabase():
 if bot:
     @bot.callback_query_handler(func=lambda call: True)
     def manejar_botones_telegram(call):
-        """Atrapa cuando el administrador presiona el botón interactivo en Telegram y RESPONDE al mensaje específico"""
+        """Atrapa cuando el administrador presiona el botón interactivo en Telegram"""
         try:
             data = call.data
             msg = call.message
@@ -218,7 +157,7 @@ if bot:
             if data.startswith("aprobar_"):
                 id_pago = data.replace("aprobar_", "").strip()
                 
-                # Consultar datos del pago en Supabase
+                # Consultar datos del pago en Supabase usando la tabla correcta: pagos_pendientes
                 pago_info = supabase.table("pagos_pendientes").select("*").eq("id", id_pago).execute()
                 
                 if not pago_info.data:
@@ -227,7 +166,6 @@ if bot:
                 
                 pago = pago_info.data[0]
                 usuario_id = pago.get('usuario_id', pago.get('username_telegram', 'Anónimo'))
-                referencia = pago.get('referencia', 'N/A')
                 
                 try:
                     cantidad_sobres = int(pago.get('cantidad_sobres', 1))
@@ -241,7 +179,7 @@ if bot:
                     "estado": "aprobado"
                 }).eq("id", id_pago).execute()
                 
-                # 2. Asignar barajitas
+                # 2. Asignar barajitas consultando la tabla Cartas y Coleccion_Usuario
                 if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
                     id_limpio = str(usuario_id).replace('@', '').strip().lower()
                     res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
@@ -263,34 +201,29 @@ if bot:
                                 }).eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
                             else:
                                 supabase.table("Coleccion_Usuario").insert({
-                                    "usuario_id", id_limpio,
+                                    "usuario_id": id_limpio,
                                     "carta_id": c_id,
                                     "cantidad": 1
                                 }).execute()
 
-                # 3. RESPONDER EN HILO al mensaje original usando reply_to_message_id
-                texto_respuesta = (
-                    f"✅ *¡PAGO VERIFICADO Y APROBADO!*\n"
-                    f"🔢 Ref: `{referencia}`\n"
-                    f"📦 Sobres asignados: {cantidad_sobres}\n"
-                    f"📌 Estado: **COMPLETADO**"
+                # 3. Editar el mensaje original de Telegram a estado APROBADO
+                texto_actualizado = (
+                    f"✅ *[PAGO APROBADO DESDE TELEGRAM]* ✅\n\n"
+                    f"👤 *Usuario:* @{usuario_id}\n"
+                    f"📦 *Sobres Asignados:* {cantidad_sobres}\n"
+                    f"📌 *Estado:* COMPLETADO Y CONCILIADO"
                 )
                 
-                bot.send_message(
+                bot.edit_message_text(
                     chat_id=msg.chat.id,
-                    text=texto_respuesta,
+                    message_id=msg.message_id,
+                    text=texto_actualizado,
                     parse_mode="Markdown",
-                    reply_to_message_id=msg.message_id  # <--- ESTO RESPONDE DIRECTAMENTE AL MENSAJE ESPECÍFICO
+                    reply_markup=None
                 )
                 
-                # Quitar el botón del mensaje original para que no se vuelva a presionar
-                try:
-                    bot.edit_message_reply_markup(chat_id=msg.chat.id, message_id=msg.message_id, reply_markup=None)
-                except:
-                    pass
-                
-                bot.answer_callback_query(call.id, "✅ ¡Pago aprobado y respondido con éxito!")
-                print(f"✅ Pago #{id_pago} aprobado y respondido en hilo de Telegram")
+                bot.answer_callback_query(call.id, "✅ ¡Pago aprobado y procesado con éxito!")
+                print(f"✅ Botón de Telegram procesado para el pago #{id_pago}")
                 
         except Exception as e:
             print(f"❌ Error en callback_query de Telegram: {e}")
@@ -305,7 +238,7 @@ if bot:
 @app.route('/api/aprobar-pago', methods=['POST', 'OPTIONS'])
 def aprobar_pago_sobres():
     """
-    Aprueba un pago desde la web, asigna barajitas y RESPONDE al mensaje específico en Telegram.
+    Aprueba un pago pendiente desde la web, asigna barajitas y edita el mensaje en Telegram.
     """
     
     if request.method == 'OPTIONS':
@@ -337,30 +270,33 @@ def aprobar_pago_sobres():
             telegram_message_id = datos.get('telegramMessageId')
             
             if not id_pago_raw:
-                return jsonify({"success": False, "error": "Falta el ID del pago"}), 400
+                return jsonify({
+                    "success": False, 
+                    "error": "Falta el ID del pago"
+                }), 400
             
             id_pago = str(id_pago_raw).strip()
             if id_pago.isdigit():
                 id_pago = int(id_pago)
             
             print(f"🔍 Procesando pago ID: {id_pago}")
+            print(f"👤 Usuario: {usuario_id}")
+            print(f"📦 Sobres: {cantidad_sobres}")
             
-            # Consultar siempre los datos reales en Supabase para asegurar referencia y message_id
-            referencia = "N/A"
-            try:
-                pago_db = supabase.table("pagos_pendientes").select("*").eq("id", id_pago).execute()
-                if pago_db.data and len(pago_db.data) > 0:
-                    fila_db = pago_db.data[0]
-                    referencia = fila_db.get('referencia', 'N/A')
-                    telegram_message_id = telegram_message_id or fila_db.get('telegram_message_id')
-                    telegram_chat_id = telegram_chat_id or fila_db.get('telegram_chat_id')
-                    usuario_id = usuario_id or fila_db.get('usuario_id')
-            except Exception as db_ex:
-                print(f"⚠️ Error consultando detalles en Supabase: {db_ex}")
+            # Intentar buscar IDs de Telegram en Supabase si el frontend no los envió
+            if not telegram_message_id or not telegram_chat_id:
+                try:
+                    pago_db = supabase.table("pagos_pendientes").select("telegram_message_id, telegram_chat_id").eq("id", id_pago).execute()
+                    if pago_db.data and len(pago_db.data) > 0:
+                        telegram_message_id = telegram_message_id or pago_db.data[0].get('telegram_message_id')
+                        telegram_chat_id = telegram_chat_id or pago_db.data[0].get('telegram_chat_id')
+                except Exception:
+                    pass # Ignora si las columnas de telegram no existen en la tabla
             
             # =================================================================
-            # PASO 1: ACTUALIZAR ESTADO EN SUPABASE
+            # PASO 1: ACTUALIZAR ESTADO EN SUPABASE (`pagos_pendientes`)
             # =================================================================
+            print("⏳ Actualizando estado del pago en Supabase...")
             supabase.table("pagos_pendientes").update({
                 "estado": "aprobado"
             }).eq("id", id_pago).execute()
@@ -368,14 +304,21 @@ def aprobar_pago_sobres():
             print(f"✅ Pago #{id_pago} marcado como 'aprobado'")
             
             # =================================================================
-            # PASO 2: ASIGNAR BARAJITAS
+            # PASO 2: ASIGNAR BARAJITAS (`Cartas` y `Coleccion_Usuario`)
             # =================================================================
             if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
                 id_limpio = str(usuario_id).replace('@', '').strip().lower()
+                print(f"🎯 Asignando barajitas a: @{id_limpio}")
+                
+                print("📚 Obteniendo catálogo de cartas...")
                 res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
                 cartas_catalogo = res_cartas.data if res_cartas and res_cartas.data else []
                 
-                if cartas_catalogo:
+                if not cartas_catalogo:
+                    print("⚠️ ADVERTENCIA: La tabla 'Cartas' está vacía")
+                else:
+                    print(f"📊 Catálogo cargado: {len(cartas_catalogo)} cartas disponibles")
+                    
                     for i in range(cantidad_sobres):
                         carta_aleatoria = random.choice(cartas_catalogo)
                         c_id = int(carta_aleatoria['id'])
@@ -389,15 +332,21 @@ def aprobar_pago_sobres():
                             supabase.table("Coleccion_Usuario").update({
                                 "cantidad": cant_actual + 1
                             }).eq("usuario_id", id_limpio).eq("carta_id", c_id).execute()
+                            print(f"    ✅ Carta #{c_id} actualizada (cantidad: {cant_actual} → {cant_actual + 1})")
                         else:
                             supabase.table("Coleccion_Usuario").insert({
                                 "usuario_id": id_limpio,
                                 "carta_id": c_id,
                                 "cantidad": 1
                             }).execute()
+                            print(f"    ✅ Carta #{c_id} añadida a la colección")
+                    
+                    print(f"✅ {cantidad_sobres} sobres asignados correctamente a @{id_limpio}")
+            else:
+                print("⚠️ Usuario no válido, omitiendo asignación de barajitas")
             
             # =================================================================
-            # PASO 3: RESPONDER AL MENSAJE ESPECÍFICO EN TELEGRAM (REPLY)
+            # PASO 3: NOTIFICACIÓN TELEGRAM (EDICIÓN DEL MENSAJE ESPECÍFICO)
             # =================================================================
             if bot and TELEGRAM_BOT_TOKEN:
                 try:
@@ -406,42 +355,46 @@ def aprobar_pago_sobres():
                         chat_objetivo = chat_objetivo.strip()
 
                     if chat_objetivo and telegram_message_id and str(telegram_message_id).strip() not in ['', 'undefined', 'null']:
-                        texto_respuesta = (
-                            f"✅ *¡PAGO VERIFICADO Y APROBADO DESDE LA WEB!*\n"
-                            f"🔢 Ref: `{referencia}`\n"
-                            f"📦 Sobres asignados: {cantidad_sobres}\n"
-                            f"📌 Estado: **COMPLETADO**"
+                        texto_actualizado = (
+                            f"🛒 *[PAGO APROBADO DESDE LA WEB]* 🌐\n\n"
+                            f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
+                            f"📦 *Sobres:* {cantidad_sobres}\n"
+                            f"📌 *Estado:* APROBADO Y CONCILIADO ✅"
                         )
-                        bot.send_message(
+                        bot.edit_message_text(
                             chat_id=chat_objetivo,
-                            text=texto_respuesta,
+                            message_id=int(telegram_message_id),
+                            text=texto_actualizado,
                             parse_mode="Markdown",
-                            reply_to_message_id=int(telegram_message_id) # <--- RESPONDE AL MENSAJE EXACTO
+                            reply_markup=None
                         )
-                        
-                        # Limpiar botones del mensaje original
-                        try:
-                            bot.edit_message_reply_markup(chat_id=chat_objetivo, message_id=int(telegram_message_id), reply_markup=None)
-                        except:
-                            pass
-                            
-                        print(f"✅ Respuesta enviada en hilo al mensaje ID: {telegram_message_id}")
+                        print(f"✅ Mensaje específico de Telegram editado (Chat: {chat_objetivo}, Msg: {telegram_message_id})")
                     elif chat_objetivo:
+                        mensaje_telegram = (
+                            f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
+                            f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
+                            f"📦 *Sobres:* {cantidad_sobres}"
+                        )
                         bot.send_message(
                             chat_objetivo, 
-                            f"✅ *PAGO VERIFICADO (Ref: {referencia}) - APROBADO*", 
+                            mensaje_telegram, 
                             parse_mode="Markdown"
                         )
+                        print(f"✅ Notificación enviada al canal/chat de Telegram: {chat_objetivo}")
                 except Exception as e_tg:
-                    print(f"⚠️ Error secundario en Telegram: {e_tg}")
+                    print(f"⚠️ Error secundario en Telegram (no bloqueante): {e_tg}")
+            
+            print(f"\n{'='*60}")
+            print(f"✅ PROCESAMIENTO COMPLETADO EXITOSAMENTE")
+            print(f"{'='*60}\n")
             
             return jsonify({
                 "success": True, 
-                "message": "Pago aprobado y respondido en Telegram correctamente",
+                "message": "Pago aprobado y procesado correctamente",
                 "detalles": {
                     "id_pago": id_pago,
                     "usuario": usuario_id,
-                    "referencia": referencia
+                    "sobres_asignados": cantidad_sobres
                 }
             }), 200
             
@@ -454,17 +407,23 @@ def aprobar_pago_sobres():
             
             if "Name or service not known" in error_msg or "getaddrinfo" in error_msg:
                 if intento < max_reintentos:
-                    time.sleep(5 * intento)
+                    tiempo_espera = 5 * intento
+                    print(f"⏳ Error de red detectado. Reintentando en {tiempo_espera} segundos...")
+                    time.sleep(tiempo_espera)
                     continue
-            break
+                else:
+                    print("❌ Máximo de reintentos alcanzado")
+            else:
+                break
     
+    print(f"\n❌ PROCESAMIENTO FALLÓ DESPUÉS DE {max_reintent_o if 'max_reintent_o' in locals() else max_reintentos} INTENTOS")
     return jsonify({
         "success": False, 
         "error": f"Error al procesar el pago: {ultimo_error}"
     }), 500
 
 # =============================================================================
-# 🚀 INICIALIZACIÓN DEL SERVIDOR
+# 🚀 INICIALIZACIÓN DELSERVIDOR
 # =============================================================================
 if __name__ == "__main__":
     puerto_servidor = int(os.environ.get("PORT", 5000))

@@ -784,6 +784,7 @@ async function cargarTablaComprasBarajitas() {
         const { data: pagos, error } = await supabaseClient
             .from('pagos_pendientes')
             .select('*')
+            .eq('estado', 'pendiente') // <--- Filtra solo los verdaderamente pendientes
             .order('id', { ascending: false })
             .limit(15);
         

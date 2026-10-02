@@ -773,7 +773,7 @@ async function generar2000CombinacionesEnLote() {
     }
 }
 
-// CARGAR TABLA DE COMPRAS
+// CARGAR TABLA DE COMPRAS (CORREGIDA PARA MOSTRAR TODO EL HISTORIAL)
 async function cargarTablaComprasBarajitas() {
     const tbody = DOM.get('tabla-compras-barajitas');
     if (!tbody) return;
@@ -784,7 +784,6 @@ async function cargarTablaComprasBarajitas() {
         const { data: pagos, error } = await supabaseClient
             .from('pagos_pendientes')
             .select('*')
-            .eq('estado', 'pendiente') // <--- Filtra solo los verdaderamente pendientes
             .order('id', { ascending: false })
             .limit(15);
         
@@ -806,11 +805,12 @@ async function cargarTablaComprasBarajitas() {
             const referencia = pago.referencia || 'N/A';
             const monto = pago.monto || '0.00';
             
-            // Extracción flexible de IDs de Telegram desde la base de datos
             const telegramChatId = pago.telegram_chat_id || pago.chat_id || '';
             const telegramMessageId = pago.telegram_message_id || pago.telegram_msg_id || pago.message_id || '';
             const usuarioIdSeguro = pago.usuario_id || '';
             
+            const esAprobado = (pago.estado || '').toLowerCase() === 'aprobado';
+
             return `
                 <tr style="border-bottom: 1px solid #222;">
                     <td style="padding: 6px; color: #00ffcc;">${usuario}<br><span style="font-size:6px; color:#888;">📱 ${telefono}</span></td>
@@ -818,9 +818,9 @@ async function cargarTablaComprasBarajitas() {
                     <td style="padding: 6px;">Ref: ${referencia}<br><span style="color:#38bdf8;">$${monto}</span></td>
                     <td style="padding: 6px; color: ${estadoColor}; font-weight: bold;">${(pago.estado || 'pendiente').toUpperCase()}</td>
                     <td style="padding: 6px; text-align: center;">
-                        ${pago.estado !== 'aprobado' 
-                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}', ${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" ...>APROBAR</button>`
-                            : `<span style="color:#22c55e;">COMPLETADO</span>`
+                        ${!esAprobado 
+                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}',${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" style="background:#22c55e; border:none; color:#000; font-size:6px; padding:4px 8px; cursor:pointer; font-weight:bold;">APROBAR</button>`
+                            : `<span style="color:#22c55e; font-weight:bold;">COMPLETADO</span>`
                         }
                     </td>
                 </tr>
@@ -838,7 +838,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
     
     logEstado(`⏳ Enviando solicitud de aprobación a Render para ID #${idPago}...`);
     
-    // Sanitización estricta de parámetros
     const tChatId = (!telegramChatId || telegramChatId === 'undefined' || telegramChatId === 'null' || telegramChatId === 'None') ? '' : String(telegramChatId).trim();
     const tMsgId = (!telegramMessageId || telegramMessageId === 'undefined' || telegramMessageId === 'null' || telegramMessageId === 'None') ? '' : String(telegramMessageId).trim();
     const uIdLimpio = (!usuarioId || usuarioId === 'undefined' || usuarioId === 'null' || usuarioId === 'None') ? '' : String(usuarioId).replace(/^@/, '').trim();
@@ -847,7 +846,6 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
     
     for (let intento = 1; intento <= maxReintentos; intento++) {
         try {
-            // Petición fetch hacia tu servidor backend en Render con parámetros completos
             const respuesta = await fetch(`${CONFIG.RENDER_SERVER_URL}/api/aprobar-pago`, {
                 method: 'POST',
                 headers: {

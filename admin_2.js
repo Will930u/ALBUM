@@ -821,7 +821,7 @@ async function cargarTablaComprasBarajitas() {
                     <td style="padding: 8px; color: ${estadoColor}; font-weight: bold;">${estadoActual.toUpperCase()}</td>
                     <td style="padding: 8px; text-align: center;">
                         ${!esAprobado 
-                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}', ${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" style="background:#22c55e; border:none; color:#000; font-size:7px; padding:6px 10px; cursor:pointer; font-weight:bold; border-radius:4px;">APROBAR</button>`
+                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}',${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" style="background:#22c55e; border:none; color:#000; font-size:7px; padding:6px 10px; cursor:pointer; font-weight:bold; border-radius:4px;">APROBAR</button>`
                             : `<span style="color:#22c55e; font-weight:bold;">✓ COMPLETADO</span>`
                         }
                     </td>
@@ -831,6 +831,54 @@ async function cargarTablaComprasBarajitas() {
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="5" style="padding: 12px; text-align: center; color: #ef4444;">Error al cargar pagos: ${e.message}</td></tr>`;
         logEstado(`❌ Error en consulta de pagos: ${e.message}`);
+    }
+}
+
+// 🛒 NUEVA FUNCIÓN: REGISTRAR COMPRA DESDE LA TIENDA HACIA SUPABASE
+async function procesarCompraTienda() {
+    try {
+        // Capturar los valores de la UI de la tienda (ajusta los IDs o selectores según tus inputs HTML de compra)
+        const cantidadSobres = parseInt(DOM.findInput(['cantidad-sobres', 'sobres-input', 'num-sobres'])?.value, 10) || 1;
+        const referenciaPago = DOM.findInput(['referencia-pago', 'ref-input', 'nro-referencia'])?.value?.trim();
+        const telefonoOrigen = DOM.findInput(['telefono-origen', 'telefono-input', 'phone'])?.value?.trim() || '04129830982';
+        const montoPago = parseFloat(DOM.findInput(['monto-pago', 'monto-input', 'total-bs'])?.value) || (cantidadSobres * 516.46);
+        const usuarioId = DOM.findInput(['usuario-id', 'username-input', 'telegram-user'])?.value?.trim() || 'utrera930';
+
+        if (!referenciaPago) {
+            alert("Por favor, ingresa el número de referencia del pago móvil o transferencia.");
+            return;
+        }
+
+        logEstado(`⏳ Registrando compra de ${cantidadSobres} sobre(s) en Supabase...`);
+
+        const payloadPago = {
+            usuario_id: usuarioId.replace(/^@/, ''),
+            referencia: referenciaPago,
+            monto: montoPago,
+            cantidad_sobres: cantidadSobres,
+            telefono_origen: telefonoOrigen,
+            estado: 'pendiente',
+            tipo: 'tienda'
+        };
+
+        const { data, error } = await supabaseClient
+            .from('pagos_pendientes')
+            .insert([payloadPago]);
+
+        if (error) {
+            throw error;
+        }
+
+        alert("🎉 ¡Compra registrada con éxito! Quedó en estado pendiente para su verificación.");
+        logEstado(`✅ Pago con referencia ${referenciaPago} guardado en 'pagos_pendientes'.`);
+        
+        // Actualizar tablas del panel si están visibles
+        await cargarTablaComprasBarajitas();
+        await cargarMetricasServidor();
+
+    } catch (e) {
+        alert("Error al registrar la compra: " + e.message);
+        logEstado(`❌ Error al registrar compra: ${e.message}`);
     }
 }
 
@@ -1014,6 +1062,18 @@ function configurarEventosUI() {
     DOM.get('btn-generar-ia')?.addEventListener('click', generarImagenPollinationsDirecta);
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
+    
+    // Vinculación automática del botón "COMPRAR AHORA" de la tienda si existe en el DOM
+    const btnComprarAhora = document.querySelector('button:contains("COMPRAR AHORA"), #btn-comprar-ahora, .btn-comprar');
+    // Como alternativa universal buscamos por texto o clase común:
+    document.querySelectorAll('button').forEach(btn => {
+        if (btn.textContent.trim().toUpperCase() === 'COMPRAR AHORA') {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                procesarCompraTienda();
+            });
+        }
+    });
 }
 
 // EXPOSICIÓN GLOBAL
@@ -1030,3 +1090,4 @@ window.seleccionarPlantillaAleatoria = seleccionarPlantillaAleatoria;
 window.procesarReclamacionPremio = procesarReclamacionPremio;
 window.cargarTablaComprasBarajitas = cargarTablaComprasBarajitas;
 window.aprobarPagoPendiente = aprobarPagoPendiente;
+window.procesarCompraTienda = procesarCompraTienda;

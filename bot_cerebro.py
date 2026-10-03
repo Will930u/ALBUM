@@ -26,7 +26,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 ID_CANAL_ALERTAS = os.environ.get("ID_CANAL_ALERTAS")
 
 # =============================================================================
-# ⚙️ INICIALIZACIÓN DE SERVICIOS
+# ⚙️️ INICIALIZACIÓN DE SERVICIOS
 # =============================================================================
 def inicializar_servicios():
     """Inicializa Supabase y Telegram con validación"""
@@ -89,7 +89,7 @@ def recibir_alerta_payout_supabase():
         
         id_reclamo = nueva_fila.get('id')
         user_id = nueva_fila.get('user_id')
-        username = nueva_fila.get('username_telegram', 'Jugador_Anonimo')
+        username = nueva_fila.get('username_telegram', nueva_fila.get('usuario_id', 'Jugador_Anonimo'))
         hito = nueva_fila.get('hito_nivel', 1)
         cant_barajitas = nueva_fila.get('barajitas_requeridas', hito * 500)
         monto = nueva_fila.get('monto_recompensa', 200.00)
@@ -126,7 +126,6 @@ def recibir_alerta_payout_supabase():
             )
             print(f"✅ Notificación de reclamo #{id_reclamo} enviada a Telegram")
             
-            # Intentar guardar los IDs de Telegram (requiere columnas telegram_message_id y telegram_chat_id en pagos_pendientes)
             if supabase and sent_msg:
                 try:
                     supabase.table("pagos_pendientes").update({
@@ -157,7 +156,6 @@ if bot:
             if data.startswith("aprobar_"):
                 id_pago = data.replace("aprobar_", "").strip()
                 
-                # Consultar datos del pago en Supabase usando la tabla correcta: pagos_pendientes
                 pago_info = supabase.table("pagos_pendientes").select("*").eq("id", id_pago).execute()
                 
                 if not pago_info.data:
@@ -165,21 +163,19 @@ if bot:
                     return
                 
                 pago = pago_info.data[0]
-                usuario_id = pago.get('usuario_id', pago.get('username_telegram', 'Anónimo'))
+                usuario_id = pago.get('usuario_id', pago.get('username_telegram', pago.get('username', 'Anónimo')))
                 
                 try:
-                    cantidad_sobres = int(pago.get('cantidad_sobres', 1))
+                    cantidad_sobres = int(pago.get('cantidad_sobres', pago.get('sobres', 1)))
                     if cantidad_sobres < 1:
                         cantidad_sobres = 1
                 except:
                     cantidad_sobres = 1
 
-                # 1. Actualizar estado en pagos_pendientes
                 supabase.table("pagos_pendientes").update({
                     "estado": "aprobado"
                 }).eq("id", id_pago).execute()
                 
-                # 2. Asignar barajitas consultando la tabla Cartas y Coleccion_Usuario
                 if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
                     id_limpio = str(usuario_id).replace('@', '').strip().lower()
                     res_cartas = supabase.table("Cartas").select("id").limit(500).execute()
@@ -206,7 +202,6 @@ if bot:
                                     "cantidad": 1
                                 }).execute()
 
-                # 3. Editar el mensaje original de Telegram a estado APROBADO
                 texto_actualizado = (
                     f"✅ *[PAGO APROBADO DESDE TELEGRAM]* ✅\n\n"
                     f"👤 *Usuario:* @{usuario_id}\n"
@@ -237,10 +232,7 @@ if bot:
 # =============================================================================
 @app.route('/api/aprobar-pago', methods=['POST', 'OPTIONS'])
 def aprobar_pago_sobres():
-    """
-    Aprueba un pago pendiente desde la web, asigna barajitas y edita el mensaje en Telegram.
-    """
-    
+    """Aprueba un pago pendiente desde la web, asigna barajitas y edita el mensaje en Telegram."""
     if request.method == 'OPTIONS':
         return jsonify({"status": "OK"}), 200
     
@@ -283,7 +275,6 @@ def aprobar_pago_sobres():
             print(f"👤 Usuario: {usuario_id}")
             print(f"📦 Sobres: {cantidad_sobres}")
             
-            # Intentar buscar IDs de Telegram en Supabase si el frontend no los envió
             if not telegram_message_id or not telegram_chat_id:
                 try:
                     pago_db = supabase.table("pagos_pendientes").select("telegram_message_id, telegram_chat_id").eq("id", id_pago).execute()
@@ -291,11 +282,9 @@ def aprobar_pago_sobres():
                         telegram_message_id = telegram_message_id or pago_db.data[0].get('telegram_message_id')
                         telegram_chat_id = telegram_chat_id or pago_db.data[0].get('telegram_chat_id')
                 except Exception:
-                    pass # Ignora si las columnas de telegram no existen en la tabla
+                    pass
             
-            # =================================================================
-            # PASO 1: ACTUALIZAR ESTADO EN SUPABASE (`pagos_pendientes`)
-            # =================================================================
+            # PASO 1: Actualizar estado en Supabase
             print("⏳ Actualizando estado del pago en Supabase...")
             supabase.table("pagos_pendientes").update({
                 "estado": "aprobado"
@@ -303,9 +292,7 @@ def aprobar_pago_sobres():
             
             print(f"✅ Pago #{id_pago} marcado como 'aprobado'")
             
-            # =================================================================
-            # PASO 2: ASIGNAR BARAJITAS (`Cartas` y `Coleccion_Usuario`)
-            # =================================================================
+            # PASO 2: Asignar barajitas
             if usuario_id and str(usuario_id).lower() not in ['anonimo', 'undefined', 'null', '']:
                 id_limpio = str(usuario_id).replace('@', '').strip().lower()
                 print(f"🎯 Asignando barajitas a: @{id_limpio}")
@@ -345,16 +332,14 @@ def aprobar_pago_sobres():
             else:
                 print("⚠️ Usuario no válido, omitiendo asignación de barajitas")
             
-            # =================================================================
-            # PASO 3: NOTIFICACIÓN TELEGRAM (EDICIÓN DEL MENSAJE ESPECÍFICO)
-            # =================================================================
+            # PASO 3: Notificación Telegram
             if bot and TELEGRAM_BOT_TOKEN:
                 try:
                     chat_objetivo = telegram_chat_id if telegram_chat_id else ID_CANAL_ALERTAS
                     if isinstance(chat_objetivo, str):
                         chat_objetivo = chat_objetivo.strip()
 
-                    if chat_objetivo and telegram_message_id and str(telegram_message_id).strip() not in ['', 'undefined', 'null']:
+                    if chat_objetivo and telegram_message_id and str(telegram_message_id).strip() not in ['', 'undefined', 'null', 'None']:
                         texto_actualizado = (
                             f"🛒 *[PAGO APROBADO DESDE LA WEB]* 🌐\n\n"
                             f"👤 *Usuario:* @{usuario_id or 'Anónimo'}\n"
@@ -368,7 +353,7 @@ def aprobar_pago_sobres():
                             parse_mode="Markdown",
                             reply_markup=None
                         )
-                        print(f"✅ Mensaje específico de Telegram editado (Chat: {chat_objetivo}, Msg: {telegram_message_id})")
+                        print(f"✅ Mensaje específico de Telegram editado")
                     elif chat_objetivo:
                         mensaje_telegram = (
                             f"✅ *PAGO VERIFICADO Y APROBADO*\n\n"
@@ -380,13 +365,9 @@ def aprobar_pago_sobres():
                             mensaje_telegram, 
                             parse_mode="Markdown"
                         )
-                        print(f"✅ Notificación enviada al canal/chat de Telegram: {chat_objetivo}")
+                        print(f"✅ Notificación enviada al canal de Telegram")
                 except Exception as e_tg:
                     print(f"⚠️ Error secundario en Telegram (no bloqueante): {e_tg}")
-            
-            print(f"\n{'='*60}")
-            print(f"✅ PROCESAMIENTO COMPLETADO EXITOSAMENTE")
-            print(f"{'='*60}\n")
             
             return jsonify({
                 "success": True, 
@@ -407,23 +388,18 @@ def aprobar_pago_sobres():
             
             if "Name or service not known" in error_msg or "getaddrinfo" in error_msg:
                 if intento < max_reintentos:
-                    tiempo_espera = 5 * intento
-                    print(f"⏳ Error de red detectado. Reintentando en {tiempo_espera} segundos...")
-                    time.sleep(tiempo_espera)
+                    time.sleep(5 * intento)
                     continue
-                else:
-                    print("❌ Máximo de reintentos alcanzado")
             else:
                 break
-    
-    print(f"\n❌ PROCESAMIENTO FALLÓ DESPUÉS DE {max_reintent_o if 'max_reintent_o' in locals() else max_reintentos} INTENTOS")
+                
     return jsonify({
         "success": False, 
         "error": f"Error al procesar el pago: {ultimo_error}"
     }), 500
 
 # =============================================================================
-# 🚀 INICIALIZACIÓN DELSERVIDOR
+# 🚀 INICIALIZACIÓN DEL SERVIDOR
 # =============================================================================
 if __name__ == "__main__":
     puerto_servidor = int(os.environ.get("PORT", 5000))

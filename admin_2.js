@@ -773,7 +773,7 @@ async function generar2000CombinacionesEnLote() {
     }
 }
 
-// CARGAR TABLA DE COMPRAS (CORREGIDA Y ROBUSTA)
+// CARGAR TABLA DE COMPRAS (COMPATIBILIDAD FLEXIBLE)
 async function cargarTablaComprasBarajitas() {
     const tbody = DOM.get('tabla-compras-barajitas');
     if (!tbody) return;
@@ -798,8 +798,7 @@ async function cargarTablaComprasBarajitas() {
         logEstado(`✅ Se encontraron ${pagos.length} registros de pagos.`);
         
         tbody.innerHTML = pagos.map(pago => {
-            // Mapeo flexible adaptado a posibles diferentes nombres de columnas en la BD
-            const usuarioRaw = pago.usuario_id || pago.username || pago.usuario || 'Anónimo';
+            const usuarioRaw = pago.usuario_id || pago.username || pago.username_telegram || pago.usuario || 'Anónimo';
             const usuario = usuarioRaw.startsWith('@') ? usuarioRaw : `@${usuarioRaw}`;
             const telefono = pago.telefono_origen || pago.telefono || pago.phone || 'S/T';
             const sobres = pago.cantidad_sobres || pago.sobres || pago.cantidad || 1;
@@ -809,7 +808,7 @@ async function cargarTablaComprasBarajitas() {
             
             const telegramChatId = pago.telegram_chat_id || pago.chat_id || '';
             const telegramMessageId = pago.telegram_message_id || pago.telegram_msg_id || pago.message_id || '';
-            const usuarioIdSeguro = String(pago.usuario_id || pago.username || '').replace(/^@/, '');
+            const usuarioIdSeguro = String(pago.usuario_id || pago.username || pago.username_telegram || '').replace(/^@/, '');
             
             const esAprobado = estadoActual === 'aprobado' || estadoActual === 'completado';
             const estadoColor = esAprobado ? '#22c55e' : (estadoActual === 'rechazado' ? '#ef4444' : '#eab308');
@@ -822,7 +821,7 @@ async function cargarTablaComprasBarajitas() {
                     <td style="padding: 8px; color: ${estadoColor}; font-weight: bold;">${estadoActual.toUpperCase()}</td>
                     <td style="padding: 8px; text-align: center;">
                         ${!esAprobado 
-                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}',${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" style="background:#22c55e; border:none; color:#000; font-size:7px; padding:6px 10px; cursor:pointer; font-weight:bold; border-radius:4px;">APROBAR</button>`
+                            ? `<button onclick="aprobarPagoPendiente('${pago.id}', '${usuarioIdSeguro}', ${sobres}, '${telegramChatId}', '${telegramMessageId}', '${referencia}', '${monto}')" style="background:#22c55e; border:none; color:#000; font-size:7px; padding:6px 10px; cursor:pointer; font-weight:bold; border-radius:4px;">APROBAR</button>`
                             : `<span style="color:#22c55e; font-weight:bold;">✓ COMPLETADO</span>`
                         }
                     </td>
@@ -835,7 +834,7 @@ async function cargarTablaComprasBarajitas() {
     }
 }
 
-// APROBAR PAGO PENDIENTE (Versión robusta con reintentos)
+// APROBAR PAGO PENDIENTE
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '', referencia = '', monto = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
     
@@ -945,7 +944,7 @@ async function cargarTablaPremiosServidor() {
         
         tbody.innerHTML = reclamaciones.map(rec => `
             <tr style="border-bottom: 1px solid #222;">
-                <td style="padding: 4px; color: #00ffcc;">@${rec.usuario_id || 'anónimo'}</td>
+                <td style="padding: 4px; color: #00ffcc;">@${rec.usuario_id || rec.username_telegram || 'anónimo'}</td>
                 <td style="padding: 4px;">${rec.premio_nombre || 'Premio'}</td>
                 <td style="padding: 4px; color: ${rec.estado === 'completado' ? '#22c55e' : '#eab308'};">${(rec.estado || 'pendiente').toUpperCase()}</td>
                 <td style="padding: 4px; text-align: center;">

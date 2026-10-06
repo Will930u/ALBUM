@@ -26,7 +26,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 ID_CANAL_ALERTAS = os.environ.get("ID_CANAL_ALERTAS")
 
 # =============================================================================
-# ⚙️️ INICIALIZACIÓN DE SERVICIOS
+# ⚙ INICIALIZACIÓN DE SERVICIOS
 # =============================================================================
 def inicializar_servicios():
     """Inicializa Supabase y Telegram con validación"""
@@ -112,10 +112,14 @@ def recibir_alerta_payout_supabase():
         
         markup = types.InlineKeyboardMarkup()
         btn_aprobar = types.InlineKeyboardButton(
-            text="✅ Aprobar y Procesar Pago", 
+            text="✅ Aprobar", 
             callback_data=f"aprobar_{id_reclamo}"
         )
-        markup.add(btn_aprobar)
+        btn_rechazar = types.InlineKeyboardButton(
+            text="❌ Rechazar", 
+            callback_data=f"rechazar_{id_reclamo}"
+        )
+        markup.row(btn_aprobar, btn_rechazar)
         
         if bot and ID_CANAL_ALERTAS:
             sent_msg = bot.send_message(
@@ -220,10 +224,44 @@ if bot:
                 bot.answer_callback_query(call.id, "✅ ¡Pago aprobado y procesado con éxito!")
                 print(f"✅ Botón de Telegram procesado para el pago #{id_pago}")
                 
+            elif data.startswith("rechazar_"):
+                id_pago = data.replace("rechazar_", "").strip()
+                pago_info = supabase.table("pagos_pendientes").select("*").eq("id", id_pago).execute()
+                
+                if not pago_info.data:
+                    bot.answer_callback_query(call.id, "⚠️ El pago no existe o ya fue procesado.", show_alert=True)
+                    return
+                
+                pago = pago_info.data[0]
+                usuario_id = pago.get('usuario_id', 'Anónimo')
+                referencia = pago.get('referencia', 'N/A')
+                
+                supabase.table("pagos_pendientes").update({
+                    "estado": "rechazado",
+                    "motivo_rechazo": "La referencia bancaria no concuerda con ningún registro registrado."
+                }).eq("id", id_pago).execute()
+                
+                texto_actualizado = (
+                    f"❌ *[PAGO RECHAZADO DESDE TELEGRAM]* ❌\n\n"
+                    f"👤 *Usuario:* @{usuario_id}\n"
+                    f"📌 *Referencia:* {referencia}\n"
+                    f"⚠️ *Motivo:* La referencia bancaria proporcionada no concuerda con los registros recibidos."
+                )
+                
+                bot.edit_message_text(
+                    chat_id=msg.chat.id,
+                    message_id=msg.message_id,
+                    text=texto_actualizado,
+                    parse_mode="Markdown",
+                    reply_markup=None
+                )
+                
+                bot.answer_callback_query(call.id, "❌ Pago rechazado correctamente.")
+                
         except Exception as e:
             print(f"❌ Error en callback_query de Telegram: {e}")
             try:
-                bot.answer_callback_query(call.id, "❌ Ocurrió un error al procesar el pago.", show_alert=True)
+                bot.answer_callback_query(call.id, "❌ Ocurrió un error al procesar la acción.", show_alert=True)
             except:
                 pass
 
@@ -397,6 +435,67 @@ def aprobar_pago_sobres():
         "success": False, 
         "error": f"Error al procesar el pago: {ultimo_error}"
     }), 500
+
+# =============================================================================
+# 🛑 NUEVO ENDPOINT: RECHAZAR PAGOS DESDE LA CONSOLA WEB
+# =============================================================================
+@app.route('/api/rechazar-pago', methods=['POST', 'OPTIONS'])
+def rechazar_pago_sobres():
+    """Rechaza un pago pendiente notificando la incoherencia de la referencia bancaria."""
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "OK"}), 200
+    
+    try:
+        datos = request.get_json(force=True, silent=True) or {}
+        id_pago_raw = datos.get('idPago')
+        usuario_id = datos.get('usuarioId', 'Anónimo')
+        motivo = datos.get('motivo', 'La referencia bancaria proporcionada no concuerda con ningún registro validado.')
+        telegram_chat_id = datos.get('telegramChatId')
+        telegram_message_id = datos.get('telegramMessageId')
+        
+        if not id_pago_raw:
+            return jsonify({"success": False, "error": "Falta el ID del pago"}), 400
+
+        id_pago = str(id_pago_raw).strip()
+        if id_pago.isdigit():
+            id_pago = int(id_pago)
+
+        # 1. Actualizar estado en Supabase
+        supabase.table("pagos_pendientes").update({
+            "estado": "rechazado",
+            "motivo_rechazo": motivo
+        }).eq("id", id_pago).execute()
+
+        # 2. Actualizar mensaje en Telegram
+        if bot and TELEGRAM_BOT_TOKEN:
+            try:
+                chat_objetivo = telegram_chat_id if telegram_chat_id else ID_CANAL_ALERTAS
+                if chat_objetivo and telegram_message_id and str(telegram_message_id).strip() not in ['', 'undefined', 'null', 'None']:
+                    texto_rechazo = (
+                        f"❌ *[PAGO RECHAZADO DESDE LA WEB]* ❌\n\n"
+                        f"👤 *Usuario:* @{usuario_id}\n"
+                        f"⚠️ *Motivo:* {motivo}\n"
+                        f"📌 *Estado:* RECHAZADO"
+                    )
+                    bot.edit_message_text(
+                        chat_id=chat_objetivo,
+                        message_id=int(telegram_message_id),
+                        text=texto_rechazo,
+                        parse_mode="Markdown",
+                        reply_markup=None
+                    )
+            except Exception as e_tg:
+                print(f"⚠️ Error actualizando mensaje de rechazo en Telegram: {e_tg}")
+
+        return jsonify({
+            "success": True,
+            "message": "Pago rechazado correctamente",
+            "motivo": motivo
+        }), 200
+
+    except Exception as e:
+        print(f"❌ Error al rechazar pago: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # =============================================================================
 # 🚀 INICIALIZACIÓN DEL SERVIDOR

@@ -179,12 +179,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const totalBsCalculado = parseFloat((cantidadSobres * PRECIO_SOBRE_USD * TASA_BCV).toFixed(2));
 
             if (!ref || ref.length < 6) {
-                alert("⚠️️ Por favor ingresa al menos los últimos 6 dígitos de la referencia.");
+                alert("⚠ Por favor ingresa al menos los últimos 6 dígitos de la referencia.");
                 return;
             }
 
             if (!telf) {
-                alert("⚠️ Por favor ingresa el número de teléfono desde donde realizaste el pago.");
+                alert("⚠️️ Por favor ingresa el número de teléfono desde donde realizaste el pago.");
                 return;
             }
 
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Notificar reporte de compra al bot de Telegram a través de Render para aprobación
                 try {
                     console.log("📡 Enviando reporte de compra con solicitud de aprobación al servidor Render/Telegram...");
-                    await fetch(`${RENDER_SERVER_URL}/api/notificar-compra`, {
+                    const respuestaBackend = await fetch(`${RENDER_SERVER_URL}/api/notificar-compra`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -235,6 +235,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                             telefonoOrigen: telf
                         })
                     });
+
+                    const resJson = await respuestaBackend.json();
+                    if (resJson.success) {
+                        console.log("✅ Notificación enviada con éxito al Bot de Telegram.");
+                    } else {
+                        console.warn("⚠️ El servidor backend retornó una advertencia:", resJson.error);
+                    }
+
                 } catch (errNotif) {
                     console.warn("⚠️ No se pudo enviar la notificación de aprobación a Telegram mediante Render:", errNotif);
                 }

@@ -1,9 +1,6 @@
 // =============================================================================
-// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA & APPS SCRIPT)
+// 🎮 TIENDA Y RETIROS RETRO ARCADE - CONTROLADOR JS (TASA DINÁMICA & SUPABASE DIRECTO)
 // =============================================================================
-
-// URL oficial de tu aplicación web en Google Apps Script
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDOleGg11pEqPwnpSrBvO4U6kIOyRh1D_WGnZ9BJXkMFfKDTxbzFbecFTG58cCBV6M/exec";
 
 const PRECIO_SOBRE_USD = 0.62;
 const API_TASA_URL = 'https://dolarapi.com/v1/dolares/oficial';
@@ -193,29 +190,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Capturar ID dinámico real
             const usuarioId = obtenerTelegramUserId();
 
-            const datosPago = {
-                action: "send_payment",
-                tipo: "tienda",
-                usuarioId: usuarioId,
-                referencia: ref,
-                telfOrigen: telf,
-                totalBS: totalBsCalculado,
-                qty: cantidadSobres
-            };
-
             try {
-                console.log("📡 Enviando reporte de pago a Google Apps Script...", datosPago);
+                console.log("📡 Guardando pago en Supabase (pagos_pendientes)...");
 
-                await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8'
-                    },
-                    body: JSON.stringify(datosPago)
-                });
+                // Inserción directa en la tabla de Supabase
+                const { data, error } = await supabase
+                    .from('pagos_pendientes')
+                    .insert([
+                        {
+                            usuario_id: usuarioId,
+                            referencia: ref,
+                            monto: totalBsCalculado,
+                            cantidad_sobres: cantidadSobres,
+                            telefono_origen: telf,
+                            tipo: 'tienda',
+                            estado: 'pendiente'
+                        }
+                    ]);
 
-                alert(`🚀 ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu compra se acreditará automáticamente apenas el banco confirme la transacción.`);
+                if (error) {
+                    throw error;
+                }
+
+                alert(`🚀 ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu pago ha sido registrado y está en espera de revisión por el administrador.`);
                 
                 if (modalPm) modalPm.style.display = 'none';
                 formReportePm.reset();
@@ -223,8 +220,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 actualizarTotales();
 
             } catch (err) {
-                console.error("Error al enviar reporte a Apps Script:", err);
-                alert("❌ ERROR AL ENVIAR REPORTE: Revisa la URL de Apps Script o tu conexión de red.");
+                console.error("Error al registrar pago en Supabase:", err);
+                alert("❌ ERROR AL REGISTRAR EL PAGO: Inténtalo de nuevo o verifica tu conexión.");
             }
         });
     }

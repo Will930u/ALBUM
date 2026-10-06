@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const totalBsCalculado = parseFloat((cantidadSobres * PRECIO_SOBRE_USD * TASA_BCV).toFixed(2));
 
             if (!ref || ref.length < 6) {
-                alert("⚠️ Por favor ingresa al menos los últimos 6 dígitos de la referencia.");
+                alert("⚠️️ Por favor ingresa al menos los últimos 6 dígitos de la referencia.");
                 return;
             }
 
@@ -207,21 +207,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                             tipo: 'tienda',
                             estado: 'pendiente'
                         }
-                    ]);
+                    ])
+                    .select();
 
                 if (error) {
                     throw error;
                 }
 
-                // Notificar reporte de compra al bot de Telegram a través de Render
+                // Obtener ID insertado para coordinar la aprobación interactiva
+                const pagoRegistrado = data && data.length > 0 ? data[0] : null;
+                const pagoId = pagoRegistrado ? pagoRegistrado.id : null;
+
+                // Notificar reporte de compra al bot de Telegram a través de Render para aprobación
                 try {
-                    console.log("📡 Enviando reporte de compra al servidor Render/Telegram...");
+                    console.log("📡 Enviando reporte de compra con solicitud de aprobación al servidor Render/Telegram...");
                     await fetch(`${RENDER_SERVER_URL}/api/notificar-compra`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
+                            pagoId: pagoId,
                             usuarioId: usuarioId,
                             referencia: ref,
                             monto: totalBsCalculado,
@@ -230,7 +236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         })
                     });
                 } catch (errNotif) {
-                    console.warn("⚠️ No se pudo enviar la notificación directa a Telegram mediante Render:", errNotif);
+                    console.warn("⚠️ No se pudo enviar la notificación de aprobación a Telegram mediante Render:", errNotif);
                 }
 
                 alert(`🚀 ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu pago ha sido registrado y está en espera de revisión por el administrador.`);
@@ -253,18 +259,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 function conmutarFormularioRetiro(metodo) {
     const bloqueUsdt = document.getElementById('bloque-datos-usdt');
     const bloquePm = document.getElementById('bloque-datos-pm');
-    const btnUsdt = document.getElementById('btn-select-usdt');
-    const btnPm = document.getElementById('btn-select-pm');
+    const btnSelectUsdt = document.getElementById('btn-select-usdt');
+    const btnSelectPm = document.getElementById('btn-select-pm');
 
     if (metodo === 'USDT') {
         if (bloqueUsdt) bloqueUsdt.style.display = 'block';
         if (bloquePm) bloquePm.style.display = 'none';
-        if (btnUsdt) btnUsdt.classList.add('activo');
-        if (btnPm) btnPm.classList.remove('activo');
+        if (btnSelectUsdt) btnSelectUsdt.classList.add('activo');
+        if (btnSelectPm) btnSelectPm.classList.remove('activo');
     } else if (metodo === 'PM') {
         if (bloqueUsdt) bloqueUsdt.style.display = 'none';
         if (bloquePm) bloquePm.style.display = 'block';
-        if (btnPm) btnPm.classList.add('activo');
-        if (btnUsdt) btnUsdt.classList.remove('activo');
+        if (btnSelectPm) btnSelectPm.classList.add('activo');
+        if (btnSelectUsdt) btnSelectUsdt.classList.remove('activo');
     }
 }

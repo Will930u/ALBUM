@@ -161,7 +161,21 @@
         <button class="btn-nav activo" onclick="window.location.href='tienda.html'">🛒 TIENDA</button>
     </div>
 
+    <!-- 1. Librería CDN de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Inicialización explícita del cliente Supabase -->
+    <script>
+        const SUPABASE_URL = "https://tu-proyecto.supabase.co"; // Reemplazar con tu URL de Supabase
+        const SUPABASE_KEY = "tu-anon-key-aqui";              // Reemplazar con tu anon/public key
+
+        // Inicializar el cliente Supabase globalmente
+        if (typeof supabase !== 'undefined' && supabase.createClient) {
+            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+    </script>
+
+    <!-- 3. Controlador de la Tienda -->
     <script src="tienda-control.js"></script>
 
 </body>

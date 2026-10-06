@@ -4,6 +4,7 @@
 
 const PRECIO_SOBRE_USD = 0.62;
 const API_TASA_URL = 'https://dolarapi.com/v1/dolares/oficial';
+const RENDER_SERVER_URL = 'https://juego-barajitas.onrender.com';
 let TASA_BCV = 833.00;
 
 /**
@@ -210,6 +211,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (error) {
                     throw error;
+                }
+
+                // Notificar reporte de compra al bot de Telegram a través de Render
+                try {
+                    console.log("📡 Enviando reporte de compra al servidor Render/Telegram...");
+                    await fetch(`${RENDER_SERVER_URL}/api/notificar-compra`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            usuarioId: usuarioId,
+                            referencia: ref,
+                            monto: totalBsCalculado,
+                            cantidadSobres: cantidadSobres,
+                            telefonoOrigen: telf
+                        })
+                    });
+                } catch (errNotif) {
+                    console.warn("⚠️ No se pudo enviar la notificación directa a Telegram mediante Render:", errNotif);
                 }
 
                 alert(`🚀 ¡REPORTE ENVIADO CON ÉXITO!\n\nReferencia: ${ref}\nTotal: ${totalBsCalculado} Bs.\n\nTu pago ha sido registrado y está en espera de revisión por el administrador.`);

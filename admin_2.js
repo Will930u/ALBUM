@@ -834,10 +834,9 @@ async function cargarTablaComprasBarajitas() {
     }
 }
 
-// 🛒 NUEVA FUNCIÓN: REGISTRAR COMPRA DESDE LA TIENDA HACIA SUPABASE
+// 🛒 REGISTRAR COMPRA DESDE LA TIENDA HACIA SUPABASE
 async function procesarCompraTienda() {
     try {
-        // Capturar los valores de la UI de la tienda (ajusta los IDs o selectores según tus inputs HTML de compra)
         const cantidadSobres = parseInt(DOM.findInput(['cantidad-sobres', 'sobres-input', 'num-sobres'])?.value, 10) || 1;
         const referenciaPago = DOM.findInput(['referencia-pago', 'ref-input', 'nro-referencia'])?.value?.trim();
         const telefonoOrigen = DOM.findInput(['telefono-origen', 'telefono-input', 'phone'])?.value?.trim() || '04129830982';
@@ -872,7 +871,6 @@ async function procesarCompraTienda() {
         alert("🎉 ¡Compra registrada con éxito! Quedó en estado pendiente para su verificación.");
         logEstado(`✅ Pago con referencia ${referenciaPago} guardado en 'pagos_pendientes'.`);
         
-        // Actualizar tablas del panel si están visibles
         await cargarTablaComprasBarajitas();
         await cargarMetricasServidor();
 
@@ -882,7 +880,7 @@ async function procesarCompraTienda() {
     }
 }
 
-// APROBAR PAGO PENDIENTE
+// APROBAR PAGO PENDIENTE (Delegado al Backend Render)
 async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramChatId = '', telegramMessageId = '', referencia = '', monto = '') {
     if (!confirm(`¿Deseas aprobar este pago y entregar los sobres/barajitas correspondientes?`)) return;
     
@@ -915,7 +913,7 @@ async function aprobarPagoPendiente(idPago, usuarioId, cantidadSobres, telegramC
             const resultado = await respuesta.json();
             
             if (resultado.success) {
-                alert(`✅ ¡Pago aprobado, barajitas acreditadas y Telegram notificado con éxito!`);
+                alert(`✅ ¡Pago aprobado, barajitas acreditadas y Telegram notificado con éxito desde Render!`);
                 logEstado(`✅ Pago #${idPago} procesado exitosamente por el servidor.`);
                 await cargarTablaComprasBarajitas();
                 await cargarMetricasServidor();
@@ -1063,9 +1061,6 @@ function configurarEventosUI() {
     DOM.get('btn-modo-canvas')?.addEventListener('click', () => seleccionarModoRender('canvas'));
     DOM.get('btn-modo-ia')?.addEventListener('click', () => seleccionarModoRender('ia'));
     
-    // Vinculación automática del botón "COMPRAR AHORA" de la tienda si existe en el DOM
-    const btnComprarAhora = document.querySelector('button:contains("COMPRAR AHORA"), #btn-comprar-ahora, .btn-comprar');
-    // Como alternativa universal buscamos por texto o clase común:
     document.querySelectorAll('button').forEach(btn => {
         if (btn.textContent.trim().toUpperCase() === 'COMPRAR AHORA') {
             btn.addEventListener('click', (e) => {

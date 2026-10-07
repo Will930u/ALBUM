@@ -15,7 +15,7 @@ from supabase import create_client, Client
 # 🔧 CONFIGURACIÓN DE LA APLICACIÓN
 # =============================================================================
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "https://will930u.github.io"}})
+CORS(app, origins=["https://will930u.github.io"], supports_credentials=True)
 
 # =============================================================================
 # 🔐 CONFIGURACIÓN SEGURA: VARIABLES DE ENTORNO EN RENDER

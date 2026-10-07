@@ -75,6 +75,74 @@ def verificar_servidor_activo():
     }), 200
 
 # =============================================================================
+# 🛍️ NUEVO ENDPOINT: NOTIFICAR COMPRA DESDE TIENDA EN FRONTEND
+# =============================================================================
+@app.route('/api/notificar-compra', methods=['POST', 'OPTIONS'])
+def notificar_compra():
+    """Recibe reportes de compras realizadas en la web y notifica a Telegram."""
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "OK"}), 200
+
+    try:
+        datos = request.get_json(force=True, silent=True) or {}
+        print(f"📨 Reporte de compra recibido: {datos}")
+
+        id_pago = datos.get('idPago', datos.get('id', 'N/A'))
+        usuario_id = datos.get('usuarioId', datos.get('usuario', 'Anónimo'))
+        sobres = datos.get('cantidadSobres', datos.get('sobres', 1))
+        monto_usd = datos.get('montoUsd', datos.get('monto_usd', '0.00'))
+        monto_bs = datos.get('montoBs', datos.get('monto_bs', '0.00'))
+        metodo_pago = datos.get('metodoPago', datos.get('metodo', 'Pago Móvil'))
+        referencia = datos.get('referencia', 'N/A')
+
+        mensaje_telegram = (
+            f"🛒 *¡NUEVA SOLICITUD DE COMPRA!* 🛒\n\n"
+            f"👤 *Usuario:* @{usuario_id}\n"
+            f"📦 *Sobres Solicitados:* {sobres}\n"
+            f"💵 *Monto Total:* ${monto_usd} USD ({monto_bs} Bs)\n"
+            f"💳 *Método:* {metodo_pago}\n"
+            f"📌 *Referencia:* `{referencia}`\n"
+            f"🆔 *ID Pago:* `{id_pago}`"
+        )
+
+        markup = types.InlineKeyboardMarkup()
+        btn_aprobar = types.InlineKeyboardButton(
+            text="✅ Aprobar", 
+            callback_data=f"aprobar_{id_pago}"
+        )
+        btn_rechazar = types.InlineKeyboardButton(
+            text="❌ Rechazar", 
+            callback_data=f"rechazar_{id_pago}"
+        )
+        markup.row(btn_aprobar, btn_rechazar)
+
+        if bot and ID_CANAL_ALERTAS:
+            sent_msg = bot.send_message(
+                ID_CANAL_ALERTAS,
+                mensaje_telegram,
+                parse_mode="Markdown",
+                reply_markup=markup
+            )
+
+            if supabase and sent_msg and id_pago != 'N/A':
+                try:
+                    supabase.table("pagos_pendientes").update({
+                        "telegram_message_id": sent_msg.message_id,
+                        "telegram_chat_id": sent_msg.chat.id
+                    }).eq("id", id_pago).execute()
+                except Exception as db_err:
+                    print(f"⚠️ No se pudieron guardar los datos del mensaje de Telegram en BD: {db_err}")
+
+        return jsonify({
+            "success": True,
+            "message": "Notificación enviada con éxito a Telegram"
+        }), 200
+
+    except Exception as e:
+        print(f"❌ Error al procesar notificación de compra: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# =============================================================================
 # 🏆 WEBHOOK DE PAYOUTS (Reclamos de Recompensas)
 # =============================================================================
 @app.route('/webhook_payout', methods=['POST'])
